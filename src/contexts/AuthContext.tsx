@@ -183,20 +183,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/users/${user.id}`, {
+      const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/users/${user.id}/password`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          password: newPassword,
-          mustChangePassword: false
+          newPassword: newPassword
         })
       });
 
       if (response.ok) {
-        const updatedUser = { ...user, password: newPassword, mustChangePassword: false };
+        const updatedUser = { ...user, mustChangePassword: false };
         setUser(updatedUser);
         setIsAuthenticated(true);
         localStorage.setItem('auth_user', JSON.stringify(updatedUser));

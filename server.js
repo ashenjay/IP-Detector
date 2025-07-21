@@ -244,8 +244,8 @@ app.post('/api/users', authenticateToken, async (req, res) => {
     }
     
     const result = await pool.query(
-      'INSERT INTO users (username, email, password, role, assigned_categories, created_by, is_active) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [username.trim(), email.trim(), password, role, assignedCategories || [], req.user.username, true]
+      'INSERT INTO users (username, email, password, role, assigned_categories, created_by, is_active, must_change_password) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [username.trim(), email.trim(), password, role, assignedCategories || [], req.user.username, true, true]
     );
     
     console.log('User created successfully:', result.rows[0].username);
@@ -318,6 +318,36 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Update user error:', error);
     res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+// Add password change endpoint
+app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+    
+    // Users can only change their own password, or superadmin can change any
+    if (req.user.userId !== id && req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+    
+    console.log('Changing password for user:', id);
+    
+    await pool.query(
+      'UPDATE users SET password = $1, must_change_password = false WHERE id = $2',
+      [newPassword, id]
+    );
+    
+    console.log('Password changed successfully');
+    res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ error: 'Failed to change password' });
   }
 });
 
