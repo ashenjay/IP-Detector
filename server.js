@@ -727,6 +727,8 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
     // Transform the data to match frontend expectations
     const transformedData = result.rows.map(row => ({
       console.log('🔍 Sample database row:', {
+      }
+      )
       ip: row.ip,
       type: row.type,
       category: row.category_id, // Use category_id for consistency
@@ -743,6 +745,8 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
     console.log('Transformed data sample:', transformedData[0]);
     res.json(transformedData);
       console.log('🔍 Sample transformed data:', {
+      }
+      )
     console.error('Get IP entries error:', error);
     res.status(500).json({ error: 'Failed to get IP entries' });
   }
