@@ -56,6 +56,15 @@ app.use((req, res, next) => {
 
 // Basic health check route
 app.get('/', (req, res) => {
+  // Serve React app for root route
+  console.log('Serving React app for root route');
+  const indexPath = path.join(__dirname, 'dist', 'index.html');
+  console.log('📄 Serving index.html from:', indexPath);
+  res.sendFile(indexPath);
+});
+
+// API health check
+app.get('/api/health', (req, res) => {
   res.json({ 
     message: 'Abuse IP Detector Server',
     status: 'running',
@@ -64,23 +73,6 @@ app.get('/', (req, res) => {
   });
 });
 
-// API health check
-app.get('/api', (req, res) => {
-  res.json({ 
-    message: 'Abuse IP Detector API',
-    status: 'running',
-    timestamp: new Date().toISOString()
-  });
-});
-
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    database: 'connected',
-    environment: process.env.NODE_ENV 
-  });
-});
 
 // JWT middleware
 const authenticateToken = (req, res, next) => {
