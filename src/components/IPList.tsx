@@ -580,14 +580,17 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           <User className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm text-gray-600">{entry.addedBy}</span>
+                          <span className="text-sm text-gray-600">{entry.addedBy || 'Unknown'}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           <Calendar className="h-4 w-4 text-gray-400" />
                           <span className="text-sm text-gray-600">
-                            {entry.dateAdded.toLocaleDateString()}
+                            {entry.dateAdded instanceof Date && !isNaN(entry.dateAdded.getTime()) 
+                              ? entry.dateAdded.toLocaleDateString() + ' ' + entry.dateAdded.toLocaleTimeString()
+                              : new Date(entry.dateAdded).toLocaleDateString() + ' ' + new Date(entry.dateAdded).toLocaleTimeString()
+                            }
                           </span>
                         </div>
                       </td>

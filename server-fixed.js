@@ -750,9 +750,9 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
       type: row.type,
       category: row.category_id, // Use category_id for consistency
       description: row.description,
-      addedBy: row.added_by,
-      dateAdded: row.date_added,
-      lastModified: row.last_modified,
+      addedBy: row.added_by || 'Unknown',
+      dateAdded: row.date_added || new Date().toISOString(),
+      lastModified: row.last_modified || new Date().toISOString(),
       source: row.source,
       sourceCategory: row.source_category,
       reputation: row.reputation,

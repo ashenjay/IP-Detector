@@ -30,8 +30,8 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         const data = await response.json();
         const formattedEntries = data.map((entry: any) => ({
           ...entry,
-          dateAdded: new Date(entry.date_added),
-          lastModified: new Date(entry.last_modified),
+          dateAdded: entry.date_added ? new Date(entry.date_added) : new Date(),
+          lastModified: entry.last_modified ? new Date(entry.last_modified) : new Date(),
           addedBy: entry.added_by,
           sourceCategory: entry.source_category,
           vtReputation: entry.vt_reputation
@@ -57,7 +57,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         const data = await response.json();
         const formattedEntries = data.map((entry: any) => ({
           ...entry,
-          dateAdded: new Date(entry.date_added),
+          dateAdded: entry.date_added ? new Date(entry.date_added) : new Date(),
           addedBy: entry.added_by
         }));
         setWhitelistEntries(formattedEntries);
