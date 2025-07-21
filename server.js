@@ -514,6 +514,70 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
   }
 });
 
+app.delete('/api/categories/:id', authenticateToken, async (req, res) => {
+  try {
+    console.log('Delete category request for ID:', req.params.id);
+    console.log('Request user role:', req.user.role);
+    
+    if (req.user.role !== 'superadmin') {
+      console.log('Access denied: not superadmin');
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const { id } = req.params;
+    const { migrateTo } = req.query;
+    
+    console.log('Deleting category:', id, 'migrateTo:', migrateTo);
+    
+    // Check if category exists and if it's a default category
+    const categoryCheck = await pool.query('SELECT id, name, is_default FROM categories WHERE id = $1', [id]);
+    if (categoryCheck.rows.length === 0) {
+      console.log('Category not found:', id);
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    
+    const categoryToDelete = categoryCheck.rows[0];
+    console.log('Category to delete:', categoryToDelete);
+    
+    // Prevent deleting default categories
+    if (categoryToDelete.is_default) {
+      console.log('Cannot delete default category:', categoryToDelete.name);
+      return res.status(400).json({ error: 'Cannot delete default categories' });
+    }
+    
+    // If migration target is specified, migrate IP entries
+    if (migrateTo) {
+      console.log('Migrating IP entries to category:', migrateTo);
+      const migrateResult = await pool.query(
+        'UPDATE ip_entries SET category_id = $1 WHERE category_id = $2',
+        [migrateTo, id]
+      );
+      console.log('Migrated IP entries:', migrateResult.rowCount);
+    } else {
+      // Delete all IP entries in this category
+      console.log('Deleting IP entries in category:', id);
+      const deleteIpsResult = await pool.query('DELETE FROM ip_entries WHERE category_id = $1', [id]);
+      console.log('Deleted IP entries:', deleteIpsResult.rowCount);
+    }
+    
+    // Delete the category
+    const result = await pool.query('DELETE FROM categories WHERE id = $1', [id]);
+    console.log('Delete category result - rows affected:', result.rowCount);
+    
+    if (result.rowCount === 0) {
+      console.log('No category deleted');
+      return res.status(404).json({ error: 'Category not found or already deleted' });
+    }
+    
+    console.log('Category deleted successfully:', categoryToDelete.name);
+    res.json({ message: 'Category deleted successfully' });
+  } catch (error) {
+    console.error('Delete category error:', error);
+    console.error('Error details:', error.message);
+    res.status(500).json({ error: 'Failed to delete category' });
+  }
+});
+
 // IP Entries
 app.post('/api/ip-entries', authenticateToken, async (req, res) => {
   try {

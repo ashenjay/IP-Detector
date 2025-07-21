@@ -220,7 +220,16 @@ const UserManagement: React.FC = () => {
   };
 
   const handleDeleteUser = async (userId: string, username: string) => {
-    if (!window.confirm(`Are you sure you want to delete user "${username}"?\n\nThis action cannot be undone.`)) return;
+    // Create a custom centered confirmation dialog
+    const confirmed = await showConfirmDialog(
+      'Delete User Confirmation',
+      `Are you sure you want to delete user "${username}"?`,
+      'This action cannot be undone.',
+      'Delete User',
+      'Cancel'
+    );
+    
+    if (!confirmed) return;
 
     console.log('Deleting user:', { userId, username });
     setLoading(true);
@@ -257,6 +266,63 @@ const UserManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Custom confirmation dialog function
+  const showConfirmDialog = (title: string, message: string, subtitle: string, confirmText: string, cancelText: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const dialog = document.createElement('div');
+      dialog.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+      dialog.innerHTML = `
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 transform transition-all">
+          <div class="text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+              <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">${title}</h3>
+            <p class="text-gray-600 mb-2">${message}</p>
+            <p class="text-sm text-gray-500 mb-6">${subtitle}</p>
+            <div class="flex space-x-3">
+              <button id="confirm-btn" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
+                ${confirmText}
+              </button>
+              <button id="cancel-btn" class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+                ${cancelText}
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(dialog);
+      
+      const confirmBtn = dialog.querySelector('#confirm-btn');
+      const cancelBtn = dialog.querySelector('#cancel-btn');
+      
+      const cleanup = () => {
+        document.body.removeChild(dialog);
+      };
+      
+      confirmBtn?.addEventListener('click', () => {
+        cleanup();
+        resolve(true);
+      });
+      
+      cancelBtn?.addEventListener('click', () => {
+        cleanup();
+        resolve(false);
+      });
+      
+      // Close on background click
+      dialog.addEventListener('click', (e) => {
+        if (e.target === dialog) {
+          cleanup();
+          resolve(false);
+        }
+      });
+    });
   };
 
   const startEdit = (userToEdit: any) => {

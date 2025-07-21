@@ -106,9 +106,14 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const deleteCategory = async (categoryId: string, migrateTo?: string): Promise<boolean> => {
     if (!user || user.role !== 'superadmin' || !user.isActive) return false;
     
+    console.log('Deleting category:', categoryId, 'migrateTo:', migrateTo);
+    
     try {
       const token = localStorage.getItem('auth_token');
       const url = migrateTo ? `http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/categories/${categoryId}?migrateTo=${migrateTo}` : `http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/categories/${categoryId}`;
+      
+      console.log('Making delete request to:', url);
+      
       const response = await fetch(url, {
         method: 'DELETE',
         headers: {
@@ -117,7 +122,16 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       });
 
+      console.log('Delete category response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Delete category failed:', errorData);
+        return false;
+      }
+      
       if (response.ok) {
+        console.log('Category deleted successfully, refreshing categories');
         await fetchCategories();
         return true;
       }
