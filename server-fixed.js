@@ -743,6 +743,16 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
     const result = await pool.query(query, params);
     console.log('Found IP entries:', result.rows.length);
     
+    // Log the first entry to debug
+    if (result.rows.length > 0) {
+      console.log('Sample database row:', {
+        id: result.rows[0].id,
+        ip: result.rows[0].ip,
+        added_by: result.rows[0].added_by,
+        date_added: result.rows[0].date_added
+      });
+    }
+    
     // Transform the data to match frontend expectations
     const transformedData = result.rows.map(row => ({
       id: row.id,
@@ -750,7 +760,7 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
       type: row.type,
       category: row.category_id, // Use category_id for consistency
       description: row.description,
-      addedBy: row.added_by || 'Unknown',
+      addedBy: row.added_by || 'system',
       dateAdded: row.date_added || new Date().toISOString(),
       lastModified: row.last_modified || new Date().toISOString(),
       source: row.source,
@@ -759,7 +769,16 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
       vtReputation: row.vt_reputation
     }));
     
-    console.log('Transformed data sample:', transformedData[0]);
+    // Log the transformed data to debug
+    if (transformedData.length > 0) {
+      console.log('Sample transformed data:', {
+        id: transformedData[0].id,
+        ip: transformedData[0].ip,
+        addedBy: transformedData[0].addedBy,
+        dateAdded: transformedData[0].dateAdded
+      });
+    }
+    
     res.json(transformedData);
   } catch (error) {
     console.error('Get IP entries error:', error);
