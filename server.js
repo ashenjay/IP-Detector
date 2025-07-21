@@ -207,6 +207,120 @@ app.get('/api/users', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/users', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const { username, email, role, assignedCategories, password } = req.body;
+    
+    if (!username || !email || !role || !password) {
+      return res.status(400).json({ error: 'Username, email, role, and password are required' });
+    }
+    
+    console.log('Creating user with data:', { username: username.trim(), email: email.trim(), role });
+    
+    // Check if username already exists (case-insensitive)
+    const existingUser = await pool.query(
+      'SELECT id FROM users WHERE LOWER(TRIM(username)) = LOWER(TRIM($1))',
+      [username]
+    );
+    
+    if (existingUser.rows.length > 0) {
+      console.log('Username already exists:', username.trim());
+      return res.status(400).json({ error: 'Username already exists' });
+    }
+    
+    // Check if email already exists (case-insensitive)
+    const existingEmail = await pool.query(
+      'SELECT id FROM users WHERE LOWER(TRIM(email)) = LOWER(TRIM($1))',
+      [email]
+    );
+    
+    if (existingEmail.rows.length > 0) {
+      console.log('Email already exists:', email.trim());
+      return res.status(400).json({ error: 'Email already exists' });
+    }
+    
+    const result = await pool.query(
+      'INSERT INTO users (username, email, password, role, assigned_categories, created_by, is_active) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [username.trim(), email.trim(), password, role, assignedCategories || [], req.user.username, true]
+    );
+    
+    console.log('User created successfully:', result.rows[0].username);
+    const { password: _, ...userResponse } = result.rows[0];
+    res.status(201).json(userResponse);
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
+app.put('/api/users/:id', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const { id } = req.params;
+    const updates = req.body;
+    
+    console.log('Updating user:', id, 'with data:', updates);
+    
+    // If updating username or email, check for duplicates (excluding current user)
+    if (updates.username) {
+      const existingUser = await pool.query(
+        'SELECT id FROM users WHERE LOWER(TRIM(username)) = LOWER(TRIM($1)) AND id != $2',
+        [updates.username, id]
+      );
+      
+      if (existingUser.rows.length > 0) {
+        return res.status(400).json({ error: 'Username already exists' });
+      }
+    }
+    
+    if (updates.email) {
+      const existingEmail = await pool.query(
+        'SELECT id FROM users WHERE LOWER(TRIM(email)) = LOWER(TRIM($1)) AND id != $2',
+        [updates.email, id]
+      );
+      
+      if (existingEmail.rows.length > 0) {
+        return res.status(400).json({ error: 'Email already exists' });
+      }
+    }
+    
+    const updateFields = [];
+    const updateValues = [];
+    let paramCount = 1;
+    
+    Object.keys(updates).forEach(key => {
+      if (key !== 'id') {
+        const dbKey = key === 'isActive' ? 'is_active' : 
+                     key === 'mustChangePassword' ? 'must_change_password' :
+                     key === 'assignedCategories' ? 'assigned_categories' : key;
+        updateFields.push(`${dbKey} = $${paramCount}`);
+        updateValues.push(typeof updates[key] === 'string' ? updates[key].trim() : updates[key]);
+        paramCount++;
+      }
+    });
+    
+    updateValues.push(id);
+    
+    await pool.query(
+      `UPDATE users SET ${updateFields.join(', ')} WHERE id = $${paramCount}`,
+      updateValues
+    );
+    
+    console.log('User updated successfully');
+    res.json({ message: 'User updated successfully' });
+  } catch (error) {
+    console.error('Update user error:', error);
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
 // Categories
 app.get('/api/categories', authenticateToken, async (req, res) => {
   try {
@@ -215,6 +329,97 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get categories error:', error);
     res.status(500).json({ error: 'Failed to get categories' });
+  }
+});
+
+app.post('/api/categories', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const { name, label, description, color, icon } = req.body;
+    
+    if (!name || !label || !description) {
+      return res.status(400).json({ error: 'Name, label, and description are required' });
+    }
+    
+    console.log('Creating category with data:', { name: name.trim(), label: label.trim(), description: description.trim() });
+    
+    // Check if name already exists (case-insensitive, trimmed)
+    const existingCategory = await pool.query(
+      'SELECT id FROM categories WHERE LOWER(TRIM(name)) = LOWER(TRIM($1))',
+      [name]
+    );
+    
+    if (existingCategory.rows.length > 0) {
+      console.log('Category name already exists:', name.trim());
+      return res.status(400).json({ error: 'Category name already exists' });
+    }
+    
+    const result = await pool.query(
+      'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [name.trim().toLowerCase(), label.trim(), description.trim(), color || 'bg-blue-500', icon || 'Shield', false, true, req.user.username]
+    );
+    
+    console.log('Category created successfully:', result.rows[0].name);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create category error:', error);
+    res.status(500).json({ error: 'Failed to create category' });
+  }
+});
+
+app.put('/api/categories/:id', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const { id } = req.params;
+    const updates = req.body;
+    
+    console.log('Updating category:', id, 'with data:', updates);
+    
+    // If updating name, check for duplicates (excluding current category)
+    if (updates.name) {
+      const existingCategory = await pool.query(
+        'SELECT id FROM categories WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND id != $2',
+        [updates.name, id]
+      );
+      
+      if (existingCategory.rows.length > 0) {
+        return res.status(400).json({ error: 'Category name already exists' });
+      }
+    }
+    
+    const updateFields = [];
+    const updateValues = [];
+    let paramCount = 1;
+    
+    Object.keys(updates).forEach(key => {
+      if (key !== 'id') {
+        const dbKey = key === 'isActive' ? 'is_active' : 
+                     key === 'isDefault' ? 'is_default' : 
+                     key === 'createdBy' ? 'created_by' : key;
+        updateFields.push(`${dbKey} = $${paramCount}`);
+        updateValues.push(typeof updates[key] === 'string' ? updates[key].trim() : updates[key]);
+        paramCount++;
+      }
+    });
+    
+    updateValues.push(id);
+    
+    await pool.query(
+      `UPDATE categories SET ${updateFields.join(', ')} WHERE id = $${paramCount}`,
+      updateValues
+    );
+    
+    console.log('Category updated successfully');
+    res.json({ message: 'Category updated successfully' });
+  } catch (error) {
+    console.error('Update category error:', error);
+    res.status(500).json({ error: 'Failed to update category' });
   }
 });
 
