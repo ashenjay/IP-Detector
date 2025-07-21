@@ -54,6 +54,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Trust proxy (important for Nginx reverse proxy)
+app.set('trust proxy', true);
+
 // Basic health check route
 app.get('/', (req, res) => {
   // Serve React app for root route
@@ -69,8 +72,45 @@ app.get('/api/health', (req, res) => {
     message: 'Abuse IP Detector Server',
     status: 'running',
     timestamp: new Date().toISOString(),
-    port: port
+    port: port,
+    proxy: 'nginx'
   });
+});
+
+// ✅ PUBLIC EDL ENDPOINTS - NO AUTHENTICATION REQUIRED
+app.get('/api/edl/:category', async (req, res) => {
+  try {
+    const categoryName = req.params.category;
+    console.log('🌐 PUBLIC EDL request for category:', categoryName);
+    
+    const result = await pool.query(`
+      SELECT ie.ip 
+      FROM ip_entries ie 
+      JOIN categories c ON ie.category_id = c.id 
+      WHERE (c.name = $1 OR c.id::text = $1)
+      AND ie.ip NOT IN (SELECT ip FROM whitelist)
+      ORDER BY ie.date_added DESC
+    `, [categoryName]);
+    
+    console.log('📊 EDL query result:', result.rows.length, 'IPs found for', categoryName);
+    const ips = result.rows.map(row => row.ip);
+    
+    // Set proper headers for plain text
+    res.set({
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    
+    // Return plain text - one IP per line
+    const response = ips.length > 0 ? ips.join('\n') : '# No entries found';
+    console.log('📤 Sending EDL response:', response.substring(0, 100) + '...');
+    res.send(response);
+  } catch (error) {
+    console.error('❌ Get EDL feed error:', error);
+    res.status(500).set('Content-Type', 'text/plain').send('# Error: Failed to get EDL feed');
+  }
 });
 
 // Debug endpoint to check database
@@ -79,9 +119,10 @@ app.get('/api/debug', async (req, res) => {
     // Check categories
     const categoriesResult = await pool.query('SELECT id, name, label FROM categories ORDER BY name');
     
-    // Check IP entries with category info
+    // Check IP entries with category info and added_by field
     const ipEntriesResult = await pool.query(`
-      SELECT ie.id, ie.ip, ie.category_id, c.name as category_name, c.label as category_label
+      SELECT ie.id, ie.ip, ie.category_id, ie.added_by, ie.date_added,
+             c.name as category_name, c.label as category_label
       FROM ip_entries ie 
       JOIN categories c ON ie.category_id = c.id 
       ORDER BY ie.date_added DESC 
@@ -100,6 +141,15 @@ app.get('/api/debug', async (req, res) => {
     const totalIpCount = await pool.query('SELECT COUNT(*) as count FROM ip_entries');
     const whitelistResult = await pool.query('SELECT COUNT(*) as count FROM whitelist');
     
+    // Check added_by field status
+    const addedByStatus = await pool.query(`
+      SELECT 
+        COUNT(*) as total_entries,
+        COUNT(CASE WHEN added_by IS NOT NULL AND added_by != '' THEN 1 END) as entries_with_added_by,
+        COUNT(CASE WHEN added_by IS NULL OR added_by = '' THEN 1 END) as entries_without_added_by
+      FROM ip_entries
+    `);
+    
     res.json({
       database: 'connected',
       categories: categoriesResult.rows,
@@ -107,6 +157,7 @@ app.get('/api/debug', async (req, res) => {
       countByCategory: countByCategory.rows,
       totalIPs: parseInt(totalIpCount.rows[0].count),
       totalWhitelist: parseInt(whitelistResult.rows[0].count),
+      addedByStatus: addedByStatus.rows[0],
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -159,7 +210,8 @@ app.post('/api/auth/login', async (req, res) => {
       id: user.id, 
       username: user.username, 
       role: user.role, 
-      is_active: user.is_active
+      is_active: user.is_active,
+      must_change_password: user.must_change_password
     });
     
     // Simple password comparison (in production, use bcrypt)
@@ -184,6 +236,17 @@ app.post('/api/auth/login', async (req, res) => {
     console.log('JWT token generated successfully');
     
     const { password: _, ...userResponse } = user;
+    
+    // Check if user must change password
+    if (user.must_change_password) {
+      console.log('User must change password');
+      return res.json({ 
+        user: userResponse, 
+        token,
+        forcePasswordChange: true 
+      });
+    }
+    
     console.log('Login successful for user:', username);
     res.json({ user: userResponse, token });
   } catch (error) {
@@ -375,7 +438,7 @@ app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
     
     console.log('Password change request for user ID:', id);
     console.log('Request user ID:', req.user.userId);
-    console.log('New password length:', newPassword ? newPassword.length : 'undefined');
+    console.log('New password provided:', !!newPassword);
     
     // Users can only change their own password, or superadmin can change any
     if (req.user.userId !== id && req.user.role !== 'superadmin') {
@@ -391,20 +454,21 @@ app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
     
-    console.log('Changing password for user:', id);
+    console.log('Updating password for user:', id);
     
     const result = await pool.query(
       'UPDATE users SET password = $1, must_change_password = false WHERE id = $2',
       [newPassword, id]
     );
     
-    console.log('Password changed successfully, rows affected:', result.rowCount);
+    console.log('Password update result - rows affected:', result.rowCount);
     
     if (result.rowCount === 0) {
       console.log('No user found with ID:', id);
       return res.status(404).json({ error: 'User not found' });
     }
     
+    console.log('Password changed successfully for user:', id);
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
     console.error('Change password error:', error);
@@ -518,6 +582,7 @@ app.delete('/api/categories/:id', authenticateToken, async (req, res) => {
   try {
     console.log('Delete category request for ID:', req.params.id);
     console.log('Request user role:', req.user.role);
+    console.log('Query params:', req.query);
     
     if (req.user.role !== 'superadmin') {
       console.log('Access denied: not superadmin');
@@ -545,17 +610,30 @@ app.delete('/api/categories/:id', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Cannot delete default categories' });
     }
     
+    // Check how many IP entries are in this category
+    const ipCountResult = await pool.query('SELECT COUNT(*) as count FROM ip_entries WHERE category_id = $1', [id]);
+    const ipCount = parseInt(ipCountResult.rows[0].count);
+    console.log('IP entries in category:', ipCount);
+    
     // If migration target is specified, migrate IP entries
-    if (migrateTo) {
-      console.log('Migrating IP entries to category:', migrateTo);
+    if (migrateTo && ipCount > 0) {
+      console.log('Migrating', ipCount, 'IP entries to category:', migrateTo);
+      
+      // Verify migration target exists
+      const targetCheck = await pool.query('SELECT id FROM categories WHERE id = $1', [migrateTo]);
+      if (targetCheck.rows.length === 0) {
+        console.log('Migration target category not found:', migrateTo);
+        return res.status(400).json({ error: 'Migration target category not found' });
+      }
+      
       const migrateResult = await pool.query(
         'UPDATE ip_entries SET category_id = $1 WHERE category_id = $2',
         [migrateTo, id]
       );
       console.log('Migrated IP entries:', migrateResult.rowCount);
-    } else {
+    } else if (ipCount > 0) {
       // Delete all IP entries in this category
-      console.log('Deleting IP entries in category:', id);
+      console.log('Deleting', ipCount, 'IP entries in category:', id);
       const deleteIpsResult = await pool.query('DELETE FROM ip_entries WHERE category_id = $1', [id]);
       console.log('Deleted IP entries:', deleteIpsResult.rowCount);
     }
@@ -570,11 +648,15 @@ app.delete('/api/categories/:id', authenticateToken, async (req, res) => {
     }
     
     console.log('Category deleted successfully:', categoryToDelete.name);
-    res.json({ message: 'Category deleted successfully' });
+    res.json({ 
+      message: 'Category deleted successfully',
+      migratedIPs: migrateTo ? ipCount : 0,
+      deletedIPs: migrateTo ? 0 : ipCount
+    });
   } catch (error) {
     console.error('Delete category error:', error);
     console.error('Error details:', error.message);
-    res.status(500).json({ error: 'Failed to delete category' });
+    res.status(500).json({ error: 'Failed to delete category: ' + error.message });
   }
 });
 
@@ -629,7 +711,13 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
       [ip, detectType(ip), categoryId, description || '', addedBy, 'manual']
     );
     
-    console.log('IP entry created:', result.rows[0]);
+    console.log('✅ IP entry created successfully:', {
+      id: result.rows[0].id,
+      ip: result.rows[0].ip,
+      added_by: result.rows[0].added_by,
+      date_added: result.rows[0].date_added
+    });
+    
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Add IP entry error:', error);
@@ -702,11 +790,10 @@ app.delete('/api/whitelist/:id', authenticateToken, async (req, res) => {
 app.get('/api/ip-entries', authenticateToken, async (req, res) => {
   try {
     const { category } = req.query;
-    console.log('Fetching IP entries for category:', category);
+    console.log('🔍 Fetching IP entries for category:', category);
     
     let query = `
-      SELECT ie.*, c.name as category_name, c.label as category_label, c.id as category_id,
-             COALESCE(ie.added_by, 'system') as added_by_safe
+      SELECT ie.*, c.name as category_name, c.label as category_label, c.id as category_id
       FROM ip_entries ie 
       JOIN categories c ON ie.category_id = c.id
     `;
@@ -719,34 +806,55 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
     
     query += ' ORDER BY ie.date_added DESC';
     
-        added_by_safe: result.rows[0].added_by_safe,
-    console.log('Executing query:', query, 'with params:', params);
+    console.log('🔍 Executing query:', query, 'with params:', params);
     const result = await pool.query(query, params);
-    console.log('Found IP entries:', result.rows.length);
+    console.log('🔍 Found IP entries:', result.rows.length);
+    
+    // Log the first entry to debug the added_by field
+    if (result.rows.length > 0) {
+      console.log('🔍 Sample database row:', {
+        id: result.rows[0].id,
+        ip: result.rows[0].ip,
+        added_by: result.rows[0].added_by,
+        date_added: result.rows[0].date_added,
+        added_by_type: typeof result.rows[0].added_by,
+        added_by_null: result.rows[0].added_by === null,
+        added_by_empty: result.rows[0].added_by === ''
+      });
+    }
     
     // Transform the data to match frontend expectations
-    const transformedData = result.rows.map(row => ({
-      console.log('🔍 Sample database row:', {
-      }
-      )
-      ip: row.ip,
-      type: row.type,
-      category: row.category_id, // Use category_id for consistency
-      description: row.description,
-      addedBy: row.added_by || row.added_by_safe || 'system',
-      dateAdded: row.date_added,
-      lastModified: row.last_modified,
-      source: row.source,
-      sourceCategory: row.source_category,
-      reputation: row.reputation,
-      vtReputation: row.vt_reputation
-    }));
+    const transformedData = result.rows.map(row => {
+      const addedBy = row.added_by && row.added_by.trim() !== '' ? row.added_by : 'Unknown';
+      
+      return {
+        id: row.id,
+        ip: row.ip,
+        type: row.type,
+        category: row.category_id, // Use category_id for consistency
+        description: row.description,
+        addedBy: addedBy,
+        dateAdded: row.date_added,
+        lastModified: row.last_modified,
+        source: row.source,
+        sourceCategory: row.source_category,
+        reputation: row.reputation,
+        vtReputation: row.vt_reputation
+      };
+    });
     
-    console.log('Transformed data sample:', transformedData[0]);
-    res.json(transformedData);
+    // Log the transformed data to debug
+    if (transformedData.length > 0) {
       console.log('🔍 Sample transformed data:', {
-      }
-      )
+        id: transformedData[0].id,
+        ip: transformedData[0].ip,
+        addedBy: transformedData[0].addedBy,
+        dateAdded: transformedData[0].dateAdded
+      });
+    }
+    
+    res.json(transformedData);
+  } catch (error) {
     console.error('Get IP entries error:', error);
     res.status(500).json({ error: 'Failed to get IP entries' });
   }
@@ -756,36 +864,21 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
 app.get('/api/whitelist', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM whitelist ORDER BY date_added DESC');
-    res.json(result.rows);
+    
+    // Transform whitelist data to match frontend expectations
+    const transformedData = result.rows.map(row => ({
+      id: row.id,
+      ip: row.ip,
+      type: row.type,
+      description: row.description,
+      addedBy: row.added_by && row.added_by.trim() !== '' ? row.added_by : 'Unknown',
+      dateAdded: row.date_added
+    }));
+    
+    res.json(transformedData);
   } catch (error) {
     console.error('Get whitelist error:', error);
     res.status(500).json({ error: 'Failed to get whitelist' });
-  }
-});
-
-// EDL Feed
-app.get('/api/edl/:category', async (req, res) => {
-  try {
-    const categoryName = req.params.category;
-    console.log('Fetching EDL for category:', categoryName);
-    
-    const result = await pool.query(`
-      SELECT ie.ip 
-      FROM ip_entries ie 
-      JOIN categories c ON ie.category_id = c.id 
-      WHERE (c.name = $1 OR c.id::text = $1)
-      AND ie.ip NOT IN (SELECT ip FROM whitelist)
-      ORDER BY ie.date_added DESC
-    `, [categoryName]);
-    
-    console.log('EDL query result:', result.rows.length, 'IPs found');
-    const ips = result.rows.map(row => row.ip);
-    
-    res.set('Content-Type', 'text/plain');
-    res.send(ips.join('\n'));
-  } catch (error) {
-    console.error('Get EDL feed error:', error);
-    res.status(500).json({ error: 'Failed to get EDL feed' });
   }
 });
 
@@ -807,12 +900,13 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start server
+// Start server - BIND TO LOCALHOST ONLY for security
 app.listen(port, '127.0.0.1', () => {
   console.log(`🚀 Server running on localhost:${port} (internal only)`);
   console.log(`🔒 External access via Nginx reverse proxy`);
   console.log(`📡 API: http://localhost:${port}/api`);
   console.log(`📁 Serving static files from: ${path.join(__dirname, 'dist')}`);
+  console.log(`🌐 PUBLIC EDL endpoints available at: /api/edl/{category}`);
 });
 
 // Graceful shutdown
