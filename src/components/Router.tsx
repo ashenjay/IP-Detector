@@ -6,6 +6,7 @@ import EDLView from './EDLView';
 import UserManagement from './UserManagement';
 import CategoryManagement from './CategoryManagement';
 import ChangePassword from './ChangePassword'; // ✅ New import
+import PlainTextEDL from './PlainTextEDL';
 
 import { useCategory } from '../contexts/CategoryContext';
 import { AlertCircle } from 'lucide-react';
@@ -53,6 +54,19 @@ const Router: React.FC = () => {
 
   if (segments[0] === 'edl' && segments[1]) {
     const categoryName = segments[1];
+    
+    // Check for plain text EDL request
+    if (segments[2] === 'plain' || currentPath.includes('?format=plain')) {
+      const category = categories.find(c => c.name === categoryName);
+      if (category) {
+        return <PlainTextEDL category={category.id} categoryName={categoryName} />;
+      }
+      const categoryById = categories.find(c => c.id === categoryName);
+      if (categoryById) {
+        return <PlainTextEDL category={categoryById.id} categoryName={categoryById.name} />;
+      }
+    }
+    
     const category = categories.find(c => c.name === categoryName);
     if (category) {
       return <EDLView category={category.id} categoryName={categoryName} />;

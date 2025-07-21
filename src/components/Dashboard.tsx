@@ -364,6 +364,14 @@ const Dashboard: React.FC = () => {
                 >
                   <span className="text-xs">EDL</span>
                 </button>
+                
+                <button
+                  onClick={() => window.open(`#/edl/${category.name}/plain`, '_blank')}
+                  className="px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
+                  title="Plain Text EDL"
+                >
+                  <span className="text-xs">TXT</span>
+                </button>
               </div>
             </div>
           ))}
