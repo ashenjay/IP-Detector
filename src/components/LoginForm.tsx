@@ -112,7 +112,7 @@ const LoginForm: React.FC = () => {
               {loading ? 'Connecting to Database...' : 'Sign in'}
             </button>
           </form>
-
+        </div>
       </div>
     </div>
   );
