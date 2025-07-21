@@ -174,6 +174,111 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
 });
 
 // IP Entries
+app.post('/api/ip-entries', authenticateToken, async (req, res) => {
+  try {
+    const { ip, category, description } = req.body;
+    const addedBy = req.user.username;
+    
+    if (!ip || !category) {
+      return res.status(400).json({ error: 'IP and category are required' });
+    }
+    
+    // Check if IP is whitelisted
+    const whitelistCheck = await pool.query('SELECT id FROM whitelist WHERE ip = $1', [ip]);
+    if (whitelistCheck.rows.length > 0) {
+      return res.status(400).json({ error: 'IP is whitelisted and cannot be added to threat categories' });
+    }
+    
+    // Check if IP already exists in any category
+    const existingCheck = await pool.query('SELECT id FROM ip_entries WHERE ip = $1', [ip]);
+    if (existingCheck.rows.length > 0) {
+      return res.status(400).json({ error: 'IP already exists in the system' });
+    }
+    
+    // Detect entry type
+    const detectType = (entry) => {
+      const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\/(?:[0-9]|[1-2][0-9]|3[0-2]))?$/;
+      const ipv6Regex = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::1$|^::$/;
+      
+      if (ipv4Regex.test(entry) || ipv6Regex.test(entry)) return 'ip';
+      if (entry.includes('.') && entry.split('.').length >= 2) return 'fqdn';
+      return 'hostname';
+    };
+    
+    const result = await pool.query(
+      'INSERT INTO ip_entries (ip, type, category_id, description, added_by, source) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [ip, detectType(ip), category, description || '', addedBy, 'manual']
+    );
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Add IP entry error:', error);
+    res.status(500).json({ error: 'Failed to add IP entry' });
+  }
+});
+
+app.delete('/api/ip-entries/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    await pool.query('DELETE FROM ip_entries WHERE id = $1', [id]);
+    res.json({ message: 'IP entry deleted successfully' });
+  } catch (error) {
+    console.error('Delete IP entry error:', error);
+    res.status(500).json({ error: 'Failed to delete IP entry' });
+  }
+});
+
+// Whitelist endpoints
+app.post('/api/whitelist', authenticateToken, async (req, res) => {
+  try {
+    const { ip, description } = req.body;
+    const addedBy = req.user.username;
+    
+    if (!ip) {
+      return res.status(400).json({ error: 'IP is required' });
+    }
+    
+    // Check if IP already exists in whitelist
+    const existingCheck = await pool.query('SELECT id FROM whitelist WHERE ip = $1', [ip]);
+    if (existingCheck.rows.length > 0) {
+      return res.status(400).json({ error: 'IP already in whitelist' });
+    }
+    
+    // Detect entry type
+    const detectType = (entry) => {
+      const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\/(?:[0-9]|[1-2][0-9]|3[0-2]))?$/;
+      const ipv6Regex = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::1$|^::$/;
+      
+      if (ipv4Regex.test(entry) || ipv6Regex.test(entry)) return 'ip';
+      if (entry.includes('.') && entry.split('.').length >= 2) return 'fqdn';
+      return 'hostname';
+    };
+    
+    const result = await pool.query(
+      'INSERT INTO whitelist (ip, type, description, added_by) VALUES ($1, $2, $3, $4) RETURNING *',
+      [ip, detectType(ip), description || '', addedBy]
+    );
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Add to whitelist error:', error);
+    res.status(500).json({ error: 'Failed to add to whitelist' });
+  }
+});
+
+app.delete('/api/whitelist/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    await pool.query('DELETE FROM whitelist WHERE id = $1', [id]);
+    res.json({ message: 'Removed from whitelist successfully' });
+  } catch (error) {
+    console.error('Remove from whitelist error:', error);
+    res.status(500).json({ error: 'Failed to remove from whitelist' });
+  }
+});
+
 app.get('/api/ip-entries', authenticateToken, async (req, res) => {
   try {
     const { category } = req.query;
