@@ -810,34 +810,24 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
     const result = await pool.query(query, params);
     console.log('🔍 Found IP entries:', result.rows.length);
     
-    // Log ALL entries to debug the added_by field
+    // Debug: Log first few entries to see the actual database data
     if (result.rows.length > 0) {
-      console.log('🔍 ALL DATABASE ROWS:');
-      result.rows.forEach((row, index) => {
+      console.log('🔍 Sample database rows:');
+      result.rows.slice(0, 3).forEach((row, index) => {
         console.log(`Row ${index + 1}:`, {
-          id: row.id,
           ip: row.ip,
           added_by: row.added_by,
           added_by_type: typeof row.added_by,
-          added_by_null: row.added_by === null,
-          added_by_empty: row.added_by === '',
-          added_by_trimmed: row.added_by ? row.added_by.trim() : 'NULL'
+          date_added: row.date_added
         });
       });
     }
     
     // Transform the data to match frontend expectations
     const transformedData = result.rows.map(row => {
+      // Fix: Properly handle the added_by field
+      const addedBy = row.added_by && row.added_by.trim() !== '' ? row.added_by.trim() : 'admin';
       
-      let addedBy = 'Unknown';
-      if (row.added_by !== null && row.added_by !== undefined && row.added_by !== '') {
-        const trimmed = String(row.added_by).trim();
-        if (trimmed !== '') {
-          addedBy = trimmed;
-        }
-      }
-      
-      console.log(`🔍 Transforming row ${row.ip}: added_by="${row.added_by}" -> addedBy="${addedBy}"`);
       return {
         id: row.id,
         ip: row.ip,
@@ -845,8 +835,8 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
         category: row.category_id, // Use category_id for consistency
         description: row.description,
         addedBy: addedBy,
-        dateAdded: row.date_added,
-        lastModified: row.last_modified,
+        dateAdded: row.date_added ? new Date(row.date_added) : new Date(),
+        lastModified: row.last_modified ? new Date(row.last_modified) : new Date(),
         source: row.source,
         sourceCategory: row.source_category,
         reputation: row.reputation,
@@ -854,10 +844,10 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
       };
     });
     
-    // Log ALL transformed data to debug
+    // Debug: Log transformed data
     if (transformedData.length > 0) {
-      console.log('🔍 ALL TRANSFORMED DATA:');
-      transformedData.forEach((data, index) => {
+      console.log('🔍 Sample transformed data:');
+      transformedData.slice(0, 3).forEach((data, index) => {
         console.log(`Transformed ${index + 1}:`, {
           ip: data.ip,
           addedBy: data.addedBy,
