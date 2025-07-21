@@ -48,11 +48,8 @@ const LoginForm: React.FC = () => {
             Abuse IP Detector
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            AWS RDS PostgreSQL Production System
+            IP Threat Management System
           </p>
-          <div className="mt-3 px-3 py-2 bg-green-100 text-green-800 rounded-lg text-xs">
-            Connected to AWS RDS PostgreSQL Database
-          </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-lg p-8">
