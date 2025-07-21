@@ -17,7 +17,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const fetchCategories = async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/categories', {
+      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/categories', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -45,7 +45,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/categories', {
+      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/categories', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -76,7 +76,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/categories/${categoryId}`, {
+      const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/categories/${categoryId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -110,7 +110,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     
     try {
       const token = localStorage.getItem('auth_token');
-      const url = migrateTo ? `http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/categories/${categoryId}?migrateTo=${migrateTo}` : `http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/categories/${categoryId}`;
+      const url = migrateTo ? `http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/categories/${categoryId}?migrateTo=${migrateTo}` : `http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/categories/${categoryId}`;
       
       console.log('Making delete request to:', url);
       

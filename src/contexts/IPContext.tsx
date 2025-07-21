@@ -19,7 +19,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
   const fetchIPEntries = async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/ip-entries', {
+      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/ip-entries', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -46,7 +46,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
   const fetchWhitelistEntries = async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/whitelist', {
+      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/whitelist', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -78,7 +78,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/ip-entries', {
+      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/ip-entries', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -113,7 +113,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/ip-entries/${id}`, {
+      const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/ip-entries/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -137,7 +137,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/whitelist', {
+      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/whitelist', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -165,7 +165,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/whitelist/${id}`, {
+      const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/whitelist/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -186,7 +186,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
   const getEDLList = async (category: string): Promise<string[]> => {
     try {
-      const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/edl/${category}`);
+      const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/edl/${category}`);
       if (response.ok) {
         const text = await response.text();
         return text.split('\n').filter(ip => ip.trim());
@@ -202,7 +202,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/sync/abuseipdb', {
+      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/sync/abuseipdb', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -224,7 +224,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/sync/virustotal', {
+      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/sync/virustotal', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -249,7 +249,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
   const checkIPReputation = async (ip: string): Promise<any> => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/ip-entries/check/${ip}`, {
+      const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/ip-entries/check/${ip}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -276,7 +276,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/ip-entries/extract', {
+      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/ip-entries/extract', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -304,7 +304,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/ip-entries/bulk-extract', {
+      const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/ip-entries/bulk-extract', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

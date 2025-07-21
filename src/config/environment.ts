@@ -6,7 +6,7 @@ export const CONFIG = {
   isDevelopment: false,
   
   // API endpoints - AWS EC2 server
-  apiEndpoint: 'http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api',
+  apiEndpoint: 'http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api',
     
   // Feature flags - real database only
   features: {

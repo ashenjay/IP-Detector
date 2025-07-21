@@ -117,11 +117,11 @@ const LoginForm: React.FC = () => {
             <p className="text-sm text-blue-800 mb-2">🔗 AWS EC2 Server:</p>
             <div className="text-xs text-blue-600 space-y-1">
               <div>Host: ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com</div>
-              <div>Port: 3000</div>
-              <div>Status: Ready for deployment</div>
+              <div>Port: 80 (HTTP via Nginx)</div>
+              <div>Status: Reverse proxy enabled</div>
             </div>
-            <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-              <strong>Note:</strong> Make sure your EC2 server is running and accessible on port 3000.
+            <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-800">
+              <strong>Secure:</strong> Port 3000 is now only accessible internally via Nginx reverse proxy.
             </div>
           </div>
         </div>
