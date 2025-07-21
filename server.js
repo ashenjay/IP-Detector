@@ -705,7 +705,8 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
     console.log('Fetching IP entries for category:', category);
     
     let query = `
-      SELECT ie.*, c.name as category_name, c.label as category_label, c.id as category_id
+      SELECT ie.*, c.name as category_name, c.label as category_label, c.id as category_id,
+             COALESCE(ie.added_by, 'system') as added_by_safe
       FROM ip_entries ie 
       JOIN categories c ON ie.category_id = c.id
     `;
@@ -718,18 +719,19 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
     
     query += ' ORDER BY ie.date_added DESC';
     
+        added_by_safe: result.rows[0].added_by_safe,
     console.log('Executing query:', query, 'with params:', params);
     const result = await pool.query(query, params);
     console.log('Found IP entries:', result.rows.length);
     
     // Transform the data to match frontend expectations
     const transformedData = result.rows.map(row => ({
-      id: row.id,
+      console.log('🔍 Sample database row:', {
       ip: row.ip,
       type: row.type,
       category: row.category_id, // Use category_id for consistency
       description: row.description,
-      addedBy: row.added_by,
+      addedBy: row.added_by || row.added_by_safe || 'system',
       dateAdded: row.date_added,
       lastModified: row.last_modified,
       source: row.source,
@@ -740,7 +742,7 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
     
     console.log('Transformed data sample:', transformedData[0]);
     res.json(transformedData);
-  } catch (error) {
+      console.log('🔍 Sample transformed data:', {
     console.error('Get IP entries error:', error);
     res.status(500).json({ error: 'Failed to get IP entries' });
   }
