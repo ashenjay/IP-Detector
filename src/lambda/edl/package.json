@@ -1,0 +1,9 @@
+{
+  "name": "threat-intel-edl",
+  "version": "1.0.0",
+  "description": "EDL Feed Lambda function",
+  "main": "index.js",
+  "dependencies": {
+    "aws-sdk": "^2.1490.0"
+  }
+}

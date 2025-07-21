@@ -1,0 +1,491 @@
+import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useCategory } from '../contexts/CategoryContext';
+import { useIP } from '../contexts/IPContext';
+import { CONFIG, getEnvironmentMessage } from '../config/environment';
+import { 
+  Shield, 
+  Bug, 
+  Mail, 
+  Server, 
+  Zap, 
+  Eye,
+  LogOut,
+  RefreshCw,
+  ExternalLink,
+  Download,
+  Database,
+  TrendingUp,
+  User,
+  Settings,
+  Folder,
+  Globe,
+  Lock,
+  AlertTriangle,
+  Info,
+  CheckCircle,
+  AlertCircle as AlertCircleIcon,
+  X
+} from 'lucide-react';
+
+const Dashboard: React.FC = () => {
+  const { user, logout } = useAuth();
+  const { categories } = useCategory();
+  const { ipEntries, whitelistEntries, refreshData, syncAbuseIPDB, syncVirusTotal, updateSourceIPs, bulkExtractFromSources } = useIP();
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [syncing, setSyncing] = React.useState(false);
+  const [syncingVT, setSyncingVT] = React.useState(false);
+  const [updating, setUpdating] = React.useState(false);
+  const [extracting, setExtracting] = React.useState(false);
+  const [lastRefresh, setLastRefresh] = React.useState(new Date());
+  const [showEnvironmentInfo, setShowEnvironmentInfo] = React.useState(true);
+
+  const environmentMessage = getEnvironmentMessage();
+
+  // Auto-refresh every 5 minutes
+  React.useEffect(() => {
+    const interval = setInterval(async () => {
+      console.log('Auto-refreshing data...');
+      await refreshData();
+      setLastRefresh(new Date());
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, [refreshData]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refreshData();
+    setLastRefresh(new Date());
+    setRefreshing(false);
+  };
+
+  const handleAbuseIPDBSync = async () => {
+    setSyncing(true);
+    try {
+      await syncAbuseIPDB();
+      await refreshData(); // Refresh to show new data
+    } catch (error) {
+      alert('Failed to sync with AbuseIPDB. Please try again.');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleVirusTotalSync = async () => {
+    setSyncingVT(true);
+    try {
+      await syncVirusTotal();
+      await refreshData(); // Refresh to show new data
+    } catch (error) {
+      alert('Failed to sync with VirusTotal. Please try again.');
+    } finally {
+      setSyncingVT(false);
+    }
+  };
+
+  const handleUpdateSources = async () => {
+    setUpdating(true);
+    try {
+      await updateSourceIPs();
+      await refreshData(); // Refresh to show updated data
+    } catch (error) {
+      alert('Failed to update source IPs. Please try again.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleBulkExtract = async () => {
+    setExtracting(true);
+    try {
+      await bulkExtractFromSources();
+      await refreshData(); // Refresh to show updated data
+    } catch (error) {
+      alert('Failed to extract IPs from sources. Please try again.');
+    } finally {
+      setExtracting(false);
+    }
+  };
+  
+  const getIconComponent = (iconName: string) => {
+    const iconMap: { [key: string]: React.ComponentType<any> } = {
+      Shield,
+      Bug,
+      Mail,
+      Server,
+      Zap,
+      Database,
+      Globe,
+      Lock,
+      AlertTriangle,
+      Eye,
+      Settings,
+      Folder
+    };
+    return iconMap[iconName] || Shield;
+  };
+  
+  const getCategoryIcon = (category: any) => {
+    const IconComponent = getIconComponent(category.icon);
+    return <IconComponent className="h-6 w-6" />;
+  };
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'malware': return 'bg-red-500';
+      case 'phishing': return 'bg-orange-500';
+      case 'c2': return 'bg-purple-500';
+      case 'bruteforce': return 'bg-yellow-500';
+      case 'sources': return 'bg-indigo-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getCategoryCount = (category: string) => {
+    return ipEntries.filter(entry => entry.category === category).length;
+  };
+
+  const activeCategories = categories.filter(cat => cat.isActive);
+
+  const canAccessCategory = (category: string) => {
+    if (user?.role === 'superadmin') return true;
+    if (user?.role === 'soc_admin') return user.assignedCategories?.includes(category) || false;
+    return true; // viewers can view all
+  };
+
+  const getSourceStats = () => {
+    const manual = ipEntries.filter(entry => entry.source === 'manual').length;
+    const abuseipdb = ipEntries.filter(entry => entry.source === 'abuseipdb').length;
+    const virustotal = ipEntries.filter(entry => entry.source === 'virustotal').length;
+    return { manual, abuseipdb, virustotal };
+  };
+
+  const sourceStats = getSourceStats();
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-3">
+              <Shield className="h-8 w-8 text-blue-600" />
+              <h1 className="text-xl font-bold text-gray-900">Abuse IP Detector</h1>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-gray-600">
+                Welcome, <span className="font-medium">{user?.username}</span>
+                <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                  {user?.role}
+                </span>
+              </div>
+              
+              <div className="text-xs text-gray-500">
+                Last refresh: {lastRefresh.toLocaleTimeString()}
+              </div>
+              
+              {(user?.role === 'superadmin' || user?.role === 'soc_admin') && (
+                <button
+                  onClick={handleAbuseIPDBSync}
+                  disabled={syncing}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors disabled:opacity-50"
+                  title="Sync with AbuseIPDB (80%+ confidence)"
+                >
+                  <Download className={`h-4 w-4 ${syncing ? 'animate-bounce' : ''}`} />
+                  <span>{syncing ? 'Syncing...' : 'Sync AbuseIPDB'}</span>
+                </button>
+              )}
+              
+              {(user?.role === 'superadmin' || user?.role === 'soc_admin') && (
+                <button
+                  onClick={handleVirusTotalSync}
+                  disabled={syncingVT}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
+                  title="Sync with VirusTotal (80%+ malicious)"
+                >
+                  <Download className={`h-4 w-4 ${syncingVT ? 'animate-bounce' : ''}`} />
+                  <span>{syncingVT ? 'Syncing VT...' : 'Sync VirusTotal'}</span>
+                </button>
+              )}
+              
+              {(user?.role === 'superadmin' || user?.role === 'soc_admin') && (
+                <button
+                  onClick={handleUpdateSources}
+                  disabled={updating}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50"
+                  title="Update source IP intelligence"
+                >
+                  <RefreshCw className={`h-4 w-4 ${updating ? 'animate-spin' : ''}`} />
+                  <span>{updating ? 'Updating...' : 'Update Sources'}</span>
+                </button>
+              )}
+              
+              {(user?.role === 'superadmin' || user?.role === 'soc_admin') && (
+                <button
+                  onClick={handleBulkExtract}
+                  disabled={extracting}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50"
+                  title="Extract IPs from sources to categories"
+                >
+                  <TrendingUp className={`h-4 w-4 ${extracting ? 'animate-bounce' : ''}`} />
+                  <span>{extracting ? 'Extracting...' : 'Extract Sources'}</span>
+                </button>
+              )}
+              
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+              
+              <button
+                onClick={logout}
+                className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+              </button>
+              
+              {user?.role === 'superadmin' && (
+                <button
+                  onClick={() => window.open('#/users', '_self')}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <User className="h-4 w-4" />
+                  <span>Users</span>
+                </button>
+              )}
+              
+              {user?.role === 'superadmin' && (
+                <button
+                  onClick={() => window.open('#/categories', '_self')}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span>Categories</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Environment Information Banner */}
+        {showEnvironmentInfo && !CONFIG.isDevelopment && (
+          <div className={`mb-6 rounded-xl border p-4 ${
+            environmentMessage.type === 'success' ? 'bg-green-50 border-green-200' :
+            environmentMessage.type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
+            environmentMessage.type === 'info' ? 'bg-blue-50 border-blue-200' :
+            'bg-gray-50 border-gray-200'
+          }`}>
+            <div className="flex items-start justify-between">
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-lg ${
+                  environmentMessage.type === 'success' ? 'bg-green-100 text-green-600' :
+                  environmentMessage.type === 'warning' ? 'bg-yellow-100 text-yellow-600' :
+                  environmentMessage.type === 'info' ? 'bg-blue-100 text-blue-600' :
+                  'bg-gray-100 text-gray-600'
+                }`}>
+                  {environmentMessage.type === 'success' ? <CheckCircle className="h-5 w-5" /> :
+                   environmentMessage.type === 'warning' ? <AlertCircleIcon className="h-5 w-5" /> :
+                   <Info className="h-5 w-5" />}
+                </div>
+                <div>
+                  <h3 className={`font-semibold ${
+                    environmentMessage.type === 'success' ? 'text-green-900' :
+                    environmentMessage.type === 'warning' ? 'text-yellow-900' :
+                    environmentMessage.type === 'info' ? 'text-blue-900' :
+                    'text-gray-900'
+                  }`}>
+                    {environmentMessage.title}
+                  </h3>
+                  <p className={`text-sm ${
+                    environmentMessage.type === 'success' ? 'text-green-700' :
+                    environmentMessage.type === 'warning' ? 'text-yellow-700' :
+                    environmentMessage.type === 'info' ? 'text-blue-700' :
+                    'text-gray-700'
+                  }`}>
+                    {environmentMessage.message}
+                  </p>
+                  {CONFIG.isNetlify && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      For production deployment with real APIs, use the AWS deployment script: <code>./deploy.sh</code>
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEnvironmentInfo(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">IP Category Management</h2>
+          <p className="text-gray-600">
+            Manage malicious IP addresses from multiple sources and generate EDL feeds for Palo Alto firewalls{CONFIG.isNetlify ? ' (Demo Mode)' : ''}
+          </p>
+          <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500">
+            <div className="flex items-center space-x-1">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <span>Manual: {sourceStats.manual}</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+              <span>AbuseIPDB: {sourceStats.abuseipdb}{CONFIG.isNetlify ? ' (Demo)' : ''}</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <span>VirusTotal: {sourceStats.virustotal}{CONFIG.isNetlify ? ' (Demo)' : ''}</span>
+            </div>
+            {CONFIG.isNetlify && (
+              <div className="flex items-center space-x-1">
+                <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                <span>Demo Environment</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Categories Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {activeCategories.map((category) => (
+            <div
+              key={category.id}
+              className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow ${
+                !canAccessCategory(category.id) ? 'opacity-60' : ''
+              }`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 rounded-lg ${category.color} text-white`}>
+                  {getCategoryIcon(category)}
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-gray-900">
+                    {getCategoryCount(category.id)}
+                  </div>
+                  <div className="text-sm text-gray-500">entries</div>
+                </div>
+              </div>
+              
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {category.label}
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                {category.description}
+              </p>
+              
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => window.location.hash = `/list/${category.id}`}
+                  className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-1"
+                  disabled={!canAccessCategory(category.id)}
+                >
+                  <Eye className="h-4 w-4" />
+                  <span>View</span>
+                </button>
+                
+                <button
+                  onClick={() => window.location.hash = `/edl/${category.name}`}
+                  className="px-3 py-2 bg-green-100 text-green-700 text-sm rounded-lg hover:bg-green-200 transition-colors flex items-center justify-center"
+                  title="View EDL Feed Link"
+                >
+                  <span className="text-xs">EDL</span>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Whitelist Section */}
+        {user?.role === 'superadmin' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 rounded-lg bg-green-500 text-white">
+                  <Shield className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Whitelist Management</h3>
+                  <p className="text-sm text-gray-600">
+                    Protected IPs excluded from all threat categories
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-gray-900">
+                  {whitelistEntries.length}
+                </div>
+                <div className="text-sm text-gray-500">whitelisted</div>
+              </div>
+            </div>
+            
+            <button
+              onClick={() => window.open('#/whitelist', '_self')}
+              className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
+            >
+              <Eye className="h-4 w-4" />
+              <span>Manage Whitelist</span>
+            </button>
+          </div>
+        )}
+
+        {/* Stats Overview */}
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Malicious Entries</p>
+                <p className="text-2xl font-bold text-gray-900">{ipEntries.length}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  IPs, Hostnames & FQDNs | Manual: {sourceStats.manual} | AbuseIPDB: {sourceStats.abuseipdb} | VT: {sourceStats.virustotal}
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-red-100 text-red-600">
+                <Shield className="h-6 w-6" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Whitelisted Entries</p>
+                <p className="text-2xl font-bold text-gray-900">{whitelistEntries.length}</p>
+                <p className="text-xs text-gray-500 mt-1">IPs, Hostnames & FQDNs protected from all sources</p>
+              </div>
+              <div className="p-3 rounded-lg bg-green-100 text-green-600">
+                <Shield className="h-6 w-6" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Active Categories</p>
+                <p className="text-2xl font-bold text-gray-900">{activeCategories.length}</p>
+                <p className="text-xs text-gray-500 mt-1">Threat classification categories</p>
+              </div>
+              <div className="p-3 rounded-lg bg-purple-100 text-purple-600">
+                <Settings className="h-6 w-6" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default Dashboard;

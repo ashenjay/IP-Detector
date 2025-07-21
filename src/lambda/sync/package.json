@@ -1,0 +1,10 @@
+{
+  "name": "threat-intel-sync",
+  "version": "1.0.0",
+  "description": "Threat Intelligence Sync Lambda function",
+  "main": "index.js",
+  "dependencies": {
+    "aws-sdk": "^2.1490.0",
+    "uuid": "^9.0.1"
+  }
+}
