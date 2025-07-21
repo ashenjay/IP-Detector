@@ -76,14 +76,36 @@ app.get('/api/health', (req, res) => {
 // Debug endpoint to check database
 app.get('/api/debug', async (req, res) => {
   try {
+    // Check categories
     const categoriesResult = await pool.query('SELECT id, name, label FROM categories ORDER BY name');
-    const ipEntriesResult = await pool.query('SELECT COUNT(*) as count FROM ip_entries');
+    
+    // Check IP entries with category info
+    const ipEntriesResult = await pool.query(`
+      SELECT ie.id, ie.ip, ie.category_id, c.name as category_name, c.label as category_label
+      FROM ip_entries ie 
+      JOIN categories c ON ie.category_id = c.id 
+      ORDER BY ie.date_added DESC 
+      LIMIT 10
+    `);
+    
+    // Count by category
+    const countByCategory = await pool.query(`
+      SELECT c.id, c.name, c.label, COUNT(ie.id) as count
+      FROM categories c
+      LEFT JOIN ip_entries ie ON ie.category_id = c.id
+      GROUP BY c.id, c.name, c.label
+      ORDER BY c.name
+    `);
+    
+    const totalIpCount = await pool.query('SELECT COUNT(*) as count FROM ip_entries');
     const whitelistResult = await pool.query('SELECT COUNT(*) as count FROM whitelist');
     
     res.json({
       database: 'connected',
       categories: categoriesResult.rows,
-      totalIPs: parseInt(ipEntriesResult.rows[0].count),
+      sampleIpEntries: ipEntriesResult.rows,
+      countByCategory: countByCategory.rows,
+      totalIPs: parseInt(totalIpCount.rows[0].count),
       totalWhitelist: parseInt(whitelistResult.rows[0].count),
       timestamp: new Date().toISOString()
     });
@@ -211,18 +233,21 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
     // Check if IP is whitelisted
     const whitelistCheck = await pool.query('SELECT id FROM whitelist WHERE ip = $1', [ip]);
     if (whitelistCheck.rows.length > 0) {
+      console.log('IP is whitelisted:', ip);
       return res.status(400).json({ error: 'IP is whitelisted and cannot be added to threat categories' });
     }
     
     // Check if IP already exists in any category
     const existingCheck = await pool.query('SELECT id FROM ip_entries WHERE ip = $1', [ip]);
     if (existingCheck.rows.length > 0) {
+      console.log('IP already exists:', ip);
       return res.status(400).json({ error: 'IP already exists in the system' });
     }
     
     // Verify category exists
-    const categoryCheck = await pool.query('SELECT id FROM categories WHERE id = $1 OR name = $1', [category]);
+    const categoryCheck = await pool.query('SELECT id FROM categories WHERE id::text = $1 OR name = $1', [category]);
     if (categoryCheck.rows.length === 0) {
+      console.log('Category not found:', category);
       return res.status(400).json({ error: 'Category does not exist' });
     }
     
@@ -327,7 +352,7 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
     let params = [];
     
     if (category) {
-      query += ' WHERE (c.id = $1 OR c.name = $1)';
+      query += ' WHERE (c.id::text = $1 OR c.name = $1)';
       params.push(category);
     }
     
@@ -336,7 +361,25 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
     console.log('Executing query:', query, 'with params:', params);
     const result = await pool.query(query, params);
     console.log('Found IP entries:', result.rows.length);
-    res.json(result.rows);
+    
+    // Transform the data to match frontend expectations
+    const transformedData = result.rows.map(row => ({
+      id: row.id,
+      ip: row.ip,
+      type: row.type,
+      category: row.category_id, // Use category_id for consistency
+      description: row.description,
+      addedBy: row.added_by,
+      dateAdded: row.date_added,
+      lastModified: row.last_modified,
+      source: row.source,
+      sourceCategory: row.source_category,
+      reputation: row.reputation,
+      vtReputation: row.vt_reputation
+    }));
+    
+    console.log('Transformed data sample:', transformedData[0]);
+    res.json(transformedData);
   } catch (error) {
     console.error('Get IP entries error:', error);
     res.status(500).json({ error: 'Failed to get IP entries' });
@@ -364,7 +407,7 @@ app.get('/api/edl/:category', async (req, res) => {
       SELECT ie.ip 
       FROM ip_entries ie 
       JOIN categories c ON ie.category_id = c.id 
-      WHERE (c.name = $1 OR c.id = $1)
+      WHERE (c.name = $1 OR c.id::text = $1)
       AND ie.ip NOT IN (SELECT ip FROM whitelist)
       ORDER BY ie.date_added DESC
     `, [categoryName]);
