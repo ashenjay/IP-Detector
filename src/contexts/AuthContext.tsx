@@ -182,6 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return { success: false };
 
     try {
+      console.log('Updating password for user:', user.id);
       const token = localStorage.getItem('auth_token');
       const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/users/${user.id}/password`, {
         method: 'PUT',
@@ -194,13 +195,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })
       });
 
-      if (response.ok) {
+      console.log('Password update response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Password update failed:', errorData);
+        return { success: false };
+      }
+
         const updatedUser = { ...user, mustChangePassword: false };
         setUser(updatedUser);
         setIsAuthenticated(true);
         localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+        console.log('Password updated successfully');
         return { success: true };
-      }
     } catch (error) {
       console.error('Update password error:', error);
     }

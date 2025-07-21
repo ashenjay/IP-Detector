@@ -327,23 +327,38 @@ app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { newPassword } = req.body;
     
+    console.log('Password change request for user ID:', id);
+    console.log('Request user ID:', req.user.userId);
+    console.log('New password length:', newPassword ? newPassword.length : 'undefined');
+    
     // Users can only change their own password, or superadmin can change any
     if (req.user.userId !== id && req.user.role !== 'superadmin') {
+      console.log('Access denied: user can only change own password');
       return res.status(403).json({ error: 'Access denied' });
     }
     
     if (!newPassword || newPassword.length < 6) {
+      console.log('Password validation failed:', { 
+        hasPassword: !!newPassword, 
+        length: newPassword ? newPassword.length : 0 
+      });
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
     
     console.log('Changing password for user:', id);
     
-    await pool.query(
+    const result = await pool.query(
       'UPDATE users SET password = $1, must_change_password = false WHERE id = $2',
       [newPassword, id]
     );
     
-    console.log('Password changed successfully');
+    console.log('Password changed successfully, rows affected:', result.rowCount);
+    
+    if (result.rowCount === 0) {
+      console.log('No user found with ID:', id);
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
     console.error('Change password error:', error);

@@ -24,16 +24,20 @@ const ChangePassword: React.FC = () => {
       return;
     }
 
+    console.log('Submitting password change...');
     setLoading(true);
     const res = await updatePassword(password);
+    console.log('Password change result:', res);
     setLoading(false);
 
     if (res.success) {
+      console.log('Password change successful, redirecting...');
       setSuccess('Password updated successfully. Redirecting...');
       setTimeout(() => {
         window.location.hash = '/'; // ✅ Use hash navigation
       }, 2000);
     } else {
+      console.log('Password change failed');
       setError('Failed to update password. Try again.');
     }
   };
