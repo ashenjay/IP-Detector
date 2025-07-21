@@ -810,23 +810,34 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
     const result = await pool.query(query, params);
     console.log('🔍 Found IP entries:', result.rows.length);
     
-    // Log the first entry to debug the added_by field
+    // Log ALL entries to debug the added_by field
     if (result.rows.length > 0) {
-      console.log('🔍 Sample database row:', {
-        id: result.rows[0].id,
-        ip: result.rows[0].ip,
-        added_by: result.rows[0].added_by,
-        date_added: result.rows[0].date_added,
-        added_by_type: typeof result.rows[0].added_by,
-        added_by_null: result.rows[0].added_by === null,
-        added_by_empty: result.rows[0].added_by === ''
+      console.log('🔍 ALL DATABASE ROWS:');
+      result.rows.forEach((row, index) => {
+        console.log(`Row ${index + 1}:`, {
+          id: row.id,
+          ip: row.ip,
+          added_by: row.added_by,
+          added_by_type: typeof row.added_by,
+          added_by_null: row.added_by === null,
+          added_by_empty: row.added_by === '',
+          added_by_trimmed: row.added_by ? row.added_by.trim() : 'NULL'
+        });
       });
     }
     
     // Transform the data to match frontend expectations
     const transformedData = result.rows.map(row => {
-      const addedBy = row.added_by && row.added_by.trim() !== '' ? row.added_by : 'Unknown';
       
+      let addedBy = 'Unknown';
+      if (row.added_by !== null && row.added_by !== undefined && row.added_by !== '') {
+        const trimmed = String(row.added_by).trim();
+        if (trimmed !== '') {
+          addedBy = trimmed;
+        }
+      }
+      
+      console.log(`🔍 Transforming row ${row.ip}: added_by="${row.added_by}" -> addedBy="${addedBy}"`);
       return {
         id: row.id,
         ip: row.ip,
@@ -843,13 +854,15 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
       };
     });
     
-    // Log the transformed data to debug
+    // Log ALL transformed data to debug
     if (transformedData.length > 0) {
-      console.log('🔍 Sample transformed data:', {
-        id: transformedData[0].id,
-        ip: transformedData[0].ip,
-        addedBy: transformedData[0].addedBy,
-        dateAdded: transformedData[0].dateAdded
+      console.log('🔍 ALL TRANSFORMED DATA:');
+      transformedData.forEach((data, index) => {
+        console.log(`Transformed ${index + 1}:`, {
+          ip: data.ip,
+          addedBy: data.addedBy,
+          dateAdded: data.dateAdded
+        });
       });
     }
     
