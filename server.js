@@ -802,9 +802,9 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(port, () => {
-  console.log(`🚀 Server running on port ${port}`);
-  console.log(`🌐 Application: http://localhost:${port}`);
+app.listen(port, '127.0.0.1', () => {
+  console.log(`🚀 Server running on localhost:${port} (internal only)`);
+  console.log(`🔒 External access via Nginx reverse proxy`);
   console.log(`📡 API: http://localhost:${port}/api`);
   console.log(`📁 Serving static files from: ${path.join(__dirname, 'dist')}`);
 });
