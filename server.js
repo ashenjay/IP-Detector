@@ -73,6 +73,29 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Debug endpoint to check database
+app.get('/api/debug', async (req, res) => {
+  try {
+    const categoriesResult = await pool.query('SELECT id, name, label FROM categories ORDER BY name');
+    const ipEntriesResult = await pool.query('SELECT COUNT(*) as count FROM ip_entries');
+    const whitelistResult = await pool.query('SELECT COUNT(*) as count FROM whitelist');
+    
+    res.json({
+      database: 'connected',
+      categories: categoriesResult.rows,
+      totalIPs: parseInt(ipEntriesResult.rows[0].count),
+      totalWhitelist: parseInt(whitelistResult.rows[0].count),
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Debug endpoint error:', error);
+    res.status(500).json({ 
+      database: 'error',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
 // JWT middleware
 const authenticateToken = (req, res, next) => {
@@ -183,6 +206,8 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'IP and category are required' });
     }
     
+    console.log('Adding IP entry:', { ip, category, description, addedBy });
+    
     // Check if IP is whitelisted
     const whitelistCheck = await pool.query('SELECT id FROM whitelist WHERE ip = $1', [ip]);
     if (whitelistCheck.rows.length > 0) {
@@ -194,6 +219,15 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
     if (existingCheck.rows.length > 0) {
       return res.status(400).json({ error: 'IP already exists in the system' });
     }
+    
+    // Verify category exists
+    const categoryCheck = await pool.query('SELECT id FROM categories WHERE id = $1 OR name = $1', [category]);
+    if (categoryCheck.rows.length === 0) {
+      return res.status(400).json({ error: 'Category does not exist' });
+    }
+    
+    const categoryId = categoryCheck.rows[0].id;
+    console.log('Using category ID:', categoryId);
     
     // Detect entry type
     const detectType = (entry) => {
@@ -207,9 +241,10 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
     
     const result = await pool.query(
       'INSERT INTO ip_entries (ip, type, category_id, description, added_by, source) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [ip, detectType(ip), category, description || '', addedBy, 'manual']
+      [ip, detectType(ip), categoryId, description || '', addedBy, 'manual']
     );
     
+    console.log('IP entry created:', result.rows[0]);
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Add IP entry error:', error);
@@ -282,6 +317,7 @@ app.delete('/api/whitelist/:id', authenticateToken, async (req, res) => {
 app.get('/api/ip-entries', authenticateToken, async (req, res) => {
   try {
     const { category } = req.query;
+    console.log('Fetching IP entries for category:', category);
     
     let query = `
       SELECT ie.*, c.name as category_name, c.label as category_label, c.id as category_id
@@ -291,13 +327,15 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
     let params = [];
     
     if (category) {
-      query += ' WHERE c.id = $1';
+      query += ' WHERE (c.id = $1 OR c.name = $1)';
       params.push(category);
     }
     
     query += ' ORDER BY ie.date_added DESC';
     
+    console.log('Executing query:', query, 'with params:', params);
     const result = await pool.query(query, params);
+    console.log('Found IP entries:', result.rows.length);
     res.json(result.rows);
   } catch (error) {
     console.error('Get IP entries error:', error);
@@ -320,6 +358,7 @@ app.get('/api/whitelist', authenticateToken, async (req, res) => {
 app.get('/api/edl/:category', async (req, res) => {
   try {
     const categoryName = req.params.category;
+    console.log('Fetching EDL for category:', categoryName);
     
     const result = await pool.query(`
       SELECT ie.ip 
@@ -330,6 +369,7 @@ app.get('/api/edl/:category', async (req, res) => {
       ORDER BY ie.date_added DESC
     `, [categoryName]);
     
+    console.log('EDL query result:', result.rows.length, 'IPs found');
     const ips = result.rows.map(row => row.ip);
     
     res.set('Content-Type', 'text/plain');

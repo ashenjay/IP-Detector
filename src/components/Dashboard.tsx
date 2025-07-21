@@ -143,7 +143,22 @@ const Dashboard: React.FC = () => {
   };
 
   const getCategoryCount = (category: string) => {
-    return ipEntries.filter(entry => entry.category === category).length;
+    console.log('Getting count for category:', category);
+    console.log('Available IP entries:', ipEntries.length);
+    console.log('Sample entry:', ipEntries[0]);
+    
+    const count = ipEntries.filter(entry => {
+      const matches = entry.category === category || 
+                     (entry as any).category_id === category ||
+                     (entry as any).categoryId === category;
+      if (matches) {
+        console.log('Found matching entry:', entry);
+      }
+      return matches;
+    }).length;
+    
+    console.log('Category', category, 'count:', count);
+    return count;
   };
 
   const activeCategories = categories.filter(cat => cat.isActive);

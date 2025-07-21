@@ -74,6 +74,8 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
       return false;
     }
     
+    console.log('Adding IP to category:', { ip, category, description });
+    
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch('http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/ip-entries', {
@@ -89,9 +91,15 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         })
       });
 
+      console.log('Add IP response status:', response.status);
+      
       if (response.ok) {
+        console.log('IP added successfully, refreshing data...');
         await fetchIPEntries();
         return true;
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to add IP:', errorData);
       }
     } catch (error) {
       console.error('Add IP error:', error);
