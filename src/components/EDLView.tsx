@@ -193,10 +193,10 @@ const EDLView: React.FC<EDLViewProps> = ({ category, categoryName }) => {
           <div className="bg-white rounded-lg border border-blue-200 p-4">
             <div className="flex items-center justify-between">
               <code className="text-sm font-mono text-gray-800 bg-gray-100 px-3 py-2 rounded flex-1 mr-3">
-                {window.location.origin}/#/edl/{categoryName || categoryObj?.name || category}
+                http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/edl/{categoryName || categoryObj?.name || category}
               </code>
               <button
-                onClick={() => navigator.clipboard.writeText(`${window.location.origin}/#/edl/${categoryName || categoryObj?.name || category}`)}
+                onClick={() => navigator.clipboard.writeText(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/edl/${categoryName || categoryObj?.name || category}`)}
                 className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 title="Copy EDL URL"
               >

@@ -20,10 +20,18 @@ const PlainTextEDL: React.FC<PlainTextEDLProps> = ({ category, categoryName }) =
   const loadEDLList = async () => {
     setLoading(true);
     try {
-      const list = await getEDLList(category);
-      setEdlList(list);
+      // Direct API call without authentication for plain text view
+      const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/edl/${category}`);
+      if (response.ok) {
+        const text = await response.text();
+        const list = text.split('\n').filter(ip => ip.trim());
+        setEdlList(list);
+      } else {
+        setEdlList([]);
+      }
     } catch (error) {
       console.error('Failed to load EDL list:', error);
+      setEdlList([]);
     } finally {
       setLoading(false);
     }
