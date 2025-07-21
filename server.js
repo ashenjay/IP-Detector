@@ -321,6 +321,52 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
   }
 });
 
+app.delete('/api/users/:id', authenticateToken, async (req, res) => {
+  try {
+    console.log('Delete user request for ID:', req.params.id);
+    console.log('Request user role:', req.user.role);
+    console.log('Request user ID:', req.user.userId);
+    
+    if (req.user.role !== 'superadmin') {
+      console.log('Access denied: not superadmin');
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const { id } = req.params;
+    
+    // Prevent deleting yourself
+    if (id === req.user.userId) {
+      console.log('Cannot delete yourself');
+      return res.status(400).json({ error: 'Cannot delete your own account' });
+    }
+    
+    // Check if user exists first
+    const userCheck = await pool.query('SELECT id, username FROM users WHERE id = $1', [id]);
+    if (userCheck.rows.length === 0) {
+      console.log('User not found:', id);
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const userToDelete = userCheck.rows[0];
+    console.log('Deleting user:', userToDelete.username);
+    
+    const result = await pool.query('DELETE FROM users WHERE id = $1', [id]);
+    console.log('Delete result - rows affected:', result.rowCount);
+    
+    if (result.rowCount === 0) {
+      console.log('No rows deleted');
+      return res.status(404).json({ error: 'User not found or already deleted' });
+    }
+    
+    console.log('User deleted successfully:', userToDelete.username);
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    console.error('Error details:', error.message);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
 // Add password change endpoint
 app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
   try {

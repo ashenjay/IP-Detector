@@ -218,10 +218,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteUser = async (userId: string): Promise<boolean> => {
     if (!user || user.role !== 'superadmin' || !user.isActive) return false;
-    if (userId === user.id) return false;
+    
+    console.log('Attempting to delete user:', userId);
+    console.log('Current user ID:', user.id);
+    
+    if (userId === user.id) {
+      console.log('Cannot delete own account');
+      return false;
+    }
 
     try {
       const token = localStorage.getItem('auth_token');
+      console.log('Making delete request to:', `http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/users/${userId}`);
+      
       const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/users/${userId}`, {
         method: 'DELETE',
         headers: {
@@ -230,7 +239,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
 
+      console.log('Delete response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Delete failed:', errorData);
+        return false;
+      }
+      
       if (response.ok) {
+        console.log('User deleted successfully, refreshing user list');
         await fetchUsers();
         return true;
       }

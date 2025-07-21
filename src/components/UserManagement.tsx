@@ -220,16 +220,26 @@ const UserManagement: React.FC = () => {
   };
 
   const handleDeleteUser = async (userId: string, username: string) => {
-    if (!confirm(`Are you sure you want to delete user "${username}"?`)) return;
+    if (!window.confirm(`Are you sure you want to delete user "${username}"?\n\nThis action cannot be undone.`)) return;
 
+    console.log('Deleting user:', { userId, username });
     setLoading(true);
+    setError(''); // Clear any previous errors
+    
     try {
       const success = await deleteUser(userId);
+      console.log('Delete result:', success);
+      
       if (!success) {
-        setError('Failed to delete user');
+        setError(`Failed to delete user "${username}". You may not have sufficient permissions or the user may not exist.`);
+      } else {
+        console.log('User deleted successfully');
+        // Clear error on success
+        setError('');
       }
     } catch (err) {
-      setError('Error deleting user');
+      console.error('Delete user error:', err);
+      setError(`Error deleting user "${username}". Please try again.`);
     } finally {
       setLoading(false);
     }
