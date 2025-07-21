@@ -244,11 +244,14 @@ app.get('/api/edl/:category', async (req, res) => {
 });
 
 // Serve static files from dist directory
+console.log('📁 Serving static files from:', path.join(__dirname, 'dist'));
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // Serve React app for all other routes
 app.get('*', (req, res) => {
   console.log('Serving React app for route:', req.path);
+  const indexPath = path.join(__dirname, 'dist', 'index.html');
+  console.log('📄 Serving index.html from:', indexPath);
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
