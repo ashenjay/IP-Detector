@@ -291,59 +291,6 @@ const Dashboard: React.FC = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        {/* Environment Information Banner */}
-        {showEnvironmentInfo && !CONFIG.isDevelopment && (
-          <div className={`mb-6 rounded-xl border p-4 ${
-            environmentMessage.type === 'success' ? 'bg-green-50 border-green-200' :
-            environmentMessage.type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
-            environmentMessage.type === 'info' ? 'bg-blue-50 border-blue-200' :
-            'bg-gray-50 border-gray-200'
-          }`}>
-            <div className="flex items-start justify-between">
-              <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-lg ${
-                  environmentMessage.type === 'success' ? 'bg-green-100 text-green-600' :
-                  environmentMessage.type === 'warning' ? 'bg-yellow-100 text-yellow-600' :
-                  environmentMessage.type === 'info' ? 'bg-blue-100 text-blue-600' :
-                  'bg-gray-100 text-gray-600'
-                }`}>
-                  {environmentMessage.type === 'success' ? <CheckCircle className="h-5 w-5" /> :
-                   environmentMessage.type === 'warning' ? <AlertCircleIcon className="h-5 w-5" /> :
-                   <Info className="h-5 w-5" />}
-                </div>
-                <div>
-                  <h3 className={`font-semibold ${
-                    environmentMessage.type === 'success' ? 'text-green-900' :
-                    environmentMessage.type === 'warning' ? 'text-yellow-900' :
-                    environmentMessage.type === 'info' ? 'text-blue-900' :
-                    'text-gray-900'
-                  }`}>
-                    {environmentMessage.title}
-                  </h3>
-                  <p className={`text-sm ${
-                    environmentMessage.type === 'success' ? 'text-green-700' :
-                    environmentMessage.type === 'warning' ? 'text-yellow-700' :
-                    environmentMessage.type === 'info' ? 'text-blue-700' :
-                    'text-gray-700'
-                  }`}>
-                    {environmentMessage.message}
-                  </p>
-                  {CONFIG.isNetlify && (
-                    <p className="text-xs text-blue-600 mt-1">
-                      For production deployment with real APIs, use the AWS deployment script: <code>./deploy.sh</code>
-                    </p>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={() => setShowEnvironmentInfo(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
 
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">IP Category Management</h2>
