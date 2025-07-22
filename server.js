@@ -825,8 +825,8 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
     
     // Transform the data to match frontend expectations
     const transformedData = result.rows.map(row => {
-      // CRITICAL FIX: Properly handle the added_by field
-      const addedBy = row.added_by && row.added_by.trim() !== '' ? row.added_by.trim() : 'Unknown';
+      // CRITICAL FIX: Properly handle the added_by field - use actual database value
+      const addedBy = row.added_by || 'Unknown';
       
       return {
         id: row.id,
@@ -834,7 +834,7 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
         type: row.type,
         category: row.category_id,
         description: row.description,
-        addedBy: addedBy, // This is the key field!
+        addedBy: addedBy,
         dateAdded: row.date_added ? new Date(row.date_added) : new Date(),
         lastModified: row.last_modified ? new Date(row.last_modified) : new Date(),
         source: row.source,
@@ -874,7 +874,7 @@ app.get('/api/whitelist', authenticateToken, async (req, res) => {
       ip: row.ip,
       type: row.type,
       description: row.description,
-      addedBy: row.added_by && row.added_by.trim() !== '' ? row.added_by : 'Unknown',
+      addedBy: row.added_by || 'Unknown',
       dateAdded: row.date_added
     }));
     

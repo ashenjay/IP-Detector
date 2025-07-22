@@ -26,13 +26,15 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       if (response.ok) {
         const categoriesData = await response.json();
+        console.log('🔍 Raw categories data from API:', categoriesData.slice(0, 2));
         const formattedCategories = categoriesData.map((c: any) => ({
           ...c,
           createdAt: new Date(c.created_at),
           isActive: c.is_active,
           isDefault: c.is_default,
-          createdBy: c.created_by
+          createdBy: c.created_by || 'Unknown'
         }));
+        console.log('🔍 Formatted categories data:', formattedCategories.slice(0, 2));
         setCategories(formattedCategories);
       }
     } catch (error) {

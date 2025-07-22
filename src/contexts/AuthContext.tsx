@@ -36,13 +36,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (response.ok) {
         const usersData = await response.json();
+        console.log('🔍 Raw users data from API:', usersData.slice(0, 2));
         const formattedUsers = usersData.map((u: any) => ({
           ...u,
           createdAt: new Date(u.created_at),
           isActive: u.is_active,
           mustChangePassword: u.must_change_password || false,
-          assignedCategories: u.assigned_categories || []
+          assignedCategories: u.assigned_categories || [],
+          createdBy: u.created_by || 'Unknown'
         }));
+        console.log('🔍 Formatted users data:', formattedUsers.slice(0, 2));
         setUsers(formattedUsers);
       }
     } catch (error) {
