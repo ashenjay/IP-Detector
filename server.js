@@ -868,15 +868,19 @@ app.get('/api/whitelist', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM whitelist ORDER BY date_added DESC');
     
+    console.log('🔍 Raw whitelist data from database:', result.rows.slice(0, 2));
+    
     // Transform whitelist data to match frontend expectations
     const transformedData = result.rows.map(row => ({
       id: row.id,
       ip: row.ip,
       type: row.type,
       description: row.description,
-      addedBy: row.added_by || 'Unknown',
+      addedBy: row.added_by || 'admin', // Use actual database value or default to 'admin'
       dateAdded: row.date_added
     }));
+    
+    console.log('🔍 Transformed whitelist data:', transformedData.slice(0, 2));
     
     res.json(transformedData);
   } catch (error) {
