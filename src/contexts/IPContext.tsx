@@ -28,14 +28,16 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
       
       if (response.ok) {
         const data = await response.json();
+        console.log('📥 Raw API response:', data.slice(0, 2)); // Debug log
         const formattedEntries = data.map((entry: any) => ({
           ...entry,
-          dateAdded: entry.date_added ? new Date(entry.date_added) : new Date(),
-          lastModified: entry.last_modified ? new Date(entry.last_modified) : new Date(),
-          addedBy: entry.added_by,
-          sourceCategory: entry.source_category,
-          vtReputation: entry.vt_reputation
+          dateAdded: entry.dateAdded ? new Date(entry.dateAdded) : new Date(),
+          lastModified: entry.lastModified ? new Date(entry.lastModified) : new Date(),
+          addedBy: entry.addedBy || 'Unknown', // Use the transformed field
+          sourceCategory: entry.sourceCategory,
+          vtReputation: entry.vtReputation
         }));
+        console.log('📤 Formatted entries:', formattedEntries.slice(0, 2)); // Debug log
         setIpEntries(formattedEntries);
       }
     } catch (error) {

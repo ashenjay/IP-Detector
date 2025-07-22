@@ -714,7 +714,7 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
     console.log('✅ IP entry created successfully:', {
       id: result.rows[0].id,
       ip: result.rows[0].ip,
-      added_by: result.rows[0].added_by,
+      added_by: result.rows[0].added_by, // This should show the username
       date_added: result.rows[0].date_added
     });
     
@@ -825,16 +825,16 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
     
     // Transform the data to match frontend expectations
     const transformedData = result.rows.map(row => {
-      // Fix: Properly handle the added_by field
-      const addedBy = row.added_by && row.added_by.trim() !== '' ? row.added_by.trim() : 'admin';
+      // CRITICAL FIX: Properly handle the added_by field
+      const addedBy = row.added_by && row.added_by.trim() !== '' ? row.added_by.trim() : 'Unknown';
       
       return {
         id: row.id,
         ip: row.ip,
         type: row.type,
-        category: row.category_id, // Use category_id for consistency
+        category: row.category_id,
         description: row.description,
-        addedBy: addedBy,
+        addedBy: addedBy, // This is the key field!
         dateAdded: row.date_added ? new Date(row.date_added) : new Date(),
         lastModified: row.last_modified ? new Date(row.last_modified) : new Date(),
         source: row.source,
