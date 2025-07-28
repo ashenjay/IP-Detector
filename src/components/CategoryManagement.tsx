@@ -166,7 +166,7 @@ const CategoryManagement: React.FC = () => {
       }
     } catch (err) {
       console.error('Update category error:', err);
-      setError('Error updating category');
+      setError(err instanceof Error ? err.message : 'Error updating category');
     } finally {
       setLoading(false);
     }
