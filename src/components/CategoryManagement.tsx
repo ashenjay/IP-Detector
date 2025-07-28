@@ -150,7 +150,7 @@ const CategoryManagement: React.FC = () => {
         description: formData.description,
         color: formData.color,
         icon: formData.icon,
-        expirationHours: formData.autoCleanup && totalHours ? totalHours : null,
+        expirationHours: formData.autoCleanup && totalHours !== null ? totalHours : null,
         autoCleanup: formData.autoCleanup
       };
       
