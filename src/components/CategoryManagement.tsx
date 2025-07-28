@@ -103,7 +103,7 @@ const CategoryManagement: React.FC = () => {
         color: formData.color,
         icon: formData.icon,
         isActive: true,
-        expirationHours: Math.round(totalSeconds / 3600), // Convert to hours as integer, 0 is valid
+        expirationHours: formData.autoCleanup && totalSeconds > 0 ? Math.round(totalSeconds / 3600) : null,
         autoCleanup: formData.autoCleanup
       };
       
@@ -145,7 +145,7 @@ const CategoryManagement: React.FC = () => {
         description: formData.description,
         color: formData.color,
         icon: formData.icon,
-        expirationHours: totalSeconds === 0 ? null : Math.round(totalSeconds / 3600), // null for no expiration
+        expirationHours: formData.autoCleanup && totalSeconds > 0 ? Math.round(totalSeconds / 3600) : null,
         autoCleanup: formData.autoCleanup
       };
       
