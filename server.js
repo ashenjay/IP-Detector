@@ -694,7 +694,20 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Update category error:', error);
     console.error('Error stack:', error.stack);
-    res.status(500).json({ error: `Failed to update category: ${error.message || String(error)}` });
+    
+    // Provide more descriptive error message
+    let errorMessage = 'Failed to update category';
+    if (error.message) {
+      errorMessage += `: ${error.message}`;
+    } else if (error.code) {
+      errorMessage += `: Database error ${error.code}`;
+    } else if (typeof error === 'string') {
+      errorMessage += `: ${error}`;
+    } else {
+      errorMessage += `: Unknown error occurred`;
+    }
+    
+    res.status(500).json({ error: errorMessage });
   }
 });
 
