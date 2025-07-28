@@ -775,7 +775,7 @@ const CategoryManagement: React.FC = () => {
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-600">{category.description}</div>
                       <div className="mt-1 text-xs text-gray-500">
-                        <strong>{category.ipCount || 0} IP entries</strong>
+                        <strong>{parseInt(category.ipCount) || 0} IP entries</strong>
                       </div>
                       
                       {/* AUTO-REMOVE STATUS AND EXPIRATION TIME */}

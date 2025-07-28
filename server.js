@@ -482,6 +482,7 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
     const result = await pool.query(`
       SELECT 
         c.*,
+       COALESCE((SELECT COUNT(*) FROM ip_entries WHERE category_id = c.id), 0) as ip_count,
         CASE 
           WHEN c.expires_at IS NULL THEN 'Never'
           WHEN c.expires_at > CURRENT_TIMESTAMP THEN 'Active'
@@ -491,8 +492,7 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
           WHEN c.expires_at IS NOT NULL AND c.expires_at > CURRENT_TIMESTAMP THEN
             EXTRACT(EPOCH FROM (c.expires_at - CURRENT_TIMESTAMP)) / 86400
           ELSE NULL
-        END as days_until_expiration,
-        (SELECT COUNT(*) FROM ip_entries WHERE category_id = c.id) as ip_count
+        END as days_until_expiration
       FROM categories c
       ORDER BY c.created_at
     `);

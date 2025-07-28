@@ -35,12 +35,13 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           createdBy: c.created_by || 'Unknown',
           expirationHours: c.expiration_hours || null,
           autoCleanup: Boolean(c.auto_cleanup),
-          ipCount: c.ip_count || 0
+          ipCount: parseInt(c.ip_count) || 0
         }));
         console.log('🔍 Formatted categories data with expiration:', formattedCategories.map(c => ({
           name: c.name,
           expirationHours: c.expirationHours,
-          autoCleanup: c.autoCleanup
+          autoCleanup: c.autoCleanup,
+          ipCount: c.ipCount
         })));
         setCategories(formattedCategories);
       }
