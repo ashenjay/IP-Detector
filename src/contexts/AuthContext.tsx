@@ -232,7 +232,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const token = localStorage.getItem('auth_token');
-      console.log('Making delete request to:', `http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com:3000/api/users/${userId}`);
+      console.log('Making delete request to:', `http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/users/${userId}`);
       
       const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/users/${userId}`, {
         method: 'DELETE',
