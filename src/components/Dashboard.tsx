@@ -18,6 +18,7 @@ import {
   TrendingUp,
   User,
   Settings,
+  Clock,
   Folder,
   Globe,
   Lock,
@@ -282,6 +283,16 @@ const Dashboard: React.FC = () => {
                 >
                   <Settings className="h-4 w-4" />
                   <span>Categories</span>
+                </button>
+              )}
+              
+              {user?.role === 'superadmin' && (
+                <button
+                  onClick={() => window.open('#/expiration', '_self')}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <Clock className="h-4 w-4" />
+                  <span>Expiration</span>
                 </button>
               )}
             </div>

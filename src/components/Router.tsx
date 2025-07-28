@@ -6,6 +6,7 @@ import EDLView from './EDLView';
 import UserManagement from './UserManagement';
 import CategoryManagement from './CategoryManagement';
 import ChangePassword from './ChangePassword'; // ✅ New import
+import CategoryExpirationManagement from './CategoryExpirationManagement';
 import PlainTextEDL from './PlainTextEDL';
 
 import { useCategory } from '../contexts/CategoryContext';
@@ -105,6 +106,10 @@ const Router: React.FC = () => {
 
   if (path === 'categories') {
     return <CategoryManagement />;
+  }
+
+  if (path === 'expiration') {
+    return <CategoryExpirationManagement />;
   }
 
   return <Dashboard />;
