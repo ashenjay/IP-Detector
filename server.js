@@ -687,9 +687,7 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     console.log('Updating category with values:', updateValues);
     
     const result = await pool.query(
-      `UPDATE categories SET ${updateFields.map(field => 
-        field.includes('expiration_hours') ? field.replace('expiration_hours = ', 'expiration_hours = (')  + ')::INTEGER' : field
-      ).join(', ')} WHERE id = $${paramCount}`,
+      `UPDATE categories SET ${updateFields.join(', ')} WHERE id = $${paramCount}`,
       updateValues
     );
     
