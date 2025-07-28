@@ -790,9 +790,25 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
       return 'hostname';
     };
     
+    // Get category expiration settings
+    const categoryResult = await pool.query(
+      'SELECT expiration_days, auto_cleanup FROM categories WHERE id = $1',
+      [categoryId]
+    );
+    
+    let expiresAt = null;
+    if (categoryResult.rows.length > 0) {
+      const category = categoryResult.rows[0];
+      if (category.auto_cleanup && category.expiration_days) {
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + category.expiration_days);
+        expiresAt = expirationDate;
+      }
+    }
+    
     const result = await pool.query(
-      'INSERT INTO ip_entries (ip, type, category_id, description, added_by, source) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [ip, detectType(ip), categoryId, description || '', addedBy, 'manual']
+      'INSERT INTO ip_entries (ip, type, category_id, description, added_by, source, expires_at, auto_remove) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [ip, detectType(ip), categoryId, description || '', addedBy, 'manual', expiresAt, expiresAt ? true : false]
     );
     
     console.log('✅ IP entry created successfully:', {

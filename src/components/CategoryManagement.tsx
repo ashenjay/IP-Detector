@@ -368,55 +368,6 @@ const CategoryManagement: React.FC = () => {
                 </div>
               </div>
               
-              {/* Expiration Settings */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Auto-cleanup after (days)
-                  </label>
-                  <select
-                    value={formData.expirationDays || ''}
-                    onChange={(e) => {
-                      const days = e.target.value ? parseInt(e.target.value) : null;
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        expirationDays: days,
-                        autoCleanup: days ? true : false
-                      }));
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">No expiration</option>
-                    {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                      <option key={day} value={day}>{day} day{day > 1 ? 's' : ''}</option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    IPs added to this category will be automatically removed after the specified days
-                  </p>
-                </div>
-                <div className="flex items-center">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="autoCleanup"
-                      checked={formData.autoCleanup}
-                      onChange={(e) => setFormData(prev => ({ ...prev, autoCleanup: e.target.checked }))}
-                      disabled={!formData.expirationDays}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
-                    />
-                    <label htmlFor="autoCleanup" className="text-sm text-gray-700">
-                      Enable automatic cleanup
-                    </label>
-                  </div>
-                  {formData.expirationDays && (
-                    <div className="ml-4 text-xs text-green-600">
-                      ✓ IPs will expire after {formData.expirationDays} day{formData.expirationDays > 1 ? 's' : ''}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
               <div className="flex space-x-3">
                 <button
                   type="submit"
@@ -592,22 +543,13 @@ const CategoryManagement: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-600">{category.description}</div>
-                      {category.expiresAt && (
+                      {category.expirationDays && (
                         <div className="mt-1">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                            category.expirationStatus === 'Expired' ? 'bg-red-100 text-red-800' :
-                            category.expirationStatus === 'Active' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
+                            category.autoCleanup ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                           }`}>
-                            {category.expirationStatus === 'Expired' ? '⚠️ Expired' :
-                             category.expirationStatus === 'Active' ? `⏰ ${Math.ceil(category.daysUntilExpiration || 0)} days left` :
-                             'Never expires'}
+                            {category.autoCleanup ? `🔄 Auto-cleanup: ${category.expirationDays} day${category.expirationDays > 1 ? 's' : ''}` : `⏰ ${category.expirationDays} day${category.expirationDays > 1 ? 's' : ''} (manual)`}
                           </span>
-                          {category.autoCleanup && (
-                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                              🔄 Auto-cleanup
-                            </span>
-                          )}
                         </div>
                       )}
                       {category.ipCount !== undefined && (
