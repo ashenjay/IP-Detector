@@ -583,15 +583,6 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     
     console.log('Updating category:', id, 'with data:', updates);
     
-    // Validate required fields if they are being updated
-    if (updates.name !== undefined && (!updates.name || updates.name.trim() === '')) {
-      return res.status(400).json({ error: 'Category name cannot be empty' });
-    }
-    
-    if (updates.label !== undefined && (!updates.label || updates.label.trim() === '')) {
-      return res.status(400).json({ error: 'Category label cannot be empty' });
-    }
-    
     // Get current category to check if name actually changed
     const currentCategory = await pool.query('SELECT name FROM categories WHERE id = $1', [id]);
     
@@ -612,57 +603,34 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     const updateValues = [];
     let paramCount = 1;
     
-    // Handle auto_cleanup and expiration_hours first with special logic
-    if ('autoCleanup' in updates) {
-      const autoCleanupValue = Boolean(updates.autoCleanup);
-      updateFields.push(`auto_cleanup = $${paramCount}`);
-      updateValues.push(autoCleanupValue);
-      paramCount++;
-      
-      // If auto_cleanup is false, always set expiration_hours to NULL
-      if (!autoCleanupValue) {
-        updateFields.push(`expiration_hours = $${paramCount}`);
-        updateValues.push(null);
-        paramCount++;
-      } else if ('expirationHours' in updates) {
-        // Only set expiration_hours if auto_cleanup is true, 0 is valid
-        let expirationValue = updates.expirationHours;
-        if (expirationValue === null || expirationValue === undefined || expirationValue === '') {
-          expirationValue = null;
-        } else {
-          const parsed = parseInt(expirationValue);
-          expirationValue = isNaN(parsed) ? null : parsed;
-        }
-        updateFields.push(`expiration_hours = $${paramCount}`);
-        updateValues.push(expirationValue);
-        paramCount++;
-      }
-    } else if ('expirationHours' in updates) {
-      // Handle expirationHours when autoCleanup is not in updates, 0 is valid
-      let expirationValue = updates.expirationHours;
-      if (expirationValue === null || expirationValue === undefined || expirationValue === '') {
-        expirationValue = null;
-      } else {
-        const parsed = parseInt(expirationValue);
-        expirationValue = isNaN(parsed) ? null : parsed;
-      }
-      updateFields.push(`expiration_hours = $${paramCount}`);
-      updateValues.push(expirationValue);
-      paramCount++;
-    }
-    
-    // Process all other fields
+    // Process all fields with proper mapping
     Object.keys(updates).forEach(key => {
-      if (key !== 'id' && key !== 'autoCleanup' && key !== 'expirationHours') {
+      if (key !== 'id') {
         const dbKey = key === 'isActive' ? 'is_active' : 
                      key === 'isDefault' ? 'is_default' : 
-                     key === 'createdBy' ? 'created_by' : 
+                     key === 'createdBy' ? 'created_by' :
+                     key === 'autoCleanup' ? 'auto_cleanup' :
+                     key === 'expirationHours' ? 'expiration_hours' :
                      key;
+        
         updateFields.push(`${dbKey} = $${paramCount}`);
+        
         let value = updates[key];
         
-        // Handle string fields
-        if (typeof value === 'string') {
+        // Handle specific field types
+        if (key === 'autoCleanup') {
+          value = Boolean(value);
+        } else if (key === 'expirationHours') {
+          // Handle expiration hours: null, 0, or positive integer
+          if (value === null || value === undefined || value === '') {
+            value = null;
+          } else {
+            value = parseInt(value);
+            if (isNaN(value)) {
+              value = null;
+            }
+          }
+        } else if (typeof value === 'string') {
           value = value.trim();
         }
         
@@ -690,6 +658,12 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'Category updated successfully' });
   } catch (error) {
     console.error('Update category error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      detail: error.detail
+    });
     res.status(500).json({ error: 'Failed to update category' });
   }
 });
