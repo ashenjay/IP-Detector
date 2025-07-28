@@ -116,70 +116,71 @@ app.get('/api/edl/:category', async (req, res) => {
 // Debug endpoint to check database
 app.get('/api/debug', async (req, res) => {
   try {
-    console.log('🔍 DEBUG: Starting comprehensive database check...');
+    console.log('🔍 DEBUG: Starting SIMPLE database check...');
     
-    // Check categories
-    const categoriesResult = await pool.query('SELECT id, name, label FROM categories ORDER BY name');
-    console.log('🔍 DEBUG: Categories found:', categoriesResult.rows.length);
+    // 1. Check categories table
+    const categoriesResult = await pool.query('SELECT id, name, label, is_active FROM categories ORDER BY name');
+    console.log('🔍 DEBUG: Categories in DB:', categoriesResult.rows);
     
-    // Check IP entries with category info and added_by field
-    const ipEntriesResult = await pool.query(`
-      SELECT ie.id, ie.ip, ie.category_id, ie.added_by, ie.date_added,
-             c.name as category_name, c.label as category_label
-      FROM ip_entries ie 
-      JOIN categories c ON ie.category_id = c.id 
-      ORDER BY ie.date_added DESC 
-      LIMIT 10
-    `);
-    console.log('🔍 DEBUG: IP entries found:', ipEntriesResult.rows.length);
+    // 2. Check IP entries table
+    const ipEntriesResult = await pool.query('SELECT id, ip, category_id, added_by FROM ip_entries ORDER BY date_added DESC LIMIT 10');
+    console.log('🔍 DEBUG: IP entries in DB:', ipEntriesResult.rows);
     
-    // Count by category
-    const countByCategory = await pool.query(`
-      SELECT c.id, c.name, c.label, COUNT(ie.id) as count
+    // 3. Manual count by category
+    const manualCount = await pool.query(`
+      SELECT 
+        c.id as category_id,
+        c.name as category_name,
+        c.label as category_label,
+        COUNT(ie.id) as ip_count
       FROM categories c
       LEFT JOIN ip_entries ie ON ie.category_id = c.id
       GROUP BY c.id, c.name, c.label
       ORDER BY c.name
     `);
-    console.log('🔍 DEBUG: Count by category:', countByCategory.rows);
+    console.log('🔍 DEBUG: Manual count by category:', manualCount.rows);
     
-    const totalIpCount = await pool.query('SELECT COUNT(*) as count FROM ip_entries');
-    const whitelistResult = await pool.query('SELECT COUNT(*) as count FROM whitelist');
-    
-    // Check added_by field status
-    const addedByStatus = await pool.query(`
-      SELECT 
-        COUNT(*) as total_entries,
-        COUNT(CASE WHEN added_by IS NOT NULL AND added_by != '' THEN 1 END) as entries_with_added_by,
-        COUNT(CASE WHEN added_by IS NULL OR added_by = '' THEN 1 END) as entries_without_added_by
-      FROM ip_entries
-    `);
-    
-    // NEW: Check for UUID format issues
-    const uuidCheck = await pool.query(`
-      SELECT 
-        ie.id as ip_id,
-        ie.category_id as ip_category_id,
-        c.id as category_id,
-        ie.ip,
-        c.name as category_name,
-        CASE WHEN c.id IS NULL THEN 'ORPHANED' ELSE 'MATCHED' END as status
+    // 4. Check for orphaned entries
+    const orphanedEntries = await pool.query(`
+      SELECT ie.id, ie.ip, ie.category_id
       FROM ip_entries ie
       LEFT JOIN categories c ON ie.category_id = c.id
-      ORDER BY ie.date_added DESC
-      LIMIT 5
+      WHERE c.id IS NULL
     `);
-    console.log('🔍 DEBUG: UUID check results:', uuidCheck.rows);
+    console.log('🔍 DEBUG: Orphaned IP entries:', orphanedEntries.rows);
+    
+    // 5. Test the actual categories query we use
+    const actualQuery = await pool.query(`
+      SELECT 
+        c.id,
+        c.name,
+        c.label,
+        c.description,
+        c.color,
+        c.icon,
+        c.is_default,
+        c.is_active,
+        c.created_by,
+        c.created_at,
+        c.expiration_hours,
+        c.auto_cleanup,
+        (SELECT COUNT(*) FROM ip_entries ie WHERE ie.category_id = c.id) as ip_count
+      FROM categories c
+      ORDER BY c.name
+    `);
+    console.log('🔍 DEBUG: Actual query results:', actualQuery.rows.map(r => ({
+      name: r.name,
+      ip_count: r.ip_count,
+      ip_count_type: typeof r.ip_count
+    })));
     
     res.json({
       database: 'connected',
-      categories: categoriesResult.rows,
-      sampleIpEntries: ipEntriesResult.rows,
-      countByCategory: countByCategory.rows,
-      uuidCheck: uuidCheck.rows,
-      totalIPs: parseInt(totalIpCount.rows[0].count),
-      totalWhitelist: parseInt(whitelistResult.rows[0].count),
-      addedByStatus: addedByStatus.rows[0],
+      categoriesInDB: categoriesResult.rows,
+      ipEntriesInDB: ipEntriesResult.rows,
+      manualCountByCategory: manualCount.rows,
+      orphanedEntries: orphanedEntries.rows,
+      actualQueryResults: actualQuery.rows,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -501,31 +502,9 @@ app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
 // Categories
 app.get('/api/categories', authenticateToken, async (req, res) => {
   try {
-    console.log('🔍 Fetching categories with IP counts - DEBUGGING...');
+    console.log('🔍 Fetching categories with IP counts...');
     
-    // First, let's check what's actually in the database
-    const debugCategories = await pool.query('SELECT id, name, label FROM categories ORDER BY name');
-    console.log('🔍 Categories in database:', debugCategories.rows);
-    
-    const debugIPs = await pool.query('SELECT id, ip, category_id FROM ip_entries LIMIT 10');
-    console.log('🔍 IP entries in database:', debugIPs.rows);
-    
-    // Check for data type issues
-    const debugCount = await pool.query(`
-      SELECT 
-        c.id,
-        c.name,
-        COUNT(ie.id) as count_result,
-        COUNT(ie.id)::text as count_as_text,
-        COALESCE(COUNT(ie.id), 0) as coalesce_count
-      FROM categories c
-      LEFT JOIN ip_entries ie ON c.id = ie.category_id
-      GROUP BY c.id, c.name
-      ORDER BY c.name
-    `);
-    console.log('🔍 Count debug results:', debugCount.rows);
-    
-    // Use the working query structure
+    // Use simple subquery approach - most reliable
     const result = await pool.query(`
       SELECT 
         c.id,
@@ -540,16 +519,14 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
         c.created_at,
         c.expiration_hours,
         c.auto_cleanup,
-        COALESCE(COUNT(ie.id), 0) as ip_count
+        (SELECT COUNT(*) FROM ip_entries ie WHERE ie.category_id = c.id) as ip_count
       FROM categories c
-      LEFT JOIN ip_entries ie ON c.id = ie.category_id
-      GROUP BY c.id, c.name, c.label, c.description, c.color, c.icon, c.is_default, c.is_active, c.created_by, c.created_at, c.expiration_hours, c.auto_cleanup
       ORDER BY c.name
     `);
     
-    console.log('🔍 Final query results:');
+    console.log('🔍 Categories query results:');
     result.rows.forEach(row => {
-      console.log(`  ${row.name}: ${row.ip_count} IPs (type: ${typeof row.ip_count}, value: ${JSON.stringify(row.ip_count)})`);
+      console.log(`  ${row.name}: ${row.ip_count} IPs (type: ${typeof row.ip_count})`);
     });
     
     res.json(result.rows);
@@ -934,11 +911,15 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'IP already exists in the system' });
     }
     
-    // Verify category exists
+    // Verify category exists - CRITICAL FIX
+    console.log('🔍 Looking for category:', category, 'type:', typeof category);
     const categoryCheck = await pool.query('SELECT id, name FROM categories WHERE id = $1', [category]);
+    console.log('🔍 Category check by ID result:', categoryCheck.rows);
+    
     if (categoryCheck.rows.length === 0) {
       // Try by name if UUID lookup failed
       const categoryByName = await pool.query('SELECT id, name FROM categories WHERE name = $1', [category]);
+      console.log('🔍 Category check by name result:', categoryByName.rows);
       if (categoryByName.rows.length === 0) {
         console.log('Category not found by ID or name:', category);
         return res.status(400).json({ error: 'Category does not exist' });
@@ -947,11 +928,7 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
     }
     
     const categoryId = categoryCheck.rows[0].id;
-    console.log('✅ Using category:', {
-      id: categoryId,
-      name: categoryCheck.rows[0].name,
-      inputCategory: category
-    });
+    console.log('✅ Final category to use:', categoryId, 'name:', categoryCheck.rows[0].name);
     
     // Detect entry type
     const detectType = (entry) => {
@@ -963,22 +940,21 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
       return 'hostname';
     };
     
+    console.log('🔍 About to insert IP with category_id:', categoryId);
     const result = await pool.query(
       'INSERT INTO ip_entries (ip, type, category_id, description, added_by, source) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
       [ip, detectType(ip), categoryId, description || '', addedBy, 'manual']
     );
     
-    console.log('✅ IP entry created successfully:', {
-      id: result.rows[0].id,
-      ip: result.rows[0].ip,
-      category_id: result.rows[0].category_id,
-      added_by: result.rows[0].added_by,
-      date_added: result.rows[0].date_added
-    });
+    console.log('✅ IP entry created:', result.rows[0]);
     
-    // Verify count increased
+    // CRITICAL: Verify the IP was actually inserted and linked correctly
     const countCheck = await pool.query('SELECT COUNT(*) as count FROM ip_entries WHERE category_id = $1', [categoryId]);
-    console.log('✅ Category now has', countCheck.rows[0].count, 'IP entries');
+    console.log('✅ Category', categoryId, 'now has', countCheck.rows[0].count, 'IP entries');
+    
+    // Double check the IP exists in the database
+    const verifyIP = await pool.query('SELECT id, ip, category_id FROM ip_entries WHERE id = $1', [result.rows[0].id]);
+    console.log('✅ Verification - IP exists in DB:', verifyIP.rows[0]);
     
     res.status(201).json(result.rows[0]);
   } catch (error) {

@@ -37,7 +37,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       if (response.ok) {
         const categoriesData = await response.json();
-        console.log('🔍 Raw categories data from API:', categoriesData);
+        console.log('🔍 CategoryContext: Raw API response:', categoriesData.slice(0, 2));
         
         const formattedCategories = categoriesData.map((c: any) => ({
           id: c.id,
@@ -52,12 +52,12 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           createdBy: c.created_by || 'Unknown',
           expirationHours: c.expiration_hours || null,
           autoCleanup: Boolean(c.auto_cleanup),
-          ipCount: parseInt(c.ip_count) || 0
+          ipCount: c.ip_count ? parseInt(c.ip_count, 10) : 0
         }));
         
-        console.log('🔍 Formatted categories with IP counts:');
+        console.log('🔍 CategoryContext: Formatted categories:');
         formattedCategories.forEach(c => {
-          console.log(`  ${c.name}: ipCount=${c.ipCount} (${typeof c.ipCount})`);
+          console.log(`  ${c.name}: raw=${c.ip_count} -> parsed=${c.ipCount}`);
         });
         
         setCategories(formattedCategories);
