@@ -58,7 +58,9 @@ const CategoryManagement: React.FC = () => {
     label: '',
     description: '',
     color: 'bg-blue-500',
-    icon: 'Shield'
+    icon: 'Shield',
+    expiresAt: '',
+    autoCleanup: false
   });
 
   const resetForm = () => {
@@ -67,7 +69,9 @@ const CategoryManagement: React.FC = () => {
       label: '',
       description: '',
       color: 'bg-blue-500',
-      icon: 'Shield'
+      icon: 'Shield',
+      expiresAt: '',
+      autoCleanup: false
     });
     setError('');
   };
@@ -80,7 +84,9 @@ const CategoryManagement: React.FC = () => {
     try {
       const success = await createCategory({
         ...formData,
-        isActive: true
+        isActive: true,
+        expiresAt: formData.expiresAt ? new Date(formData.expiresAt) : undefined,
+        autoCleanup: formData.autoCleanup
       });
       
       if (success) {
@@ -153,7 +159,9 @@ const CategoryManagement: React.FC = () => {
       label: category.label,
       description: category.description,
       color: category.color,
-      icon: category.icon
+      icon: category.icon,
+      expiresAt: category.expiresAt ? category.expiresAt.toISOString().slice(0, 16) : '',
+      autoCleanup: category.autoCleanup || false
     });
     setEditingCategory(category);
     setShowEditForm(true);

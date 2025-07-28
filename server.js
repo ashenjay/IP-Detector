@@ -479,7 +479,23 @@ app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
 // Categories
 app.get('/api/categories', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM categories ORDER BY created_at');
+    const result = await pool.query(`
+      SELECT 
+        c.*,
+        CASE 
+          WHEN c.expires_at IS NULL THEN 'Never'
+          WHEN c.expires_at > CURRENT_TIMESTAMP THEN 'Active'
+          ELSE 'Expired'
+        END as expiration_status,
+        CASE 
+          WHEN c.expires_at IS NOT NULL AND c.expires_at > CURRENT_TIMESTAMP THEN
+            EXTRACT(EPOCH FROM (c.expires_at - CURRENT_TIMESTAMP)) / 86400
+          ELSE NULL
+        END as days_until_expiration,
+        (SELECT COUNT(*) FROM ip_entries WHERE category_id = c.id) as ip_count
+      FROM categories c
+      ORDER BY c.created_at
+    `);
     res.json(result.rows);
   } catch (error) {
     console.error('Get categories error:', error);
@@ -493,7 +509,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
     
-    const { name, label, description, color, icon } = req.body;
+    const { name, label, description, color, icon, expiresAt, autoCleanup } = req.body;
     
     if (!name || !label || !description) {
       return res.status(400).json({ error: 'Name, label, and description are required' });
@@ -513,8 +529,19 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
     }
     
     const result = await pool.query(
-      'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-      [name.trim().toLowerCase(), label.trim(), description.trim(), color || 'bg-blue-500', icon || 'Shield', false, true, req.user.username]
+      'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by, expires_at, auto_cleanup) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+      [
+        name.trim().toLowerCase(), 
+        label.trim(), 
+        description.trim(), 
+        color || 'bg-blue-500', 
+        icon || 'Shield', 
+        false, 
+        true, 
+        req.user.username,
+        expiresAt ? new Date(expiresAt) : null,
+        autoCleanup || false
+      ]
     );
     
     console.log('Category created successfully:', result.rows[0].name);
@@ -556,9 +583,17 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
       if (key !== 'id') {
         const dbKey = key === 'isActive' ? 'is_active' : 
                      key === 'isDefault' ? 'is_default' : 
-                     key === 'createdBy' ? 'created_by' : key;
+                     key === 'createdBy' ? 'created_by' : 
+                     key === 'expiresAt' ? 'expires_at' :
+                     key === 'autoCleanup' ? 'auto_cleanup' : key;
         updateFields.push(`${dbKey} = $${paramCount}`);
-        updateValues.push(typeof updates[key] === 'string' ? updates[key].trim() : updates[key]);
+        let value = updates[key];
+        if (typeof value === 'string') {
+          value = value.trim();
+        } else if (key === 'expiresAt' && value) {
+          value = new Date(value);
+        }
+        updateValues.push(value);
         paramCount++;
       }
     });
@@ -657,6 +692,60 @@ app.delete('/api/categories/:id', authenticateToken, async (req, res) => {
     console.error('Delete category error:', error);
     console.error('Error details:', error.message);
     res.status(500).json({ error: 'Failed to delete category: ' + error.message });
+  }
+});
+app.post('/api/categories/cleanup-expired', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    console.log('Running expired category cleanup...');
+    
+    const result = await pool.query('SELECT cleanup_expired_category_data() as cleaned_count');
+    const cleanedCount = result.rows[0].cleaned_count;
+    
+    console.log('Cleanup completed, cleaned entries:', cleanedCount);
+    res.json({ 
+      message: 'Cleanup completed successfully',
+      cleanedEntries: cleanedCount
+    });
+  } catch (error) {
+    console.error('Cleanup expired categories error:', error);
+    res.status(500).json({ error: 'Failed to cleanup expired categories' });
+  }
+});
+
+// Add extend expiration endpoint
+app.put('/api/categories/:id/extend-expiration', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const { id } = req.params;
+    const { newExpiration } = req.body;
+    
+    if (!newExpiration) {
+      return res.status(400).json({ error: 'New expiration date is required' });
+    }
+    
+    console.log('Extending category expiration:', id, 'to:', newExpiration);
+    
+    const result = await pool.query(
+      'SELECT extend_category_expiration($1, $2) as success',
+      [id, new Date(newExpiration)]
+    );
+    
+    if (result.rows[0].success) {
+      console.log('Category expiration extended successfully');
+      res.json({ message: 'Category expiration extended successfully' });
+    } else {
+      res.status(404).json({ error: 'Category not found' });
+    }
+  } catch (error) {
+    console.error('Extend category expiration error:', error);
+    res.status(500).json({ error: 'Failed to extend category expiration' });
   }
 });
 

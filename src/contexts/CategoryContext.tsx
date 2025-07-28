@@ -32,7 +32,12 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           createdAt: new Date(c.created_at),
           isActive: c.is_active,
           isDefault: c.is_default,
-          createdBy: c.created_by || 'Unknown'
+          createdBy: c.created_by || 'Unknown',
+          expiresAt: c.expires_at ? new Date(c.expires_at) : undefined,
+          autoCleanup: c.auto_cleanup || false,
+          expirationStatus: c.expiration_status || 'Never',
+          daysUntilExpiration: c.days_until_expiration || undefined,
+          ipCount: c.ip_count || 0
         }));
         console.log('🔍 Formatted categories data:', formattedCategories.slice(0, 2));
         setCategories(formattedCategories);
