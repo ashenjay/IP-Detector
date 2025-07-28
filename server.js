@@ -622,7 +622,7 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
           value = Boolean(value);
         } else if (key === 'expirationHours') {
           // Handle expiration hours: null, 0, or positive integer
-          if (value === null || value === undefined || value === '') {
+          if (value === null || value === undefined || value === '' || value === 0) {
             value = null;
           } else {
             value = parseInt(value);
