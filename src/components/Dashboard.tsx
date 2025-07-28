@@ -360,23 +360,25 @@ const Dashboard: React.FC = () => {
                 {category.description}
               </p>
               
-              {/* Auto-removal Info - Only show if enabled */}
-              {category.autoCleanup && category.expirationHours && (
+              {/* ONLY show expiration info if auto-cleanup is enabled */}
+              {category.autoCleanup && category.expirationHours ? (
                 <div className="mb-4 p-2 rounded-lg bg-gray-50 border">
                   <div className="text-xs text-gray-700 space-y-1">
                     <div><strong>🔄 Auto-removal:</strong> Enabled</div>
                     <div className="text-orange-600 font-medium">
-                      ⏰ IP entries expire after {category.expirationHours} hours
+                      ⏰ IP entries expire after {formatExpirationTime(category.expirationHours)}
                     </div>
                   </div>
                 </div>
-              )}
+              ) : null}
               
               <div className="flex space-x-2">
                 <button
                   onClick={() => {
-                    console.log('Navigating to category:', category.id, category.name);
-                    window.location.hash = `/list/${category.id}`;
+                    console.log('🔍 Dashboard View button clicked for category:', category.id, category.name);
+                    const hash = `#/list/${category.id}`;
+                    console.log('🔍 Setting hash to:', hash);
+                    window.location.hash = hash;
                   }}
                   className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-1"
                   disabled={!canAccessCategory(category.id)}

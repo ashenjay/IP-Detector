@@ -27,7 +27,8 @@ import {
   Globe,
   Lock,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Clock
 } from 'lucide-react';
 
 const CategoryManagement: React.FC = () => {
@@ -53,7 +54,7 @@ const CategoryManagement: React.FC = () => {
     return () => clearInterval(interval);
   }, [refreshCategories]);
 
-  // Form states
+  // Form states - COMPLETE TIME INPUTS
   const [formData, setFormData] = useState({
     name: '',
     label: '',
@@ -81,19 +82,6 @@ const CategoryManagement: React.FC = () => {
     setError('');
   };
 
-  const formatExpirationTime = (totalSeconds: number) => {
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    
-    const parts = [];
-    if (hours > 0) parts.push(`${hours}h`);
-    if (minutes > 0) parts.push(`${minutes}m`);
-    if (seconds > 0) parts.push(`${seconds}s`);
-    
-    return parts.length > 0 ? parts.join(' ') : '0s';
-  };
-
   const handleCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -102,14 +90,24 @@ const CategoryManagement: React.FC = () => {
     try {
       console.log('Creating category with form data:', formData);
       
+      // Calculate total seconds from hours, minutes, seconds
+      const totalSeconds = 
+        (parseInt(formData.expirationHours) || 0) * 3600 +
+        (parseInt(formData.expirationMinutes) || 0) * 60 +
+        (parseInt(formData.expirationSeconds) || 0);
+      
       const categoryData = {
-        ...formData,
+        name: formData.name,
+        label: formData.label,
+        description: formData.description,
+        color: formData.color,
+        icon: formData.icon,
         isActive: true,
-        // Categories automatically get 24h expiration from creation time
-        autoCleanup: true
+        expirationHours: totalSeconds > 0 ? totalSeconds : null, // Store as seconds
+        autoCleanup: formData.autoCleanup
       };
       
-      console.log('Sending category data:', categoryData);
+      console.log('Sending category data with total seconds:', totalSeconds);
       
       const success = await createCategory(categoryData);
       
@@ -146,11 +144,11 @@ const CategoryManagement: React.FC = () => {
         description: formData.description,
         color: formData.color,
         icon: formData.icon,
-        expirationHours: totalSeconds > 0 ? totalSeconds : null,
+        expirationHours: totalSeconds > 0 ? totalSeconds : null, // Store as seconds
         autoCleanup: formData.autoCleanup
       };
       
-      console.log('Sending update data:', updateData);
+      console.log('Sending update data with total seconds:', totalSeconds);
       
       const success = await updateCategory(categoryId, updateData);
       if (success) {
@@ -199,70 +197,22 @@ const CategoryManagement: React.FC = () => {
     }
   };
 
-  const handleManualCleanup = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('https://threatresponse.ndbbank.com/api/categories/cleanup-expired', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        await refreshCategories();
-        setError(`Cleanup completed! Removed ${result.cleanedEntries} IP entries from expired categories.`);
-        setTimeout(() => setError(''), 5000);
-      } else {
-        setError('Failed to cleanup expired categories');
-      }
-    } catch (err) {
-      setError('Error during cleanup');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleExtendExpiration = async (categoryId: string, newExpiration: string) => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`https://threatresponse.ndbbank.com/api/categories/${categoryId}/extend-expiration`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          newExpiration: newExpiration
-        })
-      });
-
-      if (response.ok) {
-        await refreshCategories();
-        setError('Category expiration extended successfully!');
-        setTimeout(() => setError(''), 3000);
-      } else {
-        setError('Failed to extend category expiration');
-      }
-    } catch (err) {
-      setError('Error extending category expiration');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const startEdit = (category: any) => {
+    // Convert seconds back to hours, minutes, seconds for editing
+    const totalSeconds = category.expirationHours || 0;
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    
     setFormData({
       name: category.name,
       label: category.label,
       description: category.description,
       color: category.color,
       icon: category.icon,
-      expirationHours: category.expirationHours ? category.expirationHours.toString() : '',
+      expirationHours: hours.toString(),
+      expirationMinutes: minutes.toString(),
+      expirationSeconds: seconds.toString(),
       autoCleanup: category.autoCleanup || false
     });
     setEditingCategory(category);
@@ -303,6 +253,21 @@ const CategoryManagement: React.FC = () => {
       Folder
     };
     return iconMap[iconName] || Shield;
+  };
+
+  const formatTime = (totalSeconds: number) => {
+    if (!totalSeconds) return 'No expiration';
+    
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    
+    const parts = [];
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (seconds > 0) parts.push(`${seconds}s`);
+    
+    return parts.length > 0 ? parts.join(' ') : '0s';
   };
 
   if (user?.role !== 'superadmin') {
@@ -443,27 +408,62 @@ const CategoryManagement: React.FC = () => {
                 </div>
               </div>
               
-              {/* Expiration Settings */}
+              {/* COMPLETE EXPIRATION SETTINGS - HOURS, MINUTES, SECONDS */}
               <div className="border-t border-gray-200 pt-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">⏰ Expiration Settings (Optional)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Clock className="h-5 w-5 text-gray-600" />
+                  <h4 className="text-sm font-medium text-gray-700">Expiration Settings</h4>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Expiration Hours
+                      Hours
                     </label>
                     <input
                       type="number"
-                      min="1"
-                      max="8760"
+                      min="0"
+                      max="23"
                       value={formData.expirationHours}
                       onChange={(e) => setFormData(prev => ({ ...prev, expirationHours: e.target.value }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="e.g., 24"
+                      placeholder="0"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Hours after which IP entries expire (1-8760 hours)
-                    </p>
+                    <p className="text-xs text-gray-500 mt-1">0-23 hours</p>
                   </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Minutes
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={formData.expirationMinutes}
+                      onChange={(e) => setFormData(prev => ({ ...prev, expirationMinutes: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">0-59 minutes</p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Seconds
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={formData.expirationSeconds}
+                      onChange={(e) => setFormData(prev => ({ ...prev, expirationSeconds: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">0-59 seconds</p>
+                  </div>
+                  
                   <div className="flex items-center">
                     <label className="flex items-center space-x-2">
                       <input
@@ -472,8 +472,19 @@ const CategoryManagement: React.FC = () => {
                         onChange={(e) => setFormData(prev => ({ ...prev, autoCleanup: e.target.checked }))}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="text-sm text-gray-700">Auto-remove expired IP entries</span>
+                      <span className="text-sm text-gray-700">Auto-remove expired IPs</span>
                     </label>
+                  </div>
+                </div>
+                
+                {/* Preview of total time */}
+                <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                  <div className="text-sm text-blue-700">
+                    <strong>Total expiration time:</strong> {formatTime(
+                      (parseInt(formData.expirationHours) || 0) * 3600 +
+                      (parseInt(formData.expirationMinutes) || 0) * 60 +
+                      (parseInt(formData.expirationSeconds) || 0)
+                    )}
                   </div>
                 </div>
               </div>
@@ -589,27 +600,62 @@ const CategoryManagement: React.FC = () => {
                 </div>
               </div>
               
-              {/* Expiration Settings */}
+              {/* COMPLETE EXPIRATION SETTINGS FOR EDIT */}
               <div className="border-t border-gray-200 pt-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">⏰ Expiration Settings</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Clock className="h-5 w-5 text-gray-600" />
+                  <h4 className="text-sm font-medium text-gray-700">Expiration Settings</h4>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Expiration Hours
+                      Hours
                     </label>
                     <input
                       type="number"
-                      min="1"
-                      max="8760"
+                      min="0"
+                      max="23"
                       value={formData.expirationHours}
                       onChange={(e) => setFormData(prev => ({ ...prev, expirationHours: e.target.value }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="e.g., 24"
+                      placeholder="0"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Hours after which IP entries expire (1-8760 hours)
-                    </p>
+                    <p className="text-xs text-gray-500 mt-1">0-23 hours</p>
                   </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Minutes
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={formData.expirationMinutes}
+                      onChange={(e) => setFormData(prev => ({ ...prev, expirationMinutes: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">0-59 minutes</p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Seconds
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={formData.expirationSeconds}
+                      onChange={(e) => setFormData(prev => ({ ...prev, expirationSeconds: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">0-59 seconds</p>
+                  </div>
+                  
                   <div className="flex items-center">
                     <label className="flex items-center space-x-2">
                       <input
@@ -618,22 +664,21 @@ const CategoryManagement: React.FC = () => {
                         onChange={(e) => setFormData(prev => ({ ...prev, autoCleanup: e.target.checked }))}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="text-sm text-gray-700">Auto-remove expired IP entries</span>
+                      <span className="text-sm text-gray-700">Auto-remove expired IPs</span>
                     </label>
                   </div>
                 </div>
-                {editingCategory.expiresAt && (
-                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                    <div className="text-xs text-blue-700">
-                      {editingCategory.expirationHours && (
-                        <div><strong>Current:</strong> {editingCategory.expirationHours} hours</div>
-                      )}
-                      {editingCategory.autoCleanup && (
-                        <div><strong>Auto-cleanup:</strong> Enabled</div>
-                      )}
-                    </div>
+                
+                {/* Preview of total time */}
+                <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                  <div className="text-sm text-blue-700">
+                    <strong>Total expiration time:</strong> {formatTime(
+                      (parseInt(formData.expirationHours) || 0) * 3600 +
+                      (parseInt(formData.expirationMinutes) || 0) * 60 +
+                      (parseInt(formData.expirationSeconds) || 0)
+                    )}
                   </div>
-                )}
+                </div>
               </div>
               
               <div className="flex space-x-3">
@@ -666,7 +711,7 @@ const CategoryManagement: React.FC = () => {
                     Category
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Details
+                    Details & Expiration
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
@@ -700,16 +745,25 @@ const CategoryManagement: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-600">{category.description}</div>
-                      {category.autoCleanup && category.expirationHours && (
-                        <div className="mt-1">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
-                            🔄 Auto-remove: {category.expirationHours}h
+                      <div className="mt-1 text-xs text-gray-500">
+                        <strong>{category.ipCount || 0} IP entries</strong>
+                      </div>
+                      
+                      {/* AUTO-REMOVE STATUS AND EXPIRATION TIME */}
+                      {category.autoCleanup && category.expirationHours ? (
+                        <div className="mt-2 space-y-1">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                            ✅ Auto-remove enabled
                           </span>
+                          <div className="text-xs text-orange-600 font-medium">
+                            ⏰ Expires after: {formatTime(category.expirationHours)}
+                          </div>
                         </div>
-                      )}
-                      {category.ipCount !== undefined && (
-                        <div className="mt-1 text-xs text-gray-500">
-                          {category.ipCount} IP entries
+                      ) : (
+                        <div className="mt-2">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                            ❌ Auto-remove disabled
+                          </span>
                         </div>
                       )}
                     </td>

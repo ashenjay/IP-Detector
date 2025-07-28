@@ -56,22 +56,22 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
   useEffect(() => {
     const interval = setInterval(() => {
       const categoryObj = category ? getCategoryById(category) : null;
-      console.log('Countdown timer update for category:', categoryObj);
+      console.log('🔍 IPList: Countdown timer update for category:', categoryObj?.name, 'autoCleanup:', categoryObj?.autoCleanup);
       
       if (categoryObj?.autoCleanup && categoryObj?.expirationHours && categoryObj.expirationHours > 0) {
         const newTimers: {[key: string]: string} = {};
         
         entries.forEach(entry => {
           const addedTime = new Date(entry.dateAdded).getTime();
-          const expirationTime = addedTime + (categoryObj.expirationHours! * 1000); // expirationHours is in seconds
+          const expirationTime = addedTime + (categoryObj.expirationHours! * 1000); // Convert seconds to milliseconds
           const now = new Date().getTime();
           const timeLeft = expirationTime - now;
           
-          console.log('Timer calculation for entry:', entry.id, {
+          console.log('🔍 Timer calculation for entry:', entry.id, {
             addedTime: new Date(addedTime),
             expirationTime: new Date(expirationTime),
             timeLeft: timeLeft,
-            categoryExpiration: categoryObj.expirationHours
+            categoryExpirationSeconds: categoryObj.expirationHours
           });
           
           if (timeLeft > 0) {
@@ -91,7 +91,7 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
           }
         });
         
-        console.log('Updated timers:', newTimers);
+        console.log('🔍 Updated timers:', newTimers);
         setCountdownTimers(newTimers);
       }
     }, 1000); // Update every second
@@ -102,6 +102,8 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
   const entries = isWhitelist ? whitelistEntries : ipEntries.filter(entry => 
     !category || entry.category === category
   );
+  
+  console.log('🔍 IPList: Filtered entries for category', category, ':', entries.length);
 
   const filteredEntries = entries.filter(entry =>
     entry.ip.toLowerCase().includes(searchTerm.toLowerCase()) ||
