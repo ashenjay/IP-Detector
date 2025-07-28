@@ -651,13 +651,21 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     }
     
     if (updates.expirationHours !== undefined) {
-      // Robust type checking and parsing for expirationHours
+      // More explicit type checking and parsing for expirationHours
       let validExpirationHours = null;
       
-      if (updates.expirationHours !== null && updates.expirationHours !== '') {
-        const parsed = parseInt(updates.expirationHours, 10);
-        if (!isNaN(parsed) && parsed > 0) {
-          validExpirationHours = parsed;
+      // Handle different input types explicitly
+      if (updates.expirationHours !== null && updates.expirationHours !== undefined && updates.expirationHours !== '') {
+        // Convert to string first, then parse
+        const stringValue = String(updates.expirationHours).trim();
+        
+        if (stringValue !== '' && stringValue !== 'null' && stringValue !== 'undefined') {
+          const parsed = parseInt(stringValue, 10);
+          
+          // Explicit validation: must be a valid number and positive
+          if (Number.isInteger(parsed) && parsed > 0) {
+            validExpirationHours = parsed;
+          }
         }
       }
       
