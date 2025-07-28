@@ -91,10 +91,15 @@ const CategoryExpirationManagement: React.FC = () => {
         return;
       }
 
+      console.log('Updating expiration for category:', categoryId);
+      console.log('Settings to update:', settings);
+
       const success = await updateCategory(categoryId, {
         expirationDays: settings.expirationDays,
         autoCleanup: settings.autoCleanup
       });
+
+      console.log('Update result:', success);
 
       if (success) {
         setSuccess('Expiration settings updated successfully!');
@@ -104,6 +109,7 @@ const CategoryExpirationManagement: React.FC = () => {
         setError('Failed to update expiration settings');
       }
     } catch (err) {
+      console.error('Update expiration error:', err);
       setError('Error updating expiration settings');
     } finally {
       setLoading(false);
