@@ -49,6 +49,7 @@ const Router: React.FC = () => {
 
   if (segments[0] === 'list' && segments[1]) {
     const category = segments[1];
+    console.log('Navigating to IP list for category:', category);
     return <IPList category={category} />;
   }
 

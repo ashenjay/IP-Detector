@@ -56,14 +56,23 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
   useEffect(() => {
     const interval = setInterval(() => {
       const categoryObj = category ? getCategoryById(category) : null;
-      if (categoryObj?.autoCleanup && categoryObj?.expirationHours) {
+      console.log('Countdown timer update for category:', categoryObj);
+      
+      if (categoryObj?.autoCleanup && categoryObj?.expirationHours && categoryObj.expirationHours > 0) {
         const newTimers: {[key: string]: string} = {};
         
         entries.forEach(entry => {
           const addedTime = new Date(entry.dateAdded).getTime();
-          const expirationTime = addedTime + (categoryObj.expirationHours! * 1000);
+          const expirationTime = addedTime + (categoryObj.expirationHours! * 1000); // expirationHours is in seconds
           const now = new Date().getTime();
           const timeLeft = expirationTime - now;
+          
+          console.log('Timer calculation for entry:', entry.id, {
+            addedTime: new Date(addedTime),
+            expirationTime: new Date(expirationTime),
+            timeLeft: timeLeft,
+            categoryExpiration: categoryObj.expirationHours
+          });
           
           if (timeLeft > 0) {
             const totalSecondsLeft = Math.ceil(timeLeft / 1000);
@@ -82,6 +91,7 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
           }
         });
         
+        console.log('Updated timers:', newTimers);
         setCountdownTimers(newTimers);
       }
     }, 1000); // Update every second

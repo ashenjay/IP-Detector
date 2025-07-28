@@ -374,7 +374,10 @@ const Dashboard: React.FC = () => {
               
               <div className="flex space-x-2">
                 <button
-                  onClick={() => window.location.hash = `/list/${category.id}`}
+                  onClick={() => {
+                    console.log('Navigating to category:', category.id, category.name);
+                    window.location.hash = `/list/${category.id}`;
+                  }}
                   className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-1"
                   disabled={!canAccessCategory(category.id)}
                 >
