@@ -602,29 +602,6 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
       }
     }
     
-    // First, ensure the expiration columns exist with better error handling
-    try {
-      console.log('Checking/creating expiration columns...');
-      await pool.query(`
-        DO $$ 
-        BEGIN
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'expiration_hours') THEN
-            ALTER TABLE categories ADD COLUMN expiration_hours INTEGER NULL;
-            RAISE NOTICE 'Added expiration_hours column';
-          END IF;
-          
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'auto_cleanup') THEN
-            ALTER TABLE categories ADD COLUMN auto_cleanup BOOLEAN DEFAULT false;
-            RAISE NOTICE 'Added auto_cleanup column';
-          END IF;
-        END $$;
-      `);
-      console.log('Schema check completed successfully');
-    } catch (schemaError) {
-      console.error('Schema update error:', schemaError);
-      return res.status(500).json({ error: 'Failed to update database schema: ' + schemaError.message });
-    }
-    
     const updateFields = [];
     const updateValues = [];
     let paramCount = 1;
@@ -685,22 +662,37 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     if (updates.expirationDays !== undefined || updates.autoCleanup !== undefined) {
       try {
         console.log('Updating IP entries expiration for category:', id);
-        await pool.query(`
-          UPDATE ip_entries 
-          SET expires_at = CASE 
-            WHEN c.auto_cleanup = true AND c.expiration_hours IS NOT NULL AND c.expiration_hours > 0 
-            THEN ip_entries.date_added + (c.expiration_hours || ' hours')::INTERVAL
-            ELSE NULL
-          END,
-          auto_remove = CASE 
-            WHEN c.auto_cleanup = true AND c.expiration_hours IS NOT NULL AND c.expiration_hours > 0 
-            THEN true
-            ELSE false
-          END
-          FROM categories c
-          WHERE ip_entries.category_id = c.id AND c.id = $1
-        `, [id]);
-        console.log('Updated IP entries expiration for category:', id);
+        
+        // Get the updated category settings
+        const categoryResult = await pool.query(
+          'SELECT expiration_hours, auto_cleanup FROM categories WHERE id = $1',
+          [id]
+        );
+        
+        if (categoryResult.rows.length > 0) {
+          const category = categoryResult.rows[0];
+          console.log('Category expiration settings:', category);
+          
+          if (category.auto_cleanup && category.expiration_hours && category.expiration_hours > 0) {
+            // Set expiration for all IP entries in this category
+            await pool.query(`
+              UPDATE ip_entries 
+              SET expires_at = date_added + ($1 || ' hours')::INTERVAL,
+                  auto_remove = true
+              WHERE category_id = $2
+            `, [category.expiration_hours, id]);
+            console.log('Set expiration for IP entries in category:', id);
+          } else {
+            // Remove expiration for all IP entries in this category
+            await pool.query(`
+              UPDATE ip_entries 
+              SET expires_at = NULL,
+                  auto_remove = false
+              WHERE category_id = $1
+            `, [id]);
+            console.log('Removed expiration for IP entries in category:', id);
+          }
+        }
       } catch (ipUpdateError) {
         console.error('Error updating IP entries expiration:', ipUpdateError);
         // Don't fail the whole request if IP update fails
