@@ -158,6 +158,23 @@ app.get('/api/debug', async (req, res) => {
       FROM ip_entries
     `);
     
+    // Check if expiration columns exist
+    let hasExpirationColumns = { expiration_hours: false, auto_cleanup: false };
+    try {
+      const expirationColumnsCheck = await pool.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'categories' 
+        AND column_name IN ('expiration_hours', 'auto_cleanup')
+      `);
+      
+      expirationColumnsCheck.rows.forEach(row => {
+        hasExpirationColumns[row.column_name] = true;
+      });
+    } catch (error) {
+      console.error('Error checking expiration columns:', error);
+    }
+    
     res.json({
       database: 'connected',
       categories: categoriesResult.rows,
@@ -167,6 +184,7 @@ app.get('/api/debug', async (req, res) => {
       totalIPs: parseInt(totalIpCount.rows[0].count),
       totalWhitelist: parseInt(whitelistResult.rows[0].count),
       addedByStatus: addedByStatus.rows[0],
+      hasExpirationColumns: hasExpirationColumns,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -1074,6 +1092,53 @@ app.get('/api/whitelist', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get whitelist error:', error);
     res.status(500).json({ error: 'Failed to get whitelist' });
+  }
+});
+
+// Manual schema update endpoint for expiration columns
+app.post('/api/admin/update-schema', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    console.log('🔧 Manually updating database schema for expiration columns...');
+    
+    // Add expiration columns if they don't exist
+    await pool.query(`
+      DO $$ 
+      BEGIN
+        -- Add expiration_hours column if it doesn't exist
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'expiration_hours') THEN
+          ALTER TABLE categories ADD COLUMN expiration_hours INTEGER NULL;
+          RAISE NOTICE 'Added expiration_hours column';
+        END IF;
+        
+        -- Add auto_cleanup column if it doesn't exist
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'auto_cleanup') THEN
+          ALTER TABLE categories ADD COLUMN auto_cleanup BOOLEAN DEFAULT false;
+          RAISE NOTICE 'Added auto_cleanup column';
+        END IF;
+      END $$;
+    `);
+    
+    // Add indexes for performance
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_categories_expiration_hours ON categories(expiration_hours) WHERE expiration_hours IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_categories_auto_cleanup ON categories(auto_cleanup) WHERE auto_cleanup = true;
+    `);
+    
+    console.log('✅ Schema update completed successfully');
+    res.json({ 
+      message: 'Schema updated successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Schema update error:', error);
+    res.status(500).json({ 
+      error: 'Failed to update schema: ' + error.message,
+      timestamp: new Date().toISOString()
+    });
   }
 });
 
