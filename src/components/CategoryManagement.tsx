@@ -145,7 +145,7 @@ const CategoryManagement: React.FC = () => {
         description: formData.description,
         color: formData.color,
         icon: formData.icon,
-        expirationHours: Math.round(totalSeconds / 3600), // Convert to hours as integer, 0 is valid
+        expirationHours: totalSeconds === 0 ? null : Math.round(totalSeconds / 3600), // null for no expiration
         autoCleanup: formData.autoCleanup
       };
       
