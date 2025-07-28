@@ -88,8 +88,8 @@ const CategoryManagement: React.FC = () => {
       const categoryData = {
         ...formData,
         isActive: true,
-        expiresAt: formData.expiresAt ? new Date(formData.expiresAt) : undefined,
-        autoCleanup: formData.autoCleanup || false
+        // Categories automatically get 24h expiration from creation time
+        autoCleanup: true
       };
       
       console.log('Sending category data:', categoryData);
@@ -425,44 +425,16 @@ const CategoryManagement: React.FC = () => {
                 </div>
               </div>
               
-              {/* Expiration Settings */}
+              {/* Auto-Expiration Info */}
               <div className="border-t border-gray-200 pt-4">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">Expiration Settings (Optional)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Expiration Date & Time
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={formData.expiresAt}
-                      onChange={(e) => setFormData(prev => ({ ...prev, expiresAt: e.target.value }))}
-                      min={new Date().toISOString().slice(0, 16)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      When this category's IP entries should expire
-                    </p>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="flex items-center h-5">
-                      <input
-                        id="autoCleanup"
-                        type="checkbox"
-                        checked={formData.autoCleanup}
-                        onChange={(e) => setFormData(prev => ({ ...prev, autoCleanup: e.target.checked }))}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                    </div>
-                    <div className="ml-3 text-sm">
-                      <label htmlFor="autoCleanup" className="font-medium text-gray-700">
-                        Auto-cleanup expired data
-                      </label>
-                      <p className="text-gray-500">
-                        Automatically remove IP entries when expired
-                      </p>
-                    </div>
-                  </div>
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">⏰ Automatic Expiration</h4>
+                  <ul className="text-xs text-blue-700 space-y-1">
+                    <li>• Category expires 24 hours after creation</li>
+                    <li>• IP entries automatically removed when expired</li>
+                    <li>• Category structure remains intact</li>
+                    <li>• No manual intervention required</li>
+                  </ul>
                 </div>
               </div>
               
@@ -577,44 +549,21 @@ const CategoryManagement: React.FC = () => {
                 </div>
               </div>
               
-              {/* Expiration Settings */}
+              {/* Current Expiration Info */}
               <div className="border-t border-gray-200 pt-4">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">Expiration Settings (Optional)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Expiration Date & Time
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={formData.expiresAt}
-                      onChange={(e) => setFormData(prev => ({ ...prev, expiresAt: e.target.value }))}
-                      min={new Date().toISOString().slice(0, 16)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      When this category's IP entries should expire
-                    </p>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="flex items-center h-5">
-                      <input
-                        id="editAutoCleanup"
-                        type="checkbox"
-                        checked={formData.autoCleanup}
-                        onChange={(e) => setFormData(prev => ({ ...prev, autoCleanup: e.target.checked }))}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
+                <div className="bg-yellow-50 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-yellow-900 mb-2">📅 Current Expiration</h4>
+                  {editingCategory.expiresAt ? (
+                    <div className="text-xs text-yellow-700 space-y-1">
+                      <div>Expires: {new Date(editingCategory.expiresAt).toLocaleString()}</div>
+                      <div>Status: {editingCategory.expirationStatus}</div>
+                      {editingCategory.daysUntilExpiration && (
+                        <div>Time left: {Math.ceil(editingCategory.daysUntilExpiration)} days</div>
+                      )}
                     </div>
-                    <div className="ml-3 text-sm">
-                      <label htmlFor="editAutoCleanup" className="font-medium text-gray-700">
-                        Auto-cleanup expired data
-                      </label>
-                      <p className="text-gray-500">
-                        Automatically remove IP entries when expired
-                      </p>
-                    </div>
-                  </div>
+                  ) : (
+                    <div className="text-xs text-yellow-700">No expiration set</div>
+                  )}
                 </div>
               </div>
               
@@ -689,13 +638,13 @@ const CategoryManagement: React.FC = () => {
                             category.expirationStatus === 'Active' ? 'bg-yellow-100 text-yellow-800' :
                             'bg-gray-100 text-gray-800'
                           }`}>
-                            {category.expirationStatus === 'Expired' ? '⚠️ Expired' :
+                            {category.expirationStatus === 'Expired' ? '🔴 Expired - IPs auto-removed' :
                              category.expirationStatus === 'Active' ? `⏰ ${Math.ceil(category.daysUntilExpiration || 0)} days left` :
                              'Never expires'}
                           </span>
                           {category.autoCleanup && (
                             <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                              🔄 Auto-cleanup
+                              🔄 Auto-remove IPs
                             </span>
                           )}
                         </div>

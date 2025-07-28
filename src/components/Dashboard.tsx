@@ -350,24 +350,18 @@ const Dashboard: React.FC = () => {
               {/* Expiration Info */}
               {category.expiresAt && (
                 <div className="mb-4 p-2 rounded-lg bg-gray-50 border">
-                  <div className="text-xs text-gray-600">
-                    <strong>Expires:</strong> {new Date(category.expiresAt).toLocaleDateString()} at {new Date(category.expiresAt).toLocaleTimeString()}
+                  <div className="text-xs text-gray-700 space-y-1">
+                    <div><strong>⏰ Expires:</strong> {new Date(category.expiresAt).toLocaleString()}</div>
+                    <div className={`font-medium ${
+                      category.expirationStatus === 'Expired' ? 'text-red-600' :
+                      category.expirationStatus === 'Active' ? 'text-orange-600' :
+                      'text-gray-600'
+                    }`}>
+                      {category.expirationStatus === 'Expired' ? '🔴 EXPIRED - IPs auto-removed' :
+                       category.expirationStatus === 'Active' ? `🟡 ${Math.ceil(category.daysUntilExpiration || 0)} days remaining` :
+                       '⚪ Never expires'}
+                    </div>
                   </div>
-                  {category.expirationStatus === 'Active' && category.daysUntilExpiration && (
-                    <div className="text-xs text-orange-600 font-medium">
-                      ⏰ {Math.ceil(category.daysUntilExpiration)} days remaining
-                    </div>
-                  )}
-                  {category.expirationStatus === 'Expired' && (
-                    <div className="text-xs text-red-600 font-medium">
-                      ⚠️ EXPIRED - IP entries will be auto-removed
-                    </div>
-                  )}
-                  {category.autoCleanup && (
-                    <div className="text-xs text-blue-600">
-                      🔄 Auto-cleanup enabled
-                    </div>
-                  )}
                 </div>
               )}
               
