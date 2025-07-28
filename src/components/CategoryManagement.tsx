@@ -26,7 +26,8 @@ import {
   Database,
   Globe,
   Lock,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react';
 
 const CategoryManagement: React.FC = () => {
@@ -84,12 +85,16 @@ const CategoryManagement: React.FC = () => {
     try {
       console.log('Creating category with form data:', formData);
       
-      const success = await createCategory({
+      const categoryData = {
         ...formData,
         isActive: true,
         expiresAt: formData.expiresAt ? new Date(formData.expiresAt) : undefined,
         autoCleanup: formData.autoCleanup || false
-      });
+      };
+      
+      console.log('Sending category data:', categoryData);
+      
+      const success = await createCategory(categoryData);
       
       if (success) {
         resetForm();
@@ -98,6 +103,7 @@ const CategoryManagement: React.FC = () => {
         setError('Failed to create category. Name may already exist.');
       }
     } catch (err) {
+      console.error('Create category error:', err);
       setError('Error creating category');
     } finally {
       setLoading(false);
@@ -117,6 +123,8 @@ const CategoryManagement: React.FC = () => {
         autoCleanup: formData.autoCleanup || false
       };
       
+      console.log('Sending update data:', updateData);
+      
       const success = await updateCategory(categoryId, updateData);
       if (success) {
         setShowEditForm(false);
@@ -126,6 +134,7 @@ const CategoryManagement: React.FC = () => {
         setError('Failed to update category. Name may already exist.');
       }
     } catch (err) {
+      console.error('Update category error:', err);
       setError('Error updating category');
     } finally {
       setLoading(false);
@@ -163,26 +172,6 @@ const CategoryManagement: React.FC = () => {
     }
   };
 
-  const startEdit = (category: any) => {
-    setFormData({
-      name: category.name,
-      label: category.label,
-      description: category.description,
-      color: category.color,
-      icon: category.icon,
-      expiresAt: category.expiresAt ? category.expiresAt.toISOString().slice(0, 16) : '',
-      autoCleanup: category.autoCleanup || false
-    });
-    setEditingCategory(category);
-    setShowEditForm(true);
-    setError('');
-  };
-
-  const cancelEdit = () => {
-    setShowEditForm(false);
-    setEditingCategory(null);
-    resetForm();
-  };
   const handleManualCleanup = async () => {
     setLoading(true);
     try {
@@ -237,6 +226,27 @@ const CategoryManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const startEdit = (category: any) => {
+    setFormData({
+      name: category.name,
+      label: category.label,
+      description: category.description,
+      color: category.color,
+      icon: category.icon,
+      expiresAt: category.expiresAt ? new Date(category.expiresAt).toISOString().slice(0, 16) : '',
+      autoCleanup: category.autoCleanup || false
+    });
+    setEditingCategory(category);
+    setShowEditForm(true);
+    setError('');
+  };
+
+  const cancelEdit = () => {
+    setShowEditForm(false);
+    setEditingCategory(null);
+    resetForm();
   };
 
   const colorOptions = [
@@ -302,13 +312,24 @@ const CategoryManagement: React.FC = () => {
               </span>
             </div>
             
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Add Category</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleManualCleanup}
+                disabled={loading}
+                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                <span>{loading ? 'Cleaning...' : 'Cleanup Expired'}</span>
+              </button>
+              
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add Category</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -420,7 +441,7 @@ const CategoryManagement: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      When this category's data should expire
+                      When this category's IP entries should expire
                     </p>
                   </div>
                   <div className="flex items-center">
@@ -572,7 +593,7 @@ const CategoryManagement: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      When this category's data should expire
+                      When this category's IP entries should expire
                     </p>
                   </div>
                   <div className="flex items-center">
@@ -616,19 +637,6 @@ const CategoryManagement: React.FC = () => {
             </form>
           </div>
         )}
-         {/* Manual Cleanup Button */}
-         {user?.role === 'superadmin' && (
-           <div className="mb-6">
-             <button
-               onClick={handleManualCleanup}
-               disabled={loading}
-                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
-             >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-               <span>{loading ? 'Cleaning...' : 'Cleanup Expired Categories'}</span>
-             </button>
-           </div>
-         )}
 
         {/* Categories List */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -697,23 +705,6 @@ const CategoryManagement: React.FC = () => {
                           {category.ipCount} IP entries
                         </div>
                       )}
-                      {category.expiresAt && (
-                        <div className="mt-2">
-                          <div className="text-xs text-gray-600">
-                            <strong>Expires:</strong> {new Date(category.expiresAt).toLocaleString()}
-                          </div>
-                          {category.expirationStatus === 'Active' && category.daysUntilExpiration && (
-                            <div className="text-xs text-orange-600">
-                              <strong>{Math.ceil(category.daysUntilExpiration)} days remaining</strong>
-                            </div>
-                          )}
-                          {category.expirationStatus === 'Expired' && (
-                            <div className="text-xs text-red-600">
-                              <strong>⚠️ EXPIRED - IP entries will be removed</strong>
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
@@ -741,7 +732,7 @@ const CategoryManagement: React.FC = () => {
                           <button
                             onClick={() => handleExtendExpiration(category.id, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString())}
                             disabled={loading}
-                            className="flex items-center justify-center w-8 h-8 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-50"
+                            className="text-orange-600 hover:text-orange-700 disabled:opacity-50 transition-colors"
                             title="Extend expiration by 30 days"
                           >
                             <Calendar className="h-4 w-4" />
@@ -752,25 +743,25 @@ const CategoryManagement: React.FC = () => {
                             <button
                               onClick={() => handleToggleStatus(category.id)}
                               disabled={loading}
-                              className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+                              className={`${
                                 category.isActive 
-                                  ? 'text-red-600 hover:text-red-700 hover:bg-red-50' 
-                                  : 'text-green-600 hover:text-green-700 hover:bg-green-50'
-                              } disabled:opacity-50`}
+                                  ? 'text-red-600 hover:text-red-700' 
+                                  : 'text-green-600 hover:text-green-700'
+                              } disabled:opacity-50 transition-colors`}
                               title={category.isActive ? 'Deactivate category' : 'Activate category'}
                             >
                               {category.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
                             <button
                               onClick={() => startEdit(category)}
-                              className="flex items-center justify-center w-8 h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                              className="text-blue-600 hover:text-blue-700 transition-colors"
                               title="Edit category"
                             >
                               <Edit className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => setShowDeleteModal(category.id)}
-                              className="flex items-center justify-center w-8 h-8 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                              className="text-red-600 hover:text-red-700 transition-colors"
                               title="Delete category"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -780,7 +771,7 @@ const CategoryManagement: React.FC = () => {
                         {category.isDefault && (
                           <button
                             onClick={() => startEdit(category)}
-                            className="flex items-center justify-center w-8 h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="text-blue-600 hover:text-blue-700 transition-colors"
                             title="Edit category description and appearance"
                           >
                             <Edit className="h-4 w-4" />

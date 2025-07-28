@@ -537,8 +537,16 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
     // Parse expiration date properly
     let expirationDate = null;
     if (expiresAt) {
-      expirationDate = new Date(expiresAt);
-      console.log('Parsed expiration date:', expirationDate);
+      try {
+        expirationDate = new Date(expiresAt);
+        if (isNaN(expirationDate.getTime())) {
+          expirationDate = null;
+        }
+        console.log('Parsed expiration date:', expirationDate);
+      } catch (error) {
+        console.error('Error parsing expiration date:', error);
+        expirationDate = null;
+      }
     }
     
     const result = await pool.query(
@@ -604,7 +612,15 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
         if (typeof value === 'string') {
           value = value.trim();
         } else if (key === 'expiresAt' && value) {
-          value = new Date(value);
+          try {
+            value = new Date(value);
+            if (isNaN(value.getTime())) {
+              value = null;
+            }
+          } catch (error) {
+            console.error('Error parsing expiration date:', error);
+            value = null;
+          }
         }
         updateValues.push(value);
         paramCount++;
