@@ -596,13 +596,20 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
       }
       
       // Check for duplicate names (excluding current category)
-      const existingCategory = await pool.query(
-        'SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND id != $2',
-        [trimmedName, id]
-      );
-      
-      if (existingCategory.rows.length > 0) {
-        return res.status(400).json({ error: 'Category name already exists' });
+      try {
+        const existingCategory = await pool.query(
+          'SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND id != $2',
+          [trimmedName, id]
+        );
+        
+        if (existingCategory.rows.length > 0) {
+          return res.status(400).json({ error: 'Category name already exists' });
+        }
+      } catch (duplicateCheckError) {
+        console.error('Database error during duplicate name check:', duplicateCheckError);
+        return res.status(500).json({ 
+          error: `Database error during name validation: ${duplicateCheckError.message || duplicateCheckError.code || duplicateCheckError.detail || 'Unknown database error'}` 
+        });
       }
       
       updateParts.push(`name = $${paramIndex}`);
