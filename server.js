@@ -116,71 +116,48 @@ app.get('/api/edl/:category', async (req, res) => {
 // Debug endpoint to check database
 app.get('/api/debug', async (req, res) => {
   try {
-    console.log('🔍 DEBUG: Starting SIMPLE database check...');
+    // Check categories
+    const categoriesResult = await pool.query('SELECT id, name, label FROM categories ORDER BY name');
     
-    // 1. Check categories table
-    const categoriesResult = await pool.query('SELECT id, name, label, is_active FROM categories ORDER BY name');
-    console.log('🔍 DEBUG: Categories in DB:', categoriesResult.rows);
+    // Check IP entries with category info and added_by field
+    const ipEntriesResult = await pool.query(`
+      SELECT ie.id, ie.ip, ie.category_id, ie.added_by, ie.date_added,
+             c.name as category_name, c.label as category_label
+      FROM ip_entries ie 
+      JOIN categories c ON ie.category_id = c.id 
+      ORDER BY ie.date_added DESC 
+      LIMIT 10
+    `);
     
-    // 2. Check IP entries table
-    const ipEntriesResult = await pool.query('SELECT id, ip, category_id, added_by FROM ip_entries ORDER BY date_added DESC LIMIT 10');
-    console.log('🔍 DEBUG: IP entries in DB:', ipEntriesResult.rows);
-    
-    // 3. Manual count by category
-    const manualCount = await pool.query(`
-      SELECT 
-        c.id as category_id,
-        c.name as category_name,
-        c.label as category_label,
-        COUNT(ie.id) as ip_count
+    // Count by category
+    const countByCategory = await pool.query(`
+      SELECT c.id, c.name, c.label, COUNT(ie.id) as count
       FROM categories c
       LEFT JOIN ip_entries ie ON ie.category_id = c.id
       GROUP BY c.id, c.name, c.label
       ORDER BY c.name
     `);
-    console.log('🔍 DEBUG: Manual count by category:', manualCount.rows);
     
-    // 4. Check for orphaned entries
-    const orphanedEntries = await pool.query(`
-      SELECT ie.id, ie.ip, ie.category_id
-      FROM ip_entries ie
-      LEFT JOIN categories c ON ie.category_id = c.id
-      WHERE c.id IS NULL
-    `);
-    console.log('🔍 DEBUG: Orphaned IP entries:', orphanedEntries.rows);
+    const totalIpCount = await pool.query('SELECT COUNT(*) as count FROM ip_entries');
+    const whitelistResult = await pool.query('SELECT COUNT(*) as count FROM whitelist');
     
-    // 5. Test the actual categories query we use
-    const actualQuery = await pool.query(`
+    // Check added_by field status
+    const addedByStatus = await pool.query(`
       SELECT 
-        c.id,
-        c.name,
-        c.label,
-        c.description,
-        c.color,
-        c.icon,
-        c.is_default,
-        c.is_active,
-        c.created_by,
-        c.created_at,
-        c.expiration_hours,
-        c.auto_cleanup,
-        (SELECT COUNT(*) FROM ip_entries ie WHERE ie.category_id = c.id) as ip_count
-      FROM categories c
-      ORDER BY c.name
+        COUNT(*) as total_entries,
+        COUNT(CASE WHEN added_by IS NOT NULL AND added_by != '' THEN 1 END) as entries_with_added_by,
+        COUNT(CASE WHEN added_by IS NULL OR added_by = '' THEN 1 END) as entries_without_added_by
+      FROM ip_entries
     `);
-    console.log('🔍 DEBUG: Actual query results:', actualQuery.rows.map(r => ({
-      name: r.name,
-      ip_count: r.ip_count,
-      ip_count_type: typeof r.ip_count
-    })));
     
     res.json({
       database: 'connected',
-      categoriesInDB: categoriesResult.rows,
-      ipEntriesInDB: ipEntriesResult.rows,
-      manualCountByCategory: manualCount.rows,
-      orphanedEntries: orphanedEntries.rows,
-      actualQueryResults: actualQuery.rows,
+      categories: categoriesResult.rows,
+      sampleIpEntries: ipEntriesResult.rows,
+      countByCategory: countByCategory.rows,
+      totalIPs: parseInt(totalIpCount.rows[0].count),
+      totalWhitelist: parseInt(whitelistResult.rows[0].count),
+      addedByStatus: addedByStatus.rows[0],
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -504,23 +481,21 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
-        c.id,
-        c.name,
-        c.label,
-        c.description,
-        c.color,
-        c.icon,
-        c.is_default,
-        c.is_active,
-        c.created_by,
-        c.created_at,
-        c.expiration_hours,
-        c.auto_cleanup,
-        (SELECT COUNT(*) FROM ip_entries ie WHERE ie.category_id = c.id) as ip_count
+        c.*,
+        CASE 
+          WHEN c.expires_at IS NULL THEN 'Never'
+          WHEN c.expires_at > CURRENT_TIMESTAMP THEN 'Active'
+          ELSE 'Expired'
+        END as expiration_status,
+        CASE 
+          WHEN c.expires_at IS NOT NULL AND c.expires_at > CURRENT_TIMESTAMP THEN
+            EXTRACT(EPOCH FROM (c.expires_at - CURRENT_TIMESTAMP)) / 86400
+          ELSE NULL
+        END as days_until_expiration,
+        (SELECT COUNT(*) FROM ip_entries WHERE category_id = c.id) as ip_count
       FROM categories c
-      ORDER BY c.name
+      ORDER BY c.created_at
     `);
-    
     res.json(result.rows);
   } catch (error) {
     console.error('Get categories error:', error);
@@ -540,13 +515,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Name, label, and description are required' });
     }
     
-    console.log('Creating category with data:', { 
-      name: name.trim(), 
-      label: label.trim(), 
-      description: description.trim(),
-      expiresAt,
-      autoCleanup
-    });
+    console.log('Creating category with data:', { name: name.trim(), label: label.trim(), description: description.trim() });
     
     // Check if name already exists (case-insensitive, trimmed)
     const existingCategory = await pool.query(
@@ -559,22 +528,8 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Category name already exists' });
     }
     
-    // Parse expiration date if provided
-    let expirationDate = null;
-    if (expiresAt) {
-      try {
-        expirationDate = new Date(expiresAt);
-        if (isNaN(expirationDate.getTime())) {
-          expirationDate = null;
-        }
-      } catch (error) {
-        console.error('Error parsing expiration date:', error);
-        expirationDate = null;
-      }
-    }
-    
     const result = await pool.query(
-      'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by, expiration_hours, auto_cleanup) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+      'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by, expires_at, auto_cleanup) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
       [
         name.trim().toLowerCase(), 
         label.trim(), 
@@ -584,8 +539,8 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
         false, 
         true, 
         req.user.username,
-        req.body.autoCleanup && req.body.expirationHours && req.body.expirationHours > 0 ? parseInt(req.body.expirationHours) : null,
-        Boolean(req.body.autoCleanup)
+        expiresAt ? new Date(expiresAt) : null,
+        autoCleanup || false
       ]
     );
     
@@ -608,105 +563,53 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     
     console.log('Updating category:', id, 'with data:', updates);
     
-    // Validate required fields
-    if (updates.name !== undefined) {
-      const trimmedName = String(updates.name).trim();
-      if (!trimmedName) {
-        return res.status(400).json({ error: 'Category name cannot be empty' });
-      }
-      updates.name = trimmedName.toLowerCase();
-    }
-    
-    if (updates.label !== undefined) {
-      const trimmedLabel = String(updates.label).trim();
-      if (!trimmedLabel) {
-        return res.status(400).json({ error: 'Category label cannot be empty' });
-      }
-      updates.label = trimmedLabel;
-    }
-    
-    // Check for duplicate names if name is being updated
+    // If updating name, check for duplicates (excluding current category)
     if (updates.name) {
-      try {
-        const existingCategory = await pool.query(
-          'SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND id != $2',
-          [updates.name, id]
-        );
-        
-        if (existingCategory.rows.length > 0) {
-          return res.status(400).json({ error: 'Category name already exists' });
-        }
-      } catch (duplicateCheckError) {
-        console.error('Database error during duplicate name check:', duplicateCheckError);
-        return res.status(500).json({ 
-          error: `Database connection error: ${duplicateCheckError.message || 'Unable to validate category name'}` 
-        });
+      const existingCategory = await pool.query(
+        'SELECT id FROM categories WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND id != $2',
+        [updates.name, id]
+      );
+      
+      if (existingCategory.rows.length > 0) {
+        return res.status(400).json({ error: 'Category name already exists' });
       }
     }
     
-    // Process expiration hours - ensure it's properly handled
-    if (updates.expirationHours !== undefined) {
-      if (updates.expirationHours === null || updates.expirationHours === 0 || !updates.autoCleanup) {
-        updates.expirationHours = null;
-      } else if (typeof updates.expirationHours === 'number' && updates.expirationHours > 0) {
-        updates.expirationHours = Math.max(1, Math.floor(updates.expirationHours));
-      } else {
-        updates.expirationHours = null;
-      }
-    }
-    
-    // Ensure auto-cleanup has valid expiration hours
-    if (updates.autoCleanup && (updates.expirationHours === null || updates.expirationHours === 0)) {
-      updates.expirationHours = 1; // Default to 1 hour if auto-cleanup is enabled but no valid time is set
-    }
-    
-    // Build the update query using a simpler approach
     const updateFields = [];
     const updateValues = [];
     let paramCount = 1;
     
-    const fieldMapping = {
-      name: 'name',
-      label: 'label', 
-      description: 'description',
-      color: 'color',
-      icon: 'icon',
-      isActive: 'is_active',
-      autoCleanup: 'auto_cleanup',
-      expirationHours: 'expiration_hours'
-    };
-    
-    Object.keys(fieldMapping).forEach(key => {
-      if (updates[key] !== undefined) {
-        updateFields.push(`${fieldMapping[key]} = $${paramCount}`);
-        updateValues.push(updates[key]);
+    Object.keys(updates).forEach(key => {
+      if (key !== 'id') {
+        const dbKey = key === 'isActive' ? 'is_active' : 
+                     key === 'isDefault' ? 'is_default' : 
+                     key === 'createdBy' ? 'created_by' : 
+                     key === 'expiresAt' ? 'expires_at' :
+                     key === 'autoCleanup' ? 'auto_cleanup' : key;
+        updateFields.push(`${dbKey} = $${paramCount}`);
+        let value = updates[key];
+        if (typeof value === 'string') {
+          value = value.trim();
+        } else if (key === 'expiresAt' && value) {
+          value = new Date(value);
+        }
+        updateValues.push(value);
         paramCount++;
       }
     });
     
-    if (updateFields.length === 0) {
-      return res.status(400).json({ error: 'No valid fields to update' });
-    }
-    
     updateValues.push(id);
-    const query = `UPDATE categories SET ${updateFields.join(', ')} WHERE id = $${paramCount}`;
     
-    console.log('Executing update query:', query);
-    console.log('With values:', updateValues);
-    
-    const result = await pool.query(query, updateValues);
-    
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Category not found' });
-    }
+    await pool.query(
+      `UPDATE categories SET ${updateFields.join(', ')} WHERE id = $${paramCount}`,
+      updateValues
+    );
     
     console.log('Category updated successfully');
     res.json({ message: 'Category updated successfully' });
-    
   } catch (error) {
     console.error('Update category error:', error);
-    const errorMessage = error.message || error.code || error.detail || 'Database operation failed';
-    res.status(500).json({ error: errorMessage });
+    res.status(500).json({ error: 'Failed to update category' });
   }
 });
 
@@ -799,44 +702,13 @@ app.post('/api/categories/cleanup-expired', authenticateToken, async (req, res) 
     
     console.log('Running expired category cleanup...');
     
-    // Manual cleanup - find expired categories and remove their IP entries
-    const expiredCategories = await pool.query(`
-      SELECT id, name, label, expires_at 
-      FROM categories 
-      WHERE expires_at IS NOT NULL 
-      AND expires_at < CURRENT_TIMESTAMP 
-      AND auto_cleanup = true
-      AND is_active = true
-    `);
+    const result = await pool.query('SELECT cleanup_expired_category_data() as cleaned_count');
+    const cleanedCount = result.rows[0].cleaned_count;
     
-    let totalCleaned = 0;
-    
-    for (const category of expiredCategories.rows) {
-      console.log('Cleaning expired category:', category.label);
-      
-      // Count IP entries before deletion
-      const countResult = await pool.query('SELECT COUNT(*) as count FROM ip_entries WHERE category_id = $1', [category.id]);
-      const ipCount = parseInt(countResult.rows[0].count);
-      
-      // Delete IP entries from expired category
-      await pool.query('DELETE FROM ip_entries WHERE category_id = $1', [category.id]);
-      
-      totalCleaned += ipCount;
-      
-      // Update category description to show it was cleaned (but keep category active)
-      await pool.query(
-        'UPDATE categories SET description = description || $1 WHERE id = $2',
-        [` (Auto-cleaned ${ipCount} IPs on ${new Date().toLocaleDateString()})`, category.id]
-      );
-      
-      console.log(`Cleaned ${ipCount} IP entries from category: ${category.label}`);
-    }
-    
-    console.log('Cleanup completed, total cleaned entries:', totalCleaned);
+    console.log('Cleanup completed, cleaned entries:', cleanedCount);
     res.json({ 
       message: 'Cleanup completed successfully',
-      cleanedEntries: totalCleaned,
-      categoriesCleaned: expiredCategories.rows.length
+      cleanedEntries: cleanedCount
     });
   } catch (error) {
     console.error('Cleanup expired categories error:', error);
@@ -903,24 +775,15 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'IP already exists in the system' });
     }
     
-    // Verify category exists - CRITICAL FIX
-    console.log('🔍 Looking for category:', category, 'type:', typeof category);
-    const categoryCheck = await pool.query('SELECT id, name FROM categories WHERE id = $1', [category]);
-    console.log('🔍 Category check by ID result:', categoryCheck.rows);
-    
+    // Verify category exists
+    const categoryCheck = await pool.query('SELECT id FROM categories WHERE id::text = $1 OR name = $1', [category]);
     if (categoryCheck.rows.length === 0) {
-      // Try by name if UUID lookup failed
-      const categoryByName = await pool.query('SELECT id, name FROM categories WHERE name = $1', [category]);
-      console.log('🔍 Category check by name result:', categoryByName.rows);
-      if (categoryByName.rows.length === 0) {
-        console.log('Category not found by ID or name:', category);
-        return res.status(400).json({ error: 'Category does not exist' });
-      }
-      categoryCheck.rows = categoryByName.rows;
+      console.log('Category not found:', category);
+      return res.status(400).json({ error: 'Category does not exist' });
     }
     
     const categoryId = categoryCheck.rows[0].id;
-    console.log('✅ Final category to use:', categoryId, 'name:', categoryCheck.rows[0].name);
+    console.log('Using category ID:', categoryId);
     
     // Detect entry type
     const detectType = (entry) => {
@@ -932,21 +795,17 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
       return 'hostname';
     };
     
-    console.log('🔍 About to insert IP with category_id:', categoryId);
     const result = await pool.query(
       'INSERT INTO ip_entries (ip, type, category_id, description, added_by, source) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
       [ip, detectType(ip), categoryId, description || '', addedBy, 'manual']
     );
     
-    console.log('✅ IP entry created:', result.rows[0]);
-    
-    // CRITICAL: Verify the IP was actually inserted and linked correctly
-    const countCheck = await pool.query('SELECT COUNT(*) as count FROM ip_entries WHERE category_id = $1', [categoryId]);
-    console.log('✅ Category', categoryId, 'now has', countCheck.rows[0].count, 'IP entries');
-    
-    // Double check the IP exists in the database
-    const verifyIP = await pool.query('SELECT id, ip, category_id FROM ip_entries WHERE id = $1', [result.rows[0].id]);
-    console.log('✅ Verification - IP exists in DB:', verifyIP.rows[0]);
+    console.log('✅ IP entry created successfully:', {
+      id: result.rows[0].id,
+      ip: result.rows[0].ip,
+      added_by: result.rows[0].added_by, // This should show the username
+      date_added: result.rows[0].date_added
+    });
     
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -1023,8 +882,7 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
     console.log('🔍 Fetching IP entries for category:', category);
     
     let query = `
-      SELECT ie.*, c.name as category_name, c.label as category_label, c.id as category_id,
-             ie.expires_at, ie.auto_remove
+      SELECT ie.*, c.name as category_name, c.label as category_label, c.id as category_id
       FROM ip_entries ie 
       JOIN categories c ON ie.category_id = c.id
     `;
@@ -1068,8 +926,6 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
         addedBy: addedBy,
         dateAdded: row.date_added ? new Date(row.date_added) : new Date(),
         lastModified: row.last_modified ? new Date(row.last_modified) : new Date(),
-        expiresAt: row.expires_at ? new Date(row.expires_at) : undefined,
-        autoRemove: row.auto_remove || false,
         source: row.source,
         sourceCategory: row.source_category,
         reputation: row.reputation,
@@ -1141,7 +997,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server - BIND TO LOCALHOST ONLY for security
-app.listen(port, '127.0.0.1', () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`🚀 Server running on localhost:${port} (internal only)`);
   console.log(`🔒 External access via Nginx reverse proxy`);
   console.log(`📡 API: http://localhost:${port}/api`);
