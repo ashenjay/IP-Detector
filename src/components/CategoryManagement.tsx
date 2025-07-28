@@ -61,6 +61,8 @@ const CategoryManagement: React.FC = () => {
     icon: 'Shield',
     expirationDays: null as number | null,
     autoCleanup: false
+    expirationDays: null as number | null,
+    autoCleanup: false
   });
 
   const resetForm = () => {
@@ -70,6 +72,8 @@ const CategoryManagement: React.FC = () => {
       description: '',
       color: 'bg-blue-500',
       icon: 'Shield',
+      expirationDays: null,
+      autoCleanup: false
       expirationDays: null,
       autoCleanup: false
     });
@@ -85,6 +89,7 @@ const CategoryManagement: React.FC = () => {
       const success = await createCategory({
         ...formData,
         isActive: true,
+        isDefault: false
         expirationHours: formData.expirationHours,
         autoCleanup: formData.autoCleanup
       });
@@ -160,6 +165,8 @@ const CategoryManagement: React.FC = () => {
       description: category.description,
       color: category.color,
       icon: category.icon,
+      expirationDays: category.expirationDays || null,
+      autoCleanup: category.autoCleanup || false
       expirationDays: category.expirationDays || null,
       autoCleanup: category.autoCleanup || false
     });
