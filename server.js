@@ -668,7 +668,17 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     console.log('Executing update query:', query);
     console.log('With values:', values);
     
-    const result = await pool.query(query, values);
+    let result;
+    try {
+      result = await pool.query(query, values);
+    } catch (dbError) {
+      console.error('Database error during category update:', dbError);
+      console.error('Query:', query);
+      console.error('Values:', values);
+      console.error('Error code:', dbError.code);
+      console.error('Error detail:', dbError.detail);
+      return res.status(500).json({ error: `Database error: ${dbError.message}` });
+    }
     
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Category not found' });
@@ -678,7 +688,8 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'Category updated successfully' });
   } catch (error) {
     console.error('Update category error:', error);
-    res.status(500).json({ error: 'Failed to update category' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ error: `Failed to update category: ${error.message}` });
   }
 });
 
