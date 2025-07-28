@@ -266,6 +266,100 @@ const CategoryManagement: React.FC = () => {
               </span>
             </div>
             
+            {/* Expiration Settings */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Auto-cleanup after (days)
+                </label>
+                <select
+                  value={formData.expirationDays || ''}
+                  onChange={(e) => {
+                    const days = e.target.value ? parseInt(e.target.value) : null;
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      expirationDays: days,
+                      autoCleanup: days ? true : false
+                    }));
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">No expiration</option>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                    <option key={day} value={day}>{day} day{day > 1 ? 's' : ''}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  IPs will be automatically removed after this many days
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Auto-cleanup enabled
+                </label>
+                <div className="flex items-center space-x-2 mt-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.autoCleanup}
+                    onChange={(e) => setFormData(prev => ({ ...prev, autoCleanup: e.target.checked }))}
+                    disabled={!formData.expirationDays}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                  />
+                  <span className="text-sm text-gray-600">
+                    {formData.expirationDays ? 'Automatically remove expired IPs' : 'Select expiration days first'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Expiration Settings */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Auto-cleanup after (days)
+                </label>
+                <select
+                  value={formData.expirationDays || ''}
+                  onChange={(e) => {
+                    const days = e.target.value ? parseInt(e.target.value) : null;
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      expirationDays: days,
+                      autoCleanup: days ? true : false
+                    }));
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">No expiration</option>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                    <option key={day} value={day}>{day} day{day > 1 ? 's' : ''}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  IPs will be automatically removed after this many days
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Auto-cleanup enabled
+                </label>
+                <div className="flex items-center space-x-2 mt-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.autoCleanup}
+                    onChange={(e) => setFormData(prev => ({ ...prev, autoCleanup: e.target.checked }))}
+                    disabled={!formData.expirationDays}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50"
+                  />
+                  <span className="text-sm text-gray-600">
+                    {formData.expirationDays ? 'Automatically remove expired IPs' : 'Select expiration days first'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
             <button
               onClick={() => setShowCreateForm(true)}
               className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
