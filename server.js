@@ -651,8 +651,18 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     }
     
     if (updates.expirationHours !== undefined) {
+      // Robust type checking and parsing for expirationHours
+      let validExpirationHours = null;
+      
+      if (updates.expirationHours !== null && updates.expirationHours !== '') {
+        const parsed = parseInt(updates.expirationHours, 10);
+        if (!isNaN(parsed) && parsed > 0) {
+          validExpirationHours = parsed;
+        }
+      }
+      
       updateParts.push(`expiration_hours = $${paramIndex}`);
-      values.push(updates.expirationHours);
+      values.push(validExpirationHours);
       paramIndex++;
     }
     
