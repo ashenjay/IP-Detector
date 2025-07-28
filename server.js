@@ -479,10 +479,27 @@ app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
 // Categories
 app.get('/api/categories', authenticateToken, async (req, res) => {
   try {
+    console.log('🔍 Fetching categories with IP counts...');
+    
+    // First, let's check what's in the database
+    const debugResult = await pool.query(`
+      SELECT 
+        c.id,
+        c.name,
+        c.label,
+        COUNT(ie.id) as ip_count_debug
+      FROM categories c
+      LEFT JOIN ip_entries ie ON ie.category_id = c.id
+      GROUP BY c.id, c.name, c.label
+      ORDER BY c.created_at
+    `);
+    
+    console.log('🔍 Debug IP counts:', debugResult.rows);
+    
     const result = await pool.query(`
       SELECT 
         c.*,
-       COALESCE((SELECT COUNT(*) FROM ip_entries WHERE category_id = c.id), 0) as ip_count,
+        COUNT(ie.id) as ip_count,
         CASE 
           WHEN c.expires_at IS NULL THEN 'Never'
           WHEN c.expires_at > CURRENT_TIMESTAMP THEN 'Active'
@@ -494,8 +511,12 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
           ELSE NULL
         END as days_until_expiration
       FROM categories c
+      LEFT JOIN ip_entries ie ON ie.category_id = c.id
+      GROUP BY c.id, c.name, c.label, c.description, c.color, c.icon, c.is_default, c.is_active, c.created_by, c.created_at, c.expiration_hours, c.auto_cleanup, c.expires_at
       ORDER BY c.created_at
     `);
+    
+    console.log('🔍 Categories result sample:', result.rows.slice(0, 2));
     res.json(result.rows);
   } catch (error) {
     console.error('Get categories error:', error);

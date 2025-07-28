@@ -144,17 +144,17 @@ const Dashboard: React.FC = () => {
 
   const getCategoryCount = (category: string) => {
     console.log('Getting count for category:', category);
-    console.log('Available categories:', categories.length);
+    console.log('Available categories:', categories.map(c => ({ id: c.id, name: c.name, ipCount: c.ipCount })));
     
     // First try to get count from category object (from database)
     const categoryObj = categories.find(cat => cat.id === category || cat.name === category);
     if (categoryObj && categoryObj.ipCount !== undefined) {
-      console.log('Using category.ipCount:', categoryObj.ipCount, 'for category:', categoryObj.name);
+      console.log('✅ Using category.ipCount:', categoryObj.ipCount, 'for category:', categoryObj.name);
       return categoryObj.ipCount;
     }
     
     // Fallback to counting from ipEntries array
-    console.log('Fallback: counting from ipEntries array');
+    console.log('⚠️ Fallback: counting from ipEntries array');
     console.log('Available IP entries:', ipEntries.length);
     if (ipEntries.length > 0) {
       console.log('Sample entry:', ipEntries[0]);
@@ -170,7 +170,7 @@ const Dashboard: React.FC = () => {
       return matches;
     }).length;
     
-    console.log('Category', category, 'count:', count);
+    console.log('📊 Final count for category', category, ':', count);
     return count;
   };
 
