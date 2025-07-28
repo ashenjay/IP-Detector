@@ -61,6 +61,8 @@ const CategoryManagement: React.FC = () => {
     icon: 'Shield',
     expirationDays: null as number | null,
     autoCleanup: false
+    expirationDays: null as number | null,
+    autoCleanup: false
   });
 
   const resetForm = () => {
@@ -70,6 +72,8 @@ const CategoryManagement: React.FC = () => {
       description: '',
       color: 'bg-blue-500',
       icon: 'Shield',
+      expirationDays: null,
+      autoCleanup: false
       expirationDays: null,
       autoCleanup: false
     });
@@ -86,6 +90,8 @@ const CategoryManagement: React.FC = () => {
         ...formData,
         isActive: true,
         isDefault: false
+        expirationHours: formData.expirationHours,
+        autoCleanup: formData.autoCleanup
       });
       
       if (success) {
@@ -159,6 +165,8 @@ const CategoryManagement: React.FC = () => {
       description: category.description,
       color: category.color,
       icon: category.icon,
+      expirationDays: category.expirationDays || null,
+      autoCleanup: category.autoCleanup || false
       expirationDays: category.expirationDays || null,
       autoCleanup: category.autoCleanup || false
     });
@@ -636,6 +644,20 @@ const CategoryManagement: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-600">{category.description}</div>
+                      {category.expirationDays && (
+                        <div className="mt-1">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            category.autoCleanup ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {category.autoCleanup ? `🔄 Auto-cleanup: ${category.expirationDays} day${category.expirationDays > 1 ? 's' : ''}` : `⏰ ${category.expirationDays} day${category.expirationDays > 1 ? 's' : ''} (manual)`}
+                          </span>
+                        </div>
+                      )}
+                      {category.ipCount !== undefined && (
+                        <div className="mt-1 text-xs text-gray-500">
+                          {category.ipCount} IP entries
+                        </div>
+                      )}
                       {category.expirationDays && (
                         <div className="mt-1">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
