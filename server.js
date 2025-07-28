@@ -583,6 +583,21 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     
     console.log('Updating category:', id, 'with data:', updates);
     
+    // Validate required fields if they are being updated
+    if (updates.name !== undefined) {
+      const trimmedName = updates.name.trim();
+      if (!trimmedName) {
+        return res.status(400).json({ error: 'Category name cannot be empty' });
+      }
+    }
+    
+    if (updates.label !== undefined) {
+      const trimmedLabel = updates.label.trim();
+      if (!trimmedLabel) {
+        return res.status(400).json({ error: 'Category label cannot be empty' });
+      }
+    }
+    
     // Get current category to check if name actually changed
     const currentCategory = await pool.query('SELECT name FROM categories WHERE id = $1', [id]);
     
