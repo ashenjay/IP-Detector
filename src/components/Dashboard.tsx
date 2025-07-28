@@ -143,35 +143,18 @@ const Dashboard: React.FC = () => {
   };
 
   const getCategoryCount = (category: string) => {
-    console.log('Getting count for category:', category);
-    console.log('Available categories:', categories.map(c => ({ id: c.id, name: c.name, ipCount: c.ipCount })));
+    console.log('🔍 Dashboard getCategoryCount for:', category);
+    console.log('🔍 Available categories:', categories.map(c => ({ id: c.id, name: c.name, ipCount: c.ipCount })));
     
     // First try to get count from category object (from database)
     const categoryObj = categories.find(cat => cat.id === category || cat.name === category);
     if (categoryObj && categoryObj.ipCount !== undefined) {
-      console.log('✅ Using category.ipCount:', categoryObj.ipCount, 'for category:', categoryObj.name);
+      console.log('✅ Dashboard using category.ipCount:', categoryObj.ipCount, 'for category:', categoryObj.name);
       return categoryObj.ipCount;
     }
     
-    // Fallback to counting from ipEntries array
-    console.log('⚠️ Fallback: counting from ipEntries array');
-    console.log('Available IP entries:', ipEntries.length);
-    if (ipEntries.length > 0) {
-      console.log('Sample entry:', ipEntries[0]);
-    }
-    
-    const count = ipEntries.filter(entry => {
-      const matches = entry.category === category || 
-                     (entry as any).category_id === category ||
-                     (entry as any).categoryId === category;
-      if (matches) {
-        console.log('Found matching entry:', entry);
-      }
-      return matches;
-    }).length;
-    
-    console.log('📊 Final count for category', category, ':', count);
-    return count;
+    console.log('⚠️ Dashboard: Category not found or no ipCount, returning 0');
+    return 0;
   };
 
   const activeCategories = categories.filter(cat => cat.isActive);

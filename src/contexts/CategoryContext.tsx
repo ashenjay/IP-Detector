@@ -37,25 +37,27 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       if (response.ok) {
         const categoriesData = await response.json();
-        console.log('🔍 Raw categories data from API:');
-        categoriesData.forEach((c: any) => {
-          console.log(`Category ${c.name}: ip_count = ${c.ip_count} (type: ${typeof c.ip_count})`);
-        });
+        console.log('🔍 Raw categories data from API:', categoriesData);
         
         const formattedCategories = categoriesData.map((c: any) => ({
-          ...c,
-          createdAt: new Date(c.created_at),
-          isActive: c.is_active,
+          id: c.id,
+          name: c.name,
+          label: c.label,
+          description: c.description,
+          color: c.color,
+          icon: c.icon,
           isDefault: c.is_default,
+          isActive: c.is_active,
+          createdAt: new Date(c.created_at),
           createdBy: c.created_by || 'Unknown',
           expirationHours: c.expiration_hours || null,
           autoCleanup: Boolean(c.auto_cleanup),
-          ipCount: c.ip_count ? parseInt(c.ip_count, 10) : 0
+          ipCount: parseInt(c.ip_count) || 0
         }));
         
         console.log('🔍 Formatted categories with IP counts:');
         formattedCategories.forEach(c => {
-          console.log(`  ${c.name}: raw=${c.ip_count} (${typeof c.ip_count}), parsed=${c.ipCount} (${typeof c.ipCount})`);
+          console.log(`  ${c.name}: ipCount=${c.ipCount} (${typeof c.ipCount})`);
         });
         
         setCategories(formattedCategories);

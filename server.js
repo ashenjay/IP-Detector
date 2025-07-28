@@ -501,20 +501,55 @@ app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
 // Categories
 app.get('/api/categories', authenticateToken, async (req, res) => {
   try {
-    console.log('🔍 Fetching categories with IP counts...');
+    console.log('🔍 Fetching categories with IP counts - DEBUGGING...');
     
-    // Simple and reliable query
+    // First, let's check what's actually in the database
+    const debugCategories = await pool.query('SELECT id, name, label FROM categories ORDER BY name');
+    console.log('🔍 Categories in database:', debugCategories.rows);
+    
+    const debugIPs = await pool.query('SELECT id, ip, category_id FROM ip_entries LIMIT 10');
+    console.log('🔍 IP entries in database:', debugIPs.rows);
+    
+    // Check for data type issues
+    const debugCount = await pool.query(`
+      SELECT 
+        c.id,
+        c.name,
+        COUNT(ie.id) as count_result,
+        COUNT(ie.id)::text as count_as_text,
+        COALESCE(COUNT(ie.id), 0) as coalesce_count
+      FROM categories c
+      LEFT JOIN ip_entries ie ON c.id = ie.category_id
+      GROUP BY c.id, c.name
+      ORDER BY c.name
+    `);
+    console.log('🔍 Count debug results:', debugCount.rows);
+    
+    // Use the working query structure
     const result = await pool.query(`
       SELECT 
-        c.*,
-        (SELECT COUNT(*) FROM ip_entries ie WHERE ie.category_id = c.id) as ip_count
+        c.id,
+        c.name,
+        c.label,
+        c.description,
+        c.color,
+        c.icon,
+        c.is_default,
+        c.is_active,
+        c.created_by,
+        c.created_at,
+        c.expiration_hours,
+        c.auto_cleanup,
+        COALESCE(COUNT(ie.id), 0) as ip_count
       FROM categories c
-      ORDER BY c.created_at
+      LEFT JOIN ip_entries ie ON c.id = ie.category_id
+      GROUP BY c.id, c.name, c.label, c.description, c.color, c.icon, c.is_default, c.is_active, c.created_by, c.created_at, c.expiration_hours, c.auto_cleanup
+      ORDER BY c.name
     `);
     
-    console.log('🔍 Categories with IP counts:');
+    console.log('🔍 Final query results:');
     result.rows.forEach(row => {
-      console.log(`  ${row.name}: ${row.ip_count} IPs (type: ${typeof row.ip_count})`);
+      console.log(`  ${row.name}: ${row.ip_count} IPs (type: ${typeof row.ip_count}, value: ${JSON.stringify(row.ip_count)})`);
     });
     
     res.json(result.rows);
