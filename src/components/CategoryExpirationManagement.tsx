@@ -294,7 +294,7 @@ const CategoryExpirationManagement: React.FC = () => {
                         </div>
                         <p className="text-sm text-gray-600">{category.description}</p>
                         <p className="text-xs text-gray-500 mt-1">
-                          {category.ipCount || 0} IP entries • Created by {category.createdBy}
+                          {category.ipCount || 0} IP entries • Created by {category.createdBy || 'Unknown'}
                         </p>
                       </div>
                     </div>
