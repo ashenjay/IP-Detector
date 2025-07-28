@@ -591,35 +591,82 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     console.log('🔧 Updating category:', id);
     console.log('🔧 Updates received:', JSON.stringify(updates, null, 2));
     
-    // Handle expiration settings specifically
-    if (updates.expirationDays !== undefined || updates.autoCleanup !== undefined) {
-      console.log('🔧 Updating expiration settings');
-      
+    // Build dynamic update query
+    const updateFields = [];
+    const updateValues = [];
+    let paramCount = 1;
+    
+    // Handle expiration settings
+    if (updates.expirationDays !== undefined) {
       const expirationHours = updates.expirationDays ? updates.expirationDays * 24 : null;
-      const autoCleanup = updates.autoCleanup || false;
-      
-      console.log('🔧 Setting expiration_hours to:', expirationHours);
-      console.log('🔧 Setting auto_cleanup to:', autoCleanup);
-      
-      const result = await pool.query(
-        'UPDATE categories SET expiration_hours = $1, auto_cleanup = $2 WHERE id = $3',
-        [expirationHours, autoCleanup, id]
-      );
-      
-      console.log('🔧 Update result:', result.rowCount, 'rows affected');
-      
-      if (result.rowCount === 0) {
-        console.log('❌ No category found with ID:', id);
-        return res.status(404).json({ error: 'Category not found' });
-      }
-      
-      console.log('✅ Category expiration updated successfully');
-      return res.json({ message: 'Category updated successfully' });
+      updateFields.push(`expiration_hours = $${paramCount}`);
+      updateValues.push(expirationHours);
+      paramCount++;
     }
     
-    // Handle other updates (name, label, etc.)
-    console.log('🔧 Handling other category updates');
-    return res.json({ message: 'Category updated successfully' });
+    if (updates.autoCleanup !== undefined) {
+      updateFields.push(`auto_cleanup = $${paramCount}`);
+      updateValues.push(updates.autoCleanup);
+      paramCount++;
+    }
+    
+    // Handle other fields
+    if (updates.name) {
+      updateFields.push(`name = $${paramCount}`);
+      updateValues.push(updates.name);
+      paramCount++;
+    }
+    
+    if (updates.label) {
+      updateFields.push(`label = $${paramCount}`);
+      updateValues.push(updates.label);
+      paramCount++;
+    }
+    
+    if (updates.description) {
+      updateFields.push(`description = $${paramCount}`);
+      updateValues.push(updates.description);
+      paramCount++;
+    }
+    
+    if (updates.color) {
+      updateFields.push(`color = $${paramCount}`);
+      updateValues.push(updates.color);
+      paramCount++;
+    }
+    
+    if (updates.icon) {
+      updateFields.push(`icon = $${paramCount}`);
+      updateValues.push(updates.icon);
+      paramCount++;
+    }
+    
+    if (updates.isActive !== undefined) {
+      updateFields.push(`is_active = $${paramCount}`);
+      updateValues.push(updates.isActive);
+      paramCount++;
+    }
+    
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+    
+    // Add category ID as last parameter
+    updateValues.push(id);
+    
+    const query = `UPDATE categories SET ${updateFields.join(', ')} WHERE id = $${paramCount}`;
+    console.log('🔧 Executing query:', query);
+    console.log('🔧 With values:', updateValues);
+    
+    const result = await pool.query(query, updateValues);
+    
+    console.log('🔧 Update result:', result.rowCount, 'rows affected');
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    
+    res.json({ message: 'Category updated successfully' });
     
   } catch (error) {
     console.error('Update category error:', error);
