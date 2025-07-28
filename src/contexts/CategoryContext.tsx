@@ -33,11 +33,15 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           isActive: c.is_active,
           isDefault: c.is_default,
           createdBy: c.created_by || 'Unknown',
-          expirationHours: c.expiration_hours || null,
-          autoCleanup: c.auto_cleanup === true || c.auto_cleanup === 'true',
+          expirationHours: c.expiration_hours || c.expirationHours || null,
+          autoCleanup: Boolean(c.auto_cleanup),
           ipCount: c.ip_count || 0
         }));
-        console.log('🔍 Formatted categories data:', formattedCategories.slice(0, 2));
+        console.log('🔍 Formatted categories data with expiration:', formattedCategories.map(c => ({
+          name: c.name,
+          expirationHours: c.expirationHours,
+          autoCleanup: c.autoCleanup
+        })));
         setCategories(formattedCategories);
       }
     } catch (error) {
@@ -84,6 +88,8 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!user || user.role !== 'superadmin' || !user.isActive) return false;
     
     try {
+      console.log('CategoryContext: Updating category with data:', categoryData);
+      
       const token = localStorage.getItem('auth_token');
       const response = await fetch(`https://threatresponse.ndbbank.com/api/categories/${categoryId}`, {
         method: 'PUT',
@@ -103,9 +109,15 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         })
       });
 
+      console.log('CategoryContext: Update response status:', response.status);
+      
       if (response.ok) {
+        console.log('CategoryContext: Update successful, refreshing categories');
         await fetchCategories();
         return true;
+      } else {
+        const errorData = await response.json();
+        console.error('CategoryContext: Update failed:', errorData);
       }
     } catch (error) {
       console.error('Update category error:', error);

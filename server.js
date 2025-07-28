@@ -583,14 +583,18 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     
     console.log('Updating category:', id, 'with data:', updates);
     
-    // If updating name, check for duplicates (excluding current category)
-    if (updates.name) {
+    // Get current category to check if name actually changed
+    const currentCategory = await pool.query('SELECT name FROM categories WHERE id = $1', [id]);
+    
+    // Only check for duplicates if name is actually changing
+    if (updates.name && currentCategory.rows.length > 0 && updates.name !== currentCategory.rows[0].name) {
       const existingCategory = await pool.query(
         'SELECT id FROM categories WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND id != $2',
         [updates.name, id]
       );
       
       if (existingCategory.rows.length > 0) {
+        console.log('Category name conflict:', updates.name);
         return res.status(400).json({ error: 'Category name already exists' });
       }
     }
@@ -625,12 +629,17 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     console.log('Updating category with fields:', updateFields);
     console.log('Updating category with values:', updateValues);
     
-    await pool.query(
+    const result = await pool.query(
       `UPDATE categories SET ${updateFields.join(', ')} WHERE id = $${paramCount}`,
       updateValues
     );
     
-    console.log('Category updated successfully');
+    console.log('Category updated successfully, rows affected:', result.rowCount);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    
     res.json({ message: 'Category updated successfully' });
   } catch (error) {
     console.error('Update category error:', error);

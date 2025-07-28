@@ -139,8 +139,8 @@ const CategoryManagement: React.FC = () => {
         (parseInt(formData.expirationSeconds) || 0);
       
       const updateData = {
-        // Don't update name if it's the same to avoid duplicate error
-        ...(editingCategory && formData.name !== editingCategory.name && { name: formData.name }),
+        // Always include name in update data
+        name: formData.name,
         label: formData.label,
         description: formData.description,
         color: formData.color,
@@ -157,7 +157,7 @@ const CategoryManagement: React.FC = () => {
         setEditingCategory(null);
         resetForm();
       } else {
-        setError('Failed to update category. Name may already exist.');
+        setError('Failed to update category. Please try again.');
       }
     } catch (err) {
       console.error('Update category error:', err);
@@ -200,7 +200,9 @@ const CategoryManagement: React.FC = () => {
 
   const startEdit = (category: any) => {
     // Convert seconds back to hours, minutes, seconds for editing
-    const totalSeconds = category.expirationHours || category.expiration_hours || 0;
+    const totalSeconds = category.expirationHours || 0;
+    console.log('Starting edit for category:', category.name, 'totalSeconds:', totalSeconds, 'autoCleanup:', category.autoCleanup);
+    
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
@@ -214,8 +216,16 @@ const CategoryManagement: React.FC = () => {
       expirationHours: hours.toString(),
       expirationMinutes: minutes.toString(),
       expirationSeconds: seconds.toString(),
-      autoCleanup: category.autoCleanup || category.auto_cleanup || false
+      autoCleanup: Boolean(category.autoCleanup)
     });
+    
+    console.log('Form data set:', {
+      hours: hours.toString(),
+      minutes: minutes.toString(),
+      seconds: seconds.toString(),
+      autoCleanup: Boolean(category.autoCleanup)
+    });
+    
     setEditingCategory(category);
     setShowEditForm(true);
     setError('');
@@ -751,14 +761,14 @@ const CategoryManagement: React.FC = () => {
                       </div>
                       
                       {/* AUTO-REMOVE STATUS AND EXPIRATION TIME */}
-                      {category.autoCleanup ? (
+                      {Boolean(category.autoCleanup) ? (
                         <div className="mt-2 space-y-1">
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                             ✅ Auto-remove enabled
                           </span>
-                          {(category.expirationHours || category.expiration_hours) && (category.expirationHours || category.expiration_hours) > 0 ? (
+                          {category.expirationHours && category.expirationHours > 0 ? (
                             <div className="text-xs text-orange-600 font-medium">
-                              ⏰ Expires after: {formatTime(category.expirationHours || category.expiration_hours)}
+                              ⏰ Expires after: {formatTime(category.expirationHours)}
                             </div>
                           ) : (
                             <div className="text-xs text-gray-500">
