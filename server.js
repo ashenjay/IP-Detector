@@ -127,10 +127,6 @@ app.get('/api/debug', async (req, res) => {
       ORDER BY ordinal_position
     `);
     
-    // Check if expiration columns exist
-    const hasExpirationHours = schemaResult.rows.some(row => row.column_name === 'expiration_hours');
-    const hasAutoCleanup = schemaResult.rows.some(row => row.column_name === 'auto_cleanup');
-    
     // Check IP entries with category info and added_by field
     const ipEntriesResult = await pool.query(`
       SELECT ie.id, ie.ip, ie.category_id, ie.added_by, ie.date_added,
@@ -166,10 +162,6 @@ app.get('/api/debug', async (req, res) => {
       database: 'connected',
       categories: categoriesResult.rows,
       categoriesSchema: schemaResult.rows,
-      hasExpirationColumns: {
-        expiration_hours: hasExpirationHours,
-        auto_cleanup: hasAutoCleanup
-      },
       sampleIpEntries: ipEntriesResult.rows,
       countByCategory: countByCategory.rows,
       totalIPs: parseInt(totalIpCount.rows[0].count),
@@ -577,31 +569,6 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     
     console.log('Updating category:', id, 'with data:', updates);
     
-    // First, ensure the expiration columns exist
-    try {
-      console.log('Ensuring expiration columns exist...');
-      await pool.query(`
-        DO $$ 
-        BEGIN
-          -- Add expiration_hours column if it doesn't exist
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'expiration_hours') THEN
-            ALTER TABLE categories ADD COLUMN expiration_hours INTEGER NULL;
-            RAISE NOTICE 'Added expiration_hours column';
-          END IF;
-          
-          -- Add auto_cleanup column if it doesn't exist
-          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'auto_cleanup') THEN
-            ALTER TABLE categories ADD COLUMN auto_cleanup BOOLEAN DEFAULT false;
-            RAISE NOTICE 'Added auto_cleanup column';
-          END IF;
-        END $$;
-      `);
-      console.log('✅ Expiration columns ensured');
-    } catch (schemaError) {
-      console.error('❌ Schema update error:', schemaError);
-      return res.status(500).json({ error: 'Failed to update database schema: ' + schemaError.message });
-    }
-    
     // If updating name, check for duplicates (excluding current category)
     if (updates.name) {
       const existingCategory = await pool.query(
@@ -612,6 +579,29 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
       if (existingCategory.rows.length > 0) {
         return res.status(400).json({ error: 'Category name already exists' });
       }
+    }
+    
+    // First, ensure the expiration columns exist with better error handling
+    try {
+      console.log('Checking/creating expiration columns...');
+      await pool.query(`
+        DO $$ 
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'expiration_hours') THEN
+            ALTER TABLE categories ADD COLUMN expiration_hours INTEGER NULL;
+            RAISE NOTICE 'Added expiration_hours column';
+          END IF;
+          
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'auto_cleanup') THEN
+            ALTER TABLE categories ADD COLUMN auto_cleanup BOOLEAN DEFAULT false;
+            RAISE NOTICE 'Added auto_cleanup column';
+          END IF;
+        END $$;
+      `);
+      console.log('Schema check completed successfully');
+    } catch (schemaError) {
+      console.error('Schema update error:', schemaError);
+      return res.status(500).json({ error: 'Failed to update database schema: ' + schemaError.message });
     }
     
     const updateFields = [];
@@ -643,6 +633,7 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
             dbKey = 'auto_cleanup';
             break;
           default:
+            dbKey = key;
         }
         
         updateFields.push(`${dbKey} = $${paramCount}`);
@@ -701,17 +692,6 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     console.error('Update category error:', error);
     console.error('Error stack:', error.stack);
     res.status(500).json({ error: 'Failed to update category: ' + error.message });
-  }
-});
-      `UPDATE categories SET ${updateFields.join(', ')} WHERE id = $${paramCount}`,
-      updateValues
-    );
-    
-    console.log('Category updated successfully');
-    res.json({ message: 'Category updated successfully' });
-  } catch (error) {
-    console.error('Update category error:', error);
-    res.status(500).json({ error: 'Failed to update category' });
   }
 });
 
@@ -796,6 +776,7 @@ app.delete('/api/categories/:id', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to delete category: ' + error.message });
   }
 });
+
 app.post('/api/categories/cleanup-expired', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
