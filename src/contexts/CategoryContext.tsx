@@ -119,9 +119,16 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         await fetchCategories();
         return true;
       } else {
-        const errorData = await response.json();
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (parseError) {
+          console.error('CategoryContext: Failed to parse error response:', parseError);
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         console.error('CategoryContext: Update failed:', errorData);
-        throw new Error(errorData.error || 'Update failed');
+        throw new Error(errorData.error || `HTTP ${response.status}: Update failed`);
       }
     } catch (error) {
       console.error('Update category error:', error);

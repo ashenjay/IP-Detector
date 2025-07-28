@@ -583,23 +583,29 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     
     console.log('Updating category:', id, 'with data:', updates);
     
-    // Build update query dynamically with proper field mapping
-    const updateParts = [];
-    const values = [];
-    let paramIndex = 1;
-    
-    // Handle each field explicitly
+    // Validate required fields
     if (updates.name !== undefined) {
       const trimmedName = String(updates.name).trim();
       if (!trimmedName) {
         return res.status(400).json({ error: 'Category name cannot be empty' });
       }
-      
-      // Check for duplicate names (excluding current category)
+      updates.name = trimmedName;
+    }
+    
+    if (updates.label !== undefined) {
+      const trimmedLabel = String(updates.label).trim();
+      if (!trimmedLabel) {
+        return res.status(400).json({ error: 'Category label cannot be empty' });
+      }
+      updates.label = trimmedLabel;
+    }
+    
+    // Check for duplicate names if name is being updated
+    if (updates.name) {
       try {
         const existingCategory = await pool.query(
           'SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND id != $2',
-          [trimmedName, id]
+          [updates.name, id]
         );
         
         if (existingCategory.rows.length > 0) {
@@ -608,89 +614,57 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
       } catch (duplicateCheckError) {
         console.error('Database error during duplicate name check:', duplicateCheckError);
         return res.status(500).json({ 
-          error: `Database error during name validation: ${duplicateCheckError.message || duplicateCheckError.code || duplicateCheckError.detail || 'Unknown database error'}` 
+          error: `Database connection error: ${duplicateCheckError.message || 'Unable to validate category name'}` 
         });
       }
-      
-      updateParts.push(`name = $${paramIndex}`);
-      values.push(trimmedName);
-      paramIndex++;
     }
     
-    if (updates.label !== undefined) {
-      const trimmedLabel = String(updates.label).trim();
-      if (!trimmedLabel) {
-        return res.status(400).json({ error: 'Category label cannot be empty' });
-      }
-      updateParts.push(`label = $${paramIndex}`);
-      values.push(trimmedLabel);
-      paramIndex++;
-    }
-    
-    if (updates.description !== undefined) {
-      updateParts.push(`description = $${paramIndex}`);
-      values.push(String(updates.description).trim());
-      paramIndex++;
-    }
-    
-    if (updates.color !== undefined) {
-      updateParts.push(`color = $${paramIndex}`);
-      values.push(String(updates.color).trim());
-      paramIndex++;
-    }
-    
-    if (updates.icon !== undefined) {
-      updateParts.push(`icon = $${paramIndex}`);
-      values.push(String(updates.icon).trim());
-      paramIndex++;
-    }
-    
-    if (updates.isActive !== undefined) {
-      updateParts.push(`is_active = $${paramIndex}`);
-      values.push(Boolean(updates.isActive));
-      paramIndex++;
-    }
-    
-    if (updates.autoCleanup !== undefined) {
-      updateParts.push(`auto_cleanup = $${paramIndex}`);
-      values.push(Boolean(updates.autoCleanup));
-      paramIndex++;
-    }
-    
+    // Process expiration hours - ensure it's properly handled
     if (updates.expirationHours !== undefined) {
-      // Frontend sends expirationHours as number or null - use it directly
-      const validExpirationHours = (typeof updates.expirationHours === 'number' && updates.expirationHours > 0) 
-        ? updates.expirationHours 
-        : null;
-        
-      updateParts.push(`expiration_hours = $${paramIndex}`);
-      values.push(validExpirationHours);
-      paramIndex++;
+      if (updates.expirationHours === null || updates.expirationHours === 0 || !updates.autoCleanup) {
+        updates.expirationHours = null;
+      } else if (typeof updates.expirationHours === 'number' && updates.expirationHours > 0) {
+        updates.expirationHours = Math.max(1, Math.floor(updates.expirationHours));
+      } else {
+        updates.expirationHours = null;
+      }
     }
     
-    if (updateParts.length === 0) {
+    // Build the update query using a simpler approach
+    const updateFields = [];
+    const updateValues = [];
+    let paramCount = 1;
+    
+    const fieldMapping = {
+      name: 'name',
+      label: 'label', 
+      description: 'description',
+      color: 'color',
+      icon: 'icon',
+      isActive: 'is_active',
+      autoCleanup: 'auto_cleanup',
+      expirationHours: 'expiration_hours'
+    };
+    
+    Object.keys(fieldMapping).forEach(key => {
+      if (updates[key] !== undefined) {
+        updateFields.push(`${fieldMapping[key]} = $${paramCount}`);
+        updateValues.push(updates[key]);
+        paramCount++;
+      }
+    });
+    
+    if (updateFields.length === 0) {
       return res.status(400).json({ error: 'No valid fields to update' });
     }
     
-    // Add the category ID as the last parameter
-    values.push(id);
-    
-    const query = `UPDATE categories SET ${updateParts.join(', ')} WHERE id = $${paramIndex}`;
+    updateValues.push(id);
+    const query = `UPDATE categories SET ${updateFields.join(', ')} WHERE id = $${paramCount}`;
     
     console.log('Executing update query:', query);
-    console.log('With values:', values);
+    console.log('With values:', updateValues);
     
-    let result;
-    try {
-      result = await pool.query(query, values);
-    } catch (dbError) {
-      console.error('Database error during category update:', dbError);
-      console.error('Query:', query);
-      console.error('Values:', values);
-      console.error('Error code:', dbError.code);
-      console.error('Error detail:', dbError.detail);
-      return res.status(500).json({ error: `Database error: ${dbError.message}` });
-    }
+    const result = await pool.query(query, updateValues);
     
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Category not found' });
@@ -698,16 +672,11 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     
     console.log('Category updated successfully');
     res.json({ message: 'Category updated successfully' });
+    
   } catch (error) {
     console.error('Update category error:', error);
-    console.error('Error stack:', error.stack);
-    
-    // Ensure we always return a specific error message
-    const specificError = error.message || error.code || error.detail || error.stack || 'Database operation failed';
-    
-    res.status(500).json({ 
-      error: specificError
-    });
+    const errorMessage = error.message || error.code || error.detail || 'Database operation failed';
+    res.status(500).json({ error: errorMessage });
   }
 });
 

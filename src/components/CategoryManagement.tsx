@@ -141,8 +141,11 @@ const CategoryManagement: React.FC = () => {
         (parseInt(formData.expirationMinutes) || 0) * 60 +
         (parseInt(formData.expirationSeconds) || 0);
       
-      // Convert total seconds to hours for database storage
-      const totalHours = totalSeconds > 0 ? Math.ceil(totalSeconds / 3600) : null;
+      // Convert total seconds to hours for database storage - handle zero case properly
+      let totalHours = null;
+      if (formData.autoCleanup && totalSeconds > 0) {
+        totalHours = Math.max(1, Math.ceil(totalSeconds / 3600));
+      }
       
       const updateData = {
         name: formData.name,
@@ -150,7 +153,7 @@ const CategoryManagement: React.FC = () => {
         description: formData.description,
         color: formData.color,
         icon: formData.icon,
-        expirationHours: formData.autoCleanup && totalHours !== null ? totalHours : null,
+        expirationHours: totalHours,
         autoCleanup: formData.autoCleanup
       };
       
@@ -166,7 +169,8 @@ const CategoryManagement: React.FC = () => {
       }
     } catch (err) {
       console.error('Update category error:', err);
-      setError(err instanceof Error ? err.message : 'Error updating category');
+      const errorMessage = err instanceof Error ? err.message : 'Error updating category';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
