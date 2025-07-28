@@ -68,7 +68,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           description: categoryData.description,
           color: categoryData.color,
           icon: categoryData.icon,
-          expirationHours: categoryData.expirationHours ? parseInt(categoryData.expirationHours.toString()) : null,
+          expirationHours: categoryData.expirationHours !== undefined ? parseInt(categoryData.expirationHours.toString()) : null,
           autoCleanup: categoryData.autoCleanup || false
         })
       });
