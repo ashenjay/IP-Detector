@@ -572,30 +572,112 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
       }
     }
     
+    // First, ensure the expiration columns exist
+    try {
+      await pool.query(`
+        DO $$ 
+        BEGIN
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'expiration_hours') THEN
+            ALTER TABLE categories ADD COLUMN expiration_hours INTEGER NULL;
+          END IF;
+          
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'auto_cleanup') THEN
+            ALTER TABLE categories ADD COLUMN auto_cleanup BOOLEAN DEFAULT false;
+          END IF;
+        END $$;
+      `);
+    } catch (schemaError) {
+      console.error('Schema update error:', schemaError);
+    }
+    
     const updateFields = [];
     const updateValues = [];
     let paramCount = 1;
     
     Object.keys(updates).forEach(key => {
       if (key !== 'id') {
-        const dbKey = key === 'isActive' ? 'is_active' : 
-                     key === 'isDefault' ? 'is_default' : 
-                     key === 'createdBy' ? 'created_by' : 
-                     key === 'expiration_days' ? 'expiration_days' :
-                     key === 'auto_cleanup' ? 'auto_cleanup' : key;
-        updateFields.push(`${dbKey} = $${paramCount}`);
+        let dbKey;
         let value = updates[key];
-        if (typeof value === 'string') {
-          value = value.trim();
+        
+        switch (key) {
+          case 'isActive':
+            dbKey = 'is_active';
+            break;
+          case 'isDefault':
+            dbKey = 'is_default';
+            break;
+          case 'createdBy':
+            dbKey = 'created_by';
+            break;
+          case 'expirationDays':
+            dbKey = 'expiration_hours';
+            // Convert days to hours, handle null
+            value = value !== null && value !== undefined ? value * 24 : null;
+            break;
+          case 'autoCleanup':
+            dbKey = 'auto_cleanup';
+            break;
+          default:
         }
+        
+        updateFields.push(`${dbKey} = $${paramCount}`);
         updateValues.push(value);
         paramCount++;
       }
     });
     
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
+    
     updateValues.push(id);
     
-    await pool.query(
+    const query = `UPDATE categories SET ${updateFields.join(', ')} WHERE id = $${paramCount}`;
+    console.log('Executing query:', query);
+    console.log('With values:', updateValues);
+    
+    const result = await pool.query(
+      query,
+      updateValues
+    );
+    
+    console.log('Update result rows affected:', result.rowCount);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    
+    // If we updated expiration settings, also update existing IP entries
+    if (updates.expirationDays !== undefined || updates.autoCleanup !== undefined) {
+      try {
+        await pool.query(`
+          UPDATE ip_entries 
+          SET expires_at = CASE 
+            WHEN c.auto_cleanup = true AND c.expiration_hours IS NOT NULL AND c.expiration_hours > 0 
+            THEN ip_entries.date_added + (c.expiration_hours || ' hours')::INTERVAL
+            ELSE NULL
+          END,
+          auto_remove = CASE 
+            WHEN c.auto_cleanup = true AND c.expiration_hours IS NOT NULL AND c.expiration_hours > 0 
+            THEN true
+            ELSE false
+          END
+          FROM categories c
+          WHERE ip_entries.category_id = c.id AND c.id = $1
+        `, [id]);
+        console.log('Updated IP entries expiration for category:', id);
+      } catch (ipUpdateError) {
+        console.error('Error updating IP entries expiration:', ipUpdateError);
+      }
+    }
+    
+    console.log('Category updated successfully');
+    res.json({ message: 'Category updated successfully' });
+  } catch (error) {
+    console.error('Update category error:', error);
+    res.status(500).json({ error: 'Failed to update category: ' + error.message });
+  }
+});
       `UPDATE categories SET ${updateFields.join(', ')} WHERE id = $${paramCount}`,
       updateValues
     );
