@@ -50,17 +50,13 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           createdBy: c.created_by || 'Unknown',
           expirationHours: c.expiration_hours || null,
           autoCleanup: Boolean(c.auto_cleanup),
-          ipCount: parseInt(c.ip_count, 10) || 0
+          ipCount: c.ip_count ? parseInt(c.ip_count, 10) : 0
         }));
         
-        console.log('🔍 Formatted categories with IP counts:', 
-          formattedCategories.map(c => ({ 
-            name: c.name, 
-            ipCount: c.ipCount, 
-            rawCount: c.ip_count,
-            type: typeof c.ip_count 
-          }))
-        );
+        console.log('🔍 Formatted categories with IP counts:');
+        formattedCategories.forEach(c => {
+          console.log(`  ${c.name}: raw=${c.ip_count} (${typeof c.ip_count}), parsed=${c.ipCount} (${typeof c.ipCount})`);
+        });
         
         setCategories(formattedCategories);
       }
@@ -205,6 +201,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const refreshCategories = async (): Promise<void> => {
+    console.log('🔄 CategoryContext: Refreshing categories...');
     await fetchCategories();
   };
 
