@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCategory } from '../contexts/CategoryContext';
+import { CONFIG } from '../config/environment';
 import { 
   Clock, 
   ArrowLeft,
@@ -69,7 +70,7 @@ const CategoryExpirationManagement: React.FC = () => {
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('https://threatresponse.ndbbank.com/api/test/create-columns', {
+      const response = await fetch(`${CONFIG.apiEndpoint}/test/create-columns`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

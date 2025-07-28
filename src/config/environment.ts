@@ -6,7 +6,7 @@ export const CONFIG = {
   isDevelopment: false,
   
   // API endpoints - AWS EC2 server
-  apiEndpoint: 'https://threatresponse.ndbbank.com/api',
+  apiEndpoint: import.meta.env.DEV ? 'http://localhost:3000/api' : 'https://threatresponse.ndbbank.com/api',
     
   // Feature flags - real database only
   features: {
