@@ -68,7 +68,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           description: categoryData.description,
           color: categoryData.color,
           icon: categoryData.icon,
-          expirationHours: categoryData.expirationHours !== undefined ? parseInt(categoryData.expirationHours.toString()) : null,
+          expirationHours: categoryData.expirationHours,
           autoCleanup: categoryData.autoCleanup || false
         })
       });
@@ -76,6 +76,9 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (response.ok) {
         await fetchCategories();
         return true;
+      } else {
+        const errorData = await response.json();
+        console.error('Create category failed:', errorData);
       }
     } catch (error) {
       console.error('Create category error:', error);
@@ -105,7 +108,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           icon: categoryData.icon,
           isActive: categoryData.isActive,
           expirationHours: categoryData.expirationHours,
-          autoCleanup: categoryData.autoCleanup || false
+          autoCleanup: categoryData.autoCleanup
         })
       });
 
@@ -118,9 +121,11 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       } else {
         const errorData = await response.json();
         console.error('CategoryContext: Update failed:', errorData);
+        throw new Error(errorData.error || 'Update failed');
       }
     } catch (error) {
       console.error('Update category error:', error);
+      throw error;
     }
 
     return false;

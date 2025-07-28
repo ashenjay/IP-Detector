@@ -96,6 +96,9 @@ const CategoryManagement: React.FC = () => {
         (parseInt(formData.expirationMinutes) || 0) * 60 +
         (parseInt(formData.expirationSeconds) || 0);
       
+      // Convert total seconds to hours for database storage
+      const totalHours = totalSeconds > 0 ? Math.ceil(totalSeconds / 3600) : null;
+      
       const categoryData = {
         name: formData.name,
         label: formData.label,
@@ -103,11 +106,11 @@ const CategoryManagement: React.FC = () => {
         color: formData.color,
         icon: formData.icon,
         isActive: true,
-        expirationHours: formData.autoCleanup && totalSeconds > 0 ? Math.round(totalSeconds / 3600) : null,
+        expirationHours: formData.autoCleanup && totalHours ? totalHours : null,
         autoCleanup: formData.autoCleanup
       };
       
-      console.log('Sending category data with total seconds:', totalSeconds);
+      console.log('Sending category data:', categoryData);
       
       const success = await createCategory(categoryData);
       
@@ -138,18 +141,20 @@ const CategoryManagement: React.FC = () => {
         (parseInt(formData.expirationMinutes) || 0) * 60 +
         (parseInt(formData.expirationSeconds) || 0);
       
+      // Convert total seconds to hours for database storage
+      const totalHours = totalSeconds > 0 ? Math.ceil(totalSeconds / 3600) : null;
+      
       const updateData = {
-        // Always include name in update data
         name: formData.name,
         label: formData.label,
         description: formData.description,
         color: formData.color,
         icon: formData.icon,
-        expirationHours: formData.autoCleanup && totalSeconds > 0 ? Math.round(totalSeconds / 3600) : null,
+        expirationHours: formData.autoCleanup && totalHours ? totalHours : null,
         autoCleanup: formData.autoCleanup
       };
       
-      console.log('Sending update data with total seconds:', totalSeconds);
+      console.log('Sending update data:', updateData);
       
       const success = await updateCategory(categoryId, updateData);
       if (success) {

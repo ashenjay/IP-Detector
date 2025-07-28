@@ -583,129 +583,108 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     
     console.log('Updating category:', id, 'with data:', updates);
     
-    // Validate required fields if they are being updated
+    // Build update query dynamically with proper field mapping
+    const updateParts = [];
+    const values = [];
+    let paramIndex = 1;
+    
+    // Handle each field explicitly
     if (updates.name !== undefined) {
-      const trimmedName = updates.name.trim();
+      const trimmedName = String(updates.name).trim();
       if (!trimmedName) {
         return res.status(400).json({ error: 'Category name cannot be empty' });
       }
-    }
-    
-    if (updates.label !== undefined) {
-      const trimmedLabel = updates.label.trim();
-      if (!trimmedLabel) {
-        return res.status(400).json({ error: 'Category label cannot be empty' });
-      }
-    }
-    
-    // Get current category to check if name actually changed
-    const currentCategory = await pool.query('SELECT name FROM categories WHERE id = $1', [id]);
-    
-    // Only check for duplicates if name is actually changing
-    if (updates.name && currentCategory.rows.length > 0 && updates.name !== currentCategory.rows[0].name) {
+      
+      // Check for duplicate names (excluding current category)
       const existingCategory = await pool.query(
-        'SELECT id FROM categories WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND id != $2',
-        [updates.name, id]
+        'SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND id != $2',
+        [trimmedName, id]
       );
       
       if (existingCategory.rows.length > 0) {
-        console.log('Category name conflict:', updates.name);
         return res.status(400).json({ error: 'Category name already exists' });
       }
+      
+      updateParts.push(`name = $${paramIndex}`);
+      values.push(trimmedName);
+      paramIndex++;
     }
     
-    const updateFields = [];
-    const updateValues = [];
-    let paramCount = 1;
-    
-    // Explicitly process each field with proper type handling
-    Object.keys(updates).forEach(key => {
-      if (key !== 'id') {
-        let dbKey, processedValue;
-        
-        // Map frontend keys to database columns and process values
-        switch (key) {
-          case 'name':
-            dbKey = 'name';
-            processedValue = typeof updates[key] === 'string' ? updates[key].trim() : updates[key];
-            break;
-          case 'label':
-            dbKey = 'label';
-            processedValue = typeof updates[key] === 'string' ? updates[key].trim() : updates[key];
-            break;
-          case 'description':
-            dbKey = 'description';
-            processedValue = typeof updates[key] === 'string' ? updates[key].trim() : updates[key];
-            break;
-          case 'color':
-            dbKey = 'color';
-            processedValue = typeof updates[key] === 'string' ? updates[key].trim() : updates[key];
-            break;
-          case 'icon':
-            dbKey = 'icon';
-            processedValue = typeof updates[key] === 'string' ? updates[key].trim() : updates[key];
-            break;
-          case 'isActive':
-            dbKey = 'is_active';
-            processedValue = Boolean(updates[key]);
-            break;
-          case 'isDefault':
-            dbKey = 'is_default';
-            processedValue = Boolean(updates[key]);
-            break;
-          case 'autoCleanup':
-            dbKey = 'auto_cleanup';
-            processedValue = Boolean(updates[key]);
-            break;
-          case 'expirationHours':
-            dbKey = 'expiration_hours';
-            if (updates[key] === null || updates[key] === undefined || updates[key] === '' || updates[key] === 0) {
-              processedValue = null;
-            } else {
-              const parsed = parseInt(updates[key]);
-              processedValue = isNaN(parsed) ? null : parsed;
-            }
-            break;
-          case 'createdBy':
-            dbKey = 'created_by';
-            processedValue = typeof updates[key] === 'string' ? updates[key].trim() : updates[key];
-            break;
-          default:
-            dbKey = key;
-            processedValue = typeof updates[key] === 'string' ? updates[key].trim() : updates[key];
-        }
-        
-        updateFields.push(`${dbKey} = $${paramCount}`);
-        updateValues.push(processedValue);
-        paramCount++;
+    if (updates.label !== undefined) {
+      const trimmedLabel = String(updates.label).trim();
+      if (!trimmedLabel) {
+        return res.status(400).json({ error: 'Category label cannot be empty' });
       }
-    });
+      updateParts.push(`label = $${paramIndex}`);
+      values.push(trimmedLabel);
+      paramIndex++;
+    }
     
-    updateValues.push(id);
+    if (updates.description !== undefined) {
+      updateParts.push(`description = $${paramIndex}`);
+      values.push(String(updates.description).trim());
+      paramIndex++;
+    }
     
-    console.log('Updating category with fields:', updateFields);
-    console.log('Updating category with values:', updateValues);
+    if (updates.color !== undefined) {
+      updateParts.push(`color = $${paramIndex}`);
+      values.push(String(updates.color).trim());
+      paramIndex++;
+    }
     
-    const result = await pool.query(
-      `UPDATE categories SET ${updateFields.join(', ')} WHERE id = $${paramCount}`,
-      updateValues
-    );
+    if (updates.icon !== undefined) {
+      updateParts.push(`icon = $${paramIndex}`);
+      values.push(String(updates.icon).trim());
+      paramIndex++;
+    }
     
-    console.log('Category updated successfully, rows affected:', result.rowCount);
+    if (updates.isActive !== undefined) {
+      updateParts.push(`is_active = $${paramIndex}`);
+      values.push(Boolean(updates.isActive));
+      paramIndex++;
+    }
+    
+    if (updates.autoCleanup !== undefined) {
+      updateParts.push(`auto_cleanup = $${paramIndex}`);
+      values.push(Boolean(updates.autoCleanup));
+      paramIndex++;
+    }
+    
+    if (updates.expirationHours !== undefined) {
+      updateParts.push(`expiration_hours = $${paramIndex}`);
+      
+      // Handle expiration hours: null, 0, or positive integer
+      if (updates.expirationHours === null || updates.expirationHours === 0 || updates.expirationHours === '') {
+        values.push(null);
+      } else {
+        const parsed = parseInt(updates.expirationHours);
+        values.push(isNaN(parsed) || parsed <= 0 ? null : parsed);
+      }
+      paramIndex++;
+    }
+    
+    if (updateParts.length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
+    
+    // Add the category ID as the last parameter
+    values.push(id);
+    
+    const query = `UPDATE categories SET ${updateParts.join(', ')} WHERE id = $${paramIndex}`;
+    
+    console.log('Executing update query:', query);
+    console.log('With values:', values);
+    
+    const result = await pool.query(query, values);
     
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Category not found' });
     }
     
+    console.log('Category updated successfully');
     res.json({ message: 'Category updated successfully' });
   } catch (error) {
     console.error('Update category error:', error);
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      code: error.code,
-      detail: error.detail
-    });
     res.status(500).json({ error: 'Failed to update category' });
   }
 });
