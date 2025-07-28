@@ -109,8 +109,6 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!user || user.role !== 'superadmin' || !user.isActive) return false;
     
     try {
-      console.log('CategoryContext: Updating category with data:', categoryData);
-      
       const token = localStorage.getItem('auth_token');
       const response = await fetch(`https://threatresponse.ndbbank.com/api/categories/${categoryId}`, {
         method: 'PUT',
@@ -124,33 +122,16 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           description: categoryData.description,
           color: categoryData.color,
           icon: categoryData.icon,
-          isActive: categoryData.isActive,
-          expirationHours: categoryData.expirationHours,
-          autoCleanup: categoryData.autoCleanup
+          isActive: categoryData.isActive
         })
       });
 
-      console.log('CategoryContext: Update response status:', response.status);
-      
       if (response.ok) {
-        console.log('CategoryContext: Update successful, refreshing categories');
         await fetchCategories();
         return true;
-      } else {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (parseError) {
-          console.error('CategoryContext: Failed to parse error response:', parseError);
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        console.error('CategoryContext: Update failed:', errorData);
-        throw new Error(errorData.error || `HTTP ${response.status}: Update failed`);
       }
     } catch (error) {
       console.error('Update category error:', error);
-      throw error;
     }
 
     return false;
