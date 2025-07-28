@@ -34,7 +34,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           isDefault: c.is_default,
           createdBy: c.created_by || 'Unknown',
           expirationHours: c.expiration_hours || null,
-          autoCleanup: c.auto_cleanup || false,
+          autoCleanup: Boolean(c.auto_cleanup),
           ipCount: c.ip_count || 0
         }));
         console.log('🔍 Formatted categories data:', formattedCategories.slice(0, 2));

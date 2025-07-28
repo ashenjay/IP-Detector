@@ -139,7 +139,8 @@ const CategoryManagement: React.FC = () => {
         (parseInt(formData.expirationSeconds) || 0);
       
       const updateData = {
-        name: formData.name,
+        // Don't update name if it's the same to avoid duplicate error
+        ...(editingCategory && formData.name !== editingCategory.name && { name: formData.name }),
         label: formData.label,
         description: formData.description,
         color: formData.color,
@@ -750,14 +751,20 @@ const CategoryManagement: React.FC = () => {
                       </div>
                       
                       {/* AUTO-REMOVE STATUS AND EXPIRATION TIME */}
-                      {category.autoCleanup && category.expirationHours ? (
+                      {category.autoCleanup ? (
                         <div className="mt-2 space-y-1">
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                             ✅ Auto-remove enabled
                           </span>
-                          <div className="text-xs text-orange-600 font-medium">
-                            ⏰ Expires after: {formatTime(category.expirationHours)}
-                          </div>
+                          {category.expirationHours && category.expirationHours > 0 ? (
+                            <div className="text-xs text-orange-600 font-medium">
+                              ⏰ Expires after: {formatTime(category.expirationHours)}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-gray-500">
+                              ⏰ No expiration time set
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="mt-2">

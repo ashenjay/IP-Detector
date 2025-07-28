@@ -304,17 +304,20 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
   }
 
   if (!isWhitelist && category && !categoryObj) {
+    console.log('🔍 IPList: Category not found:', category);
+    console.log('🔍 IPList: Available categories:', categories.map(c => ({ id: c.id, name: c.name })));
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Shield className="h-16 w-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Category Not Found</h2>
-          <p className="text-gray-600">The requested category does not exist.</p>
+          <p className="text-gray-600">The requested category "{category}" does not exist.</p>
+          <p className="text-sm text-gray-500 mt-2">Available categories: {categories.length}</p>
           <button
-            onClick={() => window.history.back()}
+            onClick={() => window.location.href = '#/'}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Go Back
+            Go to Dashboard
           </button>
         </div>
       </div>
