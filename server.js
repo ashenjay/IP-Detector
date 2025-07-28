@@ -509,13 +509,19 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
     
-    const { name, label, description, color, icon, expiresAt, autoCleanup } = req.body;
+   const { name, label, description, color, icon, expiresAt, autoCleanup } = req.body;
     
     if (!name || !label || !description) {
       return res.status(400).json({ error: 'Name, label, and description are required' });
     }
     
-    console.log('Creating category with data:', { name: name.trim(), label: label.trim(), description: description.trim() });
+   console.log('Creating category with data:', { 
+     name: name.trim(), 
+     label: label.trim(), 
+     description: description.trim(),
+     expiresAt,
+     autoCleanup
+   });
     
     // Check if name already exists (case-insensitive, trimmed)
     const existingCategory = await pool.query(
@@ -528,6 +534,13 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Category name already exists' });
     }
     
+   // Parse expiration date properly
+   let expirationDate = null;
+   if (expiresAt) {
+     expirationDate = new Date(expiresAt);
+     console.log('Parsed expiration date:', expirationDate);
+   }
+   
     const result = await pool.query(
       'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by, expires_at, auto_cleanup) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
       [
@@ -539,7 +552,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
         false, 
         true, 
         req.user.username,
-        expiresAt ? new Date(expiresAt) : null,
+       expirationDate,
         autoCleanup || false
       ]
     );
@@ -702,13 +715,44 @@ app.post('/api/categories/cleanup-expired', authenticateToken, async (req, res) 
     
     console.log('Running expired category cleanup...');
     
-    const result = await pool.query('SELECT cleanup_expired_category_data() as cleaned_count');
-    const cleanedCount = result.rows[0].cleaned_count;
+   // Manual cleanup - find expired categories and remove their IP entries
+   const expiredCategories = await pool.query(`
+     SELECT id, name, label, expires_at 
+     FROM categories 
+     WHERE expires_at IS NOT NULL 
+     AND expires_at < CURRENT_TIMESTAMP 
+     AND auto_cleanup = true
+     AND is_active = true
+   `);
+   
+   let totalCleaned = 0;
+   
+   for (const category of expiredCategories.rows) {
+     console.log('Cleaning expired category:', category.label);
+     
+     // Count IP entries before deletion
+     const countResult = await pool.query('SELECT COUNT(*) as count FROM ip_entries WHERE category_id = $1', [category.id]);
+     const ipCount = parseInt(countResult.rows[0].count);
+     
+     // Delete IP entries from expired category
+     await pool.query('DELETE FROM ip_entries WHERE category_id = $1', [category.id]);
+     
+     totalCleaned += ipCount;
+     
+     // Update category description to show it was cleaned (but keep category active)
+     await pool.query(
+       'UPDATE categories SET description = description || $1 WHERE id = $2',
+       [` (Auto-cleaned ${ipCount} IPs on ${new Date().toLocaleDateString()})`, category.id]
+     );
+     
+     console.log(`Cleaned ${ipCount} IP entries from category: ${category.label}`);
+   }
     
-    console.log('Cleanup completed, cleaned entries:', cleanedCount);
+   console.log('Cleanup completed, total cleaned entries:', totalCleaned);
     res.json({ 
       message: 'Cleanup completed successfully',
-      cleanedEntries: cleanedCount
+     cleanedEntries: totalCleaned,
+     categoriesCleaned: expiredCategories.rows.length
     });
   } catch (error) {
     console.error('Cleanup expired categories error:', error);

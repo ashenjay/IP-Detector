@@ -51,6 +51,8 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!user || user.role !== 'superadmin' || !user.isActive) return false;
     
     try {
+     console.log('Sending category data to API:', categoryData);
+     
       const token = localStorage.getItem('auth_token');
       const response = await fetch('https://threatresponse.ndbbank.com/api/categories', {
         method: 'POST',
@@ -95,6 +97,8 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           description: categoryData.description,
           color: categoryData.color,
           icon: categoryData.icon,
+         expiresAt: categoryData.expiresAt ? categoryData.expiresAt.toISOString() : null,
+         autoCleanup: categoryData.autoCleanup || false
           isActive: categoryData.isActive,
           expiresAt: categoryData.expiresAt?.toISOString(),
           autoCleanup: categoryData.autoCleanup

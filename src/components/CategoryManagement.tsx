@@ -82,11 +82,13 @@ const CategoryManagement: React.FC = () => {
     setLoading(true);
 
     try {
+     console.log('Creating category with form data:', formData);
+     
       const success = await createCategory({
         ...formData,
         isActive: true,
-        expiresAt: formData.expiresAt ? new Date(formData.expiresAt) : undefined,
-        autoCleanup: formData.autoCleanup
+       expiresAt: formData.expiresAt ? new Date(formData.expiresAt) : null,
+       autoCleanup: formData.autoCleanup || false
       });
       
       if (success) {
@@ -107,7 +109,15 @@ const CategoryManagement: React.FC = () => {
     setLoading(true);
 
     try {
-      const success = await updateCategory(categoryId, formData);
+     console.log('Updating category with form data:', formData);
+     
+     const updateData = {
+       ...formData,
+       expiresAt: formData.expiresAt ? new Date(formData.expiresAt) : null,
+       autoCleanup: formData.autoCleanup || false
+     };
+     
+     const success = await updateCategory(categoryId, updateData);
       if (success) {
         setShowEditForm(false);
         setEditingCategory(null);
@@ -172,6 +182,32 @@ const CategoryManagement: React.FC = () => {
     setShowEditForm(false);
     setEditingCategory(null);
     resetForm();
+  };
+  const handleManualCleanup = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('https://threatresponse.ndbbank.com/api/categories/cleanup-expired', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        await refreshCategories();
+        setError(`Cleanup completed! Removed ${result.cleanedEntries} IP entries from expired categories.`);
+        setTimeout(() => setError(''), 5000);
+      } else {
+        setError('Failed to cleanup expired categories');
+      }
+    } catch (err) {
+      setError('Error during cleanup');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleExtendExpiration = async (categoryId: string, newExpiration: string) => {
@@ -580,6 +616,19 @@ const CategoryManagement: React.FC = () => {
             </form>
           </div>
         )}
+         {/* Manual Cleanup Button */}
+         {user?.role === 'superadmin' && (
+           <div className="mb-6">
+             <button
+               onClick={handleManualCleanup}
+               disabled={loading}
+               className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+             >
+               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+               <span>{loading ? 'Cleaning...' : 'Cleanup Expired Categories'}</span>
+             </button>
+           </div>
+         )}
 
         {/* Categories List */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -648,6 +697,23 @@ const CategoryManagement: React.FC = () => {
                           {category.ipCount} IP entries
                         </div>
                       )}
+                     {category.expiresAt && (
+                       <div className="mt-2">
+                         <div className="text-xs text-gray-600">
+                           <strong>Expires:</strong> {new Date(category.expiresAt).toLocaleString()}
+                         </div>
+                         {category.expirationStatus === 'Active' && category.daysUntilExpiration && (
+                           <div className="text-xs text-orange-600">
+                             <strong>{Math.ceil(category.daysUntilExpiration)} days remaining</strong>
+                           </div>
+                         )}
+                         {category.expirationStatus === 'Expired' && (
+                           <div className="text-xs text-red-600">
+                             <strong>⚠️ EXPIRED - IP entries will be removed</strong>
+                           </div>
+                         )}
+                       </div>
+                     )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
