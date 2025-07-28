@@ -2,7 +2,7 @@ import React from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CategoryProvider } from './contexts/CategoryContext';
 import { IPProvider } from './contexts/IPContext';
-import LoginForm from './components/LoginForm';
+import { LoginForm } from './components/LoginForm';
 import Router from './components/Router';
 
 const AppContent: React.FC = () => {
