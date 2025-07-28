@@ -603,43 +603,57 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     const updateValues = [];
     let paramCount = 1;
     
+    // Handle auto_cleanup and expiration_hours first with special logic
+    if ('autoCleanup' in updates) {
+      const autoCleanupValue = Boolean(updates.autoCleanup);
+      updateFields.push(`auto_cleanup = $${paramCount}`);
+      updateValues.push(autoCleanupValue);
+      paramCount++;
+      
+      // If auto_cleanup is false, always set expiration_hours to NULL
+      if (!autoCleanupValue) {
+        updateFields.push(`expiration_hours = $${paramCount}`);
+        updateValues.push(null);
+        paramCount++;
+      } else if ('expirationHours' in updates) {
+        // Only set expiration_hours if auto_cleanup is true
+        let expirationValue = updates.expirationHours;
+        if (expirationValue === null || expirationValue === undefined || expirationValue === '' || expirationValue === 0) {
+          expirationValue = null;
+        } else {
+          const parsed = parseInt(expirationValue);
+          expirationValue = isNaN(parsed) ? null : parsed;
+        }
+        updateFields.push(`expiration_hours = $${paramCount}`);
+        updateValues.push(expirationValue);
+        paramCount++;
+      }
+    } else if ('expirationHours' in updates) {
+      // Handle expirationHours when autoCleanup is not in updates
+      let expirationValue = updates.expirationHours;
+      if (expirationValue === null || expirationValue === undefined || expirationValue === '' || expirationValue === 0) {
+        expirationValue = null;
+      } else {
+        const parsed = parseInt(expirationValue);
+        expirationValue = isNaN(parsed) ? null : parsed;
+      }
+      updateFields.push(`expiration_hours = $${paramCount}`);
+      updateValues.push(expirationValue);
+      paramCount++;
+    }
+    
+    // Process all other fields
     Object.keys(updates).forEach(key => {
-      if (key !== 'id') {
+      if (key !== 'id' && key !== 'autoCleanup' && key !== 'expirationHours') {
         const dbKey = key === 'isActive' ? 'is_active' : 
                      key === 'isDefault' ? 'is_default' : 
                      key === 'createdBy' ? 'created_by' : 
-                     key === 'expirationHours' ? 'expiration_hours' :
-                     key === 'autoCleanup' ? 'auto_cleanup' : key;
+                     key;
         updateFields.push(`${dbKey} = $${paramCount}`);
         let value = updates[key];
         
-        // Handle expirationHours with robust type conversion
-        if (key === 'expirationHours') {
-          // If autoCleanup is being disabled, allow expirationHours to be null
-          if (value === null || value === undefined || value === '' || value === 0 || updates.autoCleanup === false) {
-            value = null;
-          } else {
-            const parsed = parseInt(value);
-            value = isNaN(parsed) ? null : parsed;
-          }
-        }
-        // Handle autoCleanup with explicit boolean conversion
-        else if (key === 'autoCleanup') {
-          value = Boolean(value);
-          // If autoCleanup is being disabled, ensure expirationHours is also null
-          if (value === false) {
-            // Find expirationHours in the updates and set it to null
-            const expirationIndex = updateFields.findIndex(field => field.includes('expiration_hours'));
-            if (expirationIndex === -1) {
-              // Add expirationHours = null if not already in updates
-              updateFields.push(`expiration_hours = $${paramCount + 1}`);
-              updateValues.push(null);
-              paramCount++;
-            }
-          }
-        }
         // Handle string fields
-        else if (typeof value === 'string') {
+        if (typeof value === 'string') {
           value = value.trim();
         }
         
