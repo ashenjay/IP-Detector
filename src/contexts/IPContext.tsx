@@ -132,6 +132,8 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
       if (response.ok) {
         await fetchIPEntries();
+        // Trigger a custom event to refresh categories
+        window.dispatchEvent(new CustomEvent('refreshCategories'));
         return true;
       }
     } catch (error) {

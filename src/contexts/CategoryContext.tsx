@@ -14,6 +14,17 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [user]);
 
+  // Listen for refresh events from IP operations
+  useEffect(() => {
+    const handleRefreshCategories = () => {
+      console.log('Refreshing categories due to IP operation');
+      fetchCategories();
+    };
+
+    window.addEventListener('refreshCategories', handleRefreshCategories);
+    return () => window.removeEventListener('refreshCategories', handleRefreshCategories);
+  }, []);
+
   const fetchCategories = async () => {
     try {
       const token = localStorage.getItem('auth_token');
