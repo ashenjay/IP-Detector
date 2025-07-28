@@ -59,7 +59,7 @@ const CategoryManagement: React.FC = () => {
     description: '',
     color: 'bg-blue-500',
     icon: 'Shield',
-    expirationHours: null as number | null,
+    expirationDays: null as number | null,
     autoCleanup: false
   });
 
@@ -70,7 +70,7 @@ const CategoryManagement: React.FC = () => {
       description: '',
       color: 'bg-blue-500',
       icon: 'Shield',
-      expirationHours: null,
+      expirationDays: null,
       autoCleanup: false
     });
     setError('');

@@ -22,7 +22,7 @@ export interface Category {
   createdBy: string;
   createdAt: Date;
   isActive: boolean;
-  expirationHours?: number | null; // Hours after which IP entries expire
+  expirationDays?: number | null; // Days after which IP entries expire (1-31)
   autoCleanup?: boolean; // Auto cleanup expired data
   ipCount?: number; // Number of IPs in category
 }
