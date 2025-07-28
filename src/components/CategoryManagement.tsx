@@ -103,7 +103,7 @@ const CategoryManagement: React.FC = () => {
         color: formData.color,
         icon: formData.icon,
         isActive: true,
-        expirationHours: totalSeconds > 0 ? totalSeconds : null, // Store as seconds
+        expirationHours: totalSeconds > 0 ? Math.round(totalSeconds / 3600 * 100) / 100 : null, // Convert to hours
         autoCleanup: formData.autoCleanup
       };
       
@@ -145,7 +145,7 @@ const CategoryManagement: React.FC = () => {
         description: formData.description,
         color: formData.color,
         icon: formData.icon,
-        expirationHours: totalSeconds > 0 ? totalSeconds : null, // Store as seconds
+        expirationHours: totalSeconds > 0 ? Math.round(totalSeconds / 3600 * 100) / 100 : null, // Convert to hours
         autoCleanup: formData.autoCleanup
       };
       
@@ -200,7 +200,7 @@ const CategoryManagement: React.FC = () => {
 
   const startEdit = (category: any) => {
     // Convert seconds back to hours, minutes, seconds for editing
-    const totalSeconds = category.expirationHours || 0;
+    const totalSeconds = (category.expirationHours || 0) * 3600; // Convert hours back to seconds
     console.log('Starting edit for category:', category.name, 'totalSeconds:', totalSeconds, 'autoCleanup:', category.autoCleanup);
     
     const hours = Math.floor(totalSeconds / 3600);
@@ -269,9 +269,12 @@ const CategoryManagement: React.FC = () => {
   const formatTime = (totalSeconds: number) => {
     if (!totalSeconds) return 'No expiration';
     
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
+    // If totalSeconds is actually in hours (from database), convert to seconds
+    const actualSeconds = totalSeconds < 100 ? totalSeconds * 3600 : totalSeconds;
+    
+    const hours = Math.floor(actualSeconds / 3600);
+    const minutes = Math.floor((actualSeconds % 3600) / 60);
+    const seconds = actualSeconds % 60;
     
     const parts = [];
     if (hours > 0) parts.push(`${hours}h`);
