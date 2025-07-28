@@ -41,6 +41,12 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [countdownTimers, setCountdownTimers] = useState<{[key: string]: string}>({});
 
+  const entries = isWhitelist ? whitelistEntries : ipEntries.filter(entry => 
+    !category || entry.category === category
+  );
+  
+  console.log('🔍 IPList: Filtered entries for category', category, ':', entries.length);
+
   // Auto-refresh every 5 minutes
   React.useEffect(() => {
     const interval = setInterval(async () => {
@@ -98,12 +104,6 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
 
     return () => clearInterval(interval);
   }, [entries, category, getCategoryById]);
-
-  const entries = isWhitelist ? whitelistEntries : ipEntries.filter(entry => 
-    !category || entry.category === category
-  );
-  
-  console.log('🔍 IPList: Filtered entries for category', category, ':', entries.length);
 
   const filteredEntries = entries.filter(entry =>
     entry.ip.toLowerCase().includes(searchTerm.toLowerCase()) ||
