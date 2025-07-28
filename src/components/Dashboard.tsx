@@ -366,7 +366,7 @@ const Dashboard: React.FC = () => {
                 </button>
                 
                 <button
-                  onClick={() => window.open(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/edl/${category.name}`, '_blank')}
+                  onClick={() => window.open(`https://threatresponse.ndbbank.com/api/edl/${category.name}`, '_blank')}
                   className="px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
                   title="Plain Text EDL"
                 >

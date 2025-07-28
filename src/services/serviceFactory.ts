@@ -26,7 +26,7 @@ class VirusTotalService {
     try {
       // Make API call to backend which will proxy to VirusTotal
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/ip-entries/check/${ip}`, {
+      const response = await fetch(`https://threatresponse.ndbbank.com/api/ip-entries/check/${ip}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

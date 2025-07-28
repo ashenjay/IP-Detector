@@ -6,7 +6,7 @@ export const CONFIG = {
   isDevelopment: false,
   
   // API endpoints - AWS EC2 server
-  apiEndpoint: 'http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api',
+  apiEndpoint: 'https://threatresponse.ndbbank.com/api',
     
   // Feature flags - real database only
   features: {
@@ -21,6 +21,6 @@ export const getEnvironmentMessage = () => {
   return {
     type: 'success',
     title: 'AWS EC2 Production Server',
-    message: 'Connected to AWS EC2 instance: ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com'
+    message: 'Connected to AWS EC2 instance: threatresponse.ndbbank.com'
   };
 };
