@@ -509,7 +509,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
     
-    const { name, label, description, color, icon } = req.body;
+    const { name, label, description, color, icon, expiresAt, autoCleanup } = req.body;
     
     if (!name || !label || !description) {
       return res.status(400).json({ error: 'Name, label, and description are required' });
@@ -518,7 +518,9 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
     console.log('Creating category with data:', { 
       name: name.trim(), 
       label: label.trim(), 
-      description: description.trim()
+      description: description.trim(),
+      expiresAt,
+      autoCleanup
     });
     
     // Check if name already exists (case-insensitive, trimmed)
@@ -532,9 +534,22 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Category name already exists' });
     }
     
-    // Categories automatically get 24h expiration via database trigger
+    // Parse expiration date if provided
+    let expirationDate = null;
+    if (expiresAt) {
+      try {
+        expirationDate = new Date(expiresAt);
+        if (isNaN(expirationDate.getTime())) {
+          expirationDate = null;
+        }
+      } catch (error) {
+        console.error('Error parsing expiration date:', error);
+        expirationDate = null;
+      }
+    }
+    
     const result = await pool.query(
-      'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by, expires_at, auto_cleanup) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
       [
         name.trim().toLowerCase(), 
         label.trim(), 
@@ -543,7 +558,9 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
         icon || 'Shield', 
         false, 
         true, 
-        req.user.username
+        req.user.username,
+        expirationDate,
+        autoCleanup || false
       ]
     );
     

@@ -351,13 +351,13 @@ const Dashboard: React.FC = () => {
               {category.expiresAt && (
                 <div className="mb-4 p-2 rounded-lg bg-gray-50 border">
                   <div className="text-xs text-gray-700 space-y-1">
-                    <div><strong>⏰ Expires:</strong> {new Date(category.expiresAt).toLocaleString()}</div>
+                    <div><strong>⏰ Expires:</strong> {new Date(category.expiresAt).toLocaleDateString()} at {new Date(category.expiresAt).toLocaleTimeString()}</div>
                     <div className={`font-medium ${
                       category.expirationStatus === 'Expired' ? 'text-red-600' :
                       category.expirationStatus === 'Active' ? 'text-orange-600' :
                       'text-gray-600'
                     }`}>
-                      {category.expirationStatus === 'Expired' ? '🔴 EXPIRED - IPs auto-removed' :
+                      {category.expirationStatus === 'Expired' ? '🔴 EXPIRED - IPs will be auto-removed' :
                        category.expirationStatus === 'Active' ? `🟡 ${Math.ceil(category.daysUntilExpiration || 0)} days remaining` :
                        '⚪ Never expires'}
                     </div>

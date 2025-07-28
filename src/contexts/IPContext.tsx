@@ -100,6 +100,10 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
       if (response.ok) {
         console.log('IP added successfully, refreshing data...');
         await fetchIPEntries();
+        // Also refresh categories to update IP counts
+        if (window.location.hash.includes('/categories')) {
+          window.location.reload();
+        }
         return true;
       } else {
         const errorData = await response.json();

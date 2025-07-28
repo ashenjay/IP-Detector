@@ -314,15 +314,6 @@ const CategoryManagement: React.FC = () => {
             
             <div className="flex items-center space-x-2">
               <button
-                onClick={handleManualCleanup}
-                disabled={loading}
-                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
-              >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                <span>{loading ? 'Cleaning...' : 'Cleanup Expired'}</span>
-              </button>
-              
-              <button
                 onClick={() => setShowCreateForm(true)}
                 className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
@@ -425,16 +416,36 @@ const CategoryManagement: React.FC = () => {
                 </div>
               </div>
               
-              {/* Auto-Expiration Info */}
+              {/* Expiration Settings */}
               <div className="border-t border-gray-200 pt-4">
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-blue-900 mb-2">⏰ Automatic Expiration</h4>
-                  <ul className="text-xs text-blue-700 space-y-1">
-                    <li>• Category expires 24 hours after creation</li>
-                    <li>• IP entries automatically removed when expired</li>
-                    <li>• Category structure remains intact</li>
-                    <li>• No manual intervention required</li>
-                  </ul>
+                <h4 className="text-sm font-medium text-gray-700 mb-3">⏰ Expiration Settings (Optional)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Expiration Date & Time
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={formData.expiresAt}
+                      onChange={(e) => setFormData(prev => ({ ...prev, expiresAt: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      min={new Date().toISOString().slice(0, 16)}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Leave empty for no expiration
+                    </p>
+                  </div>
+                  <div className="flex items-center">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.autoCleanup}
+                        onChange={(e) => setFormData(prev => ({ ...prev, autoCleanup: e.target.checked }))}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">Auto-remove expired IP entries</span>
+                    </label>
+                  </div>
                 </div>
               </div>
               
@@ -549,22 +560,48 @@ const CategoryManagement: React.FC = () => {
                 </div>
               </div>
               
-              {/* Current Expiration Info */}
+              {/* Expiration Settings */}
               <div className="border-t border-gray-200 pt-4">
-                <div className="bg-yellow-50 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-yellow-900 mb-2">📅 Current Expiration</h4>
-                  {editingCategory.expiresAt ? (
-                    <div className="text-xs text-yellow-700 space-y-1">
-                      <div>Expires: {new Date(editingCategory.expiresAt).toLocaleString()}</div>
-                      <div>Status: {editingCategory.expirationStatus}</div>
+                <h4 className="text-sm font-medium text-gray-700 mb-3">⏰ Expiration Settings</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Expiration Date & Time
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={formData.expiresAt}
+                      onChange={(e) => setFormData(prev => ({ ...prev, expiresAt: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      min={new Date().toISOString().slice(0, 16)}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Leave empty for no expiration
+                    </p>
+                  </div>
+                  <div className="flex items-center">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.autoCleanup}
+                        onChange={(e) => setFormData(prev => ({ ...prev, autoCleanup: e.target.checked }))}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">Auto-remove expired IP entries</span>
+                    </label>
+                  </div>
+                </div>
+                {editingCategory.expiresAt && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                    <div className="text-xs text-blue-700">
+                      <div><strong>Current:</strong> {new Date(editingCategory.expiresAt).toLocaleString()}</div>
+                      <div><strong>Status:</strong> {editingCategory.expirationStatus}</div>
                       {editingCategory.daysUntilExpiration && (
-                        <div>Time left: {Math.ceil(editingCategory.daysUntilExpiration)} days</div>
+                        <div><strong>Time left:</strong> {Math.ceil(editingCategory.daysUntilExpiration)} days</div>
                       )}
                     </div>
-                  ) : (
-                    <div className="text-xs text-yellow-700">No expiration set</div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
               
               <div className="flex space-x-3">
