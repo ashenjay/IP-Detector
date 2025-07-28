@@ -695,17 +695,11 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     console.error('Update category error:', error);
     console.error('Error stack:', error.stack);
     
-    // Send detailed error information to frontend
-    const errorDetails = {
-      message: error.message || 'Unknown error occurred',
-      code: error.code || null,
-      detail: error.detail || null,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    };
+    // Ensure we always return a specific error message
+    const specificError = error.message || error.code || error.detail || 'Database operation failed';
     
     res.status(500).json({ 
-      error: `Failed to update category: ${error.message || error.code || 'Unknown error'}`,
-      details: errorDetails
+      error: specificError
     });
   }
 });
