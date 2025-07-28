@@ -694,7 +694,7 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Update category error:', error);
     console.error('Error stack:', error.stack);
-    res.status(500).json({ error: `Failed to update category: ${error.message}` });
+    res.status(500).json({ error: `Failed to update category: ${error.message || String(error)}` });
   }
 });
 
