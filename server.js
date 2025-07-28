@@ -509,7 +509,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
     
-    const { name, label, description, color, icon, expiresAt, autoCleanup } = req.body;
+    const { name, label, description, color, icon } = req.body;
     
     if (!name || !label || !description) {
       return res.status(400).json({ error: 'Name, label, and description are required' });
@@ -518,9 +518,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
     console.log('Creating category with data:', { 
       name: name.trim(), 
       label: label.trim(), 
-      description: description.trim(),
-      expiresAt,
-      autoCleanup
+      description: description.trim()
     });
     
     // Check if name already exists (case-insensitive, trimmed)
@@ -534,23 +532,9 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Category name already exists' });
     }
     
-    // Parse expiration date properly
-    let expirationDate = null;
-    if (expiresAt) {
-      try {
-        expirationDate = new Date(expiresAt);
-        if (isNaN(expirationDate.getTime())) {
-          expirationDate = null;
-        }
-        console.log('Parsed expiration date:', expirationDate);
-      } catch (error) {
-        console.error('Error parsing expiration date:', error);
-        expirationDate = null;
-      }
-    }
-    
+    // Categories automatically get 24h expiration via database trigger
     const result = await pool.query(
-      'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by, expires_at, auto_cleanup) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+      'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
       [
         name.trim().toLowerCase(), 
         label.trim(), 
@@ -559,9 +543,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
         icon || 'Shield', 
         false, 
         true, 
-        req.user.username,
-        expirationDate,
-        autoCleanup || false
+        req.user.username
       ]
     );
     
@@ -942,7 +924,8 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
     console.log('🔍 Fetching IP entries for category:', category);
     
     let query = `
-      SELECT ie.*, c.name as category_name, c.label as category_label, c.id as category_id
+      SELECT ie.*, c.name as category_name, c.label as category_label, c.id as category_id,
+             ie.expires_at, ie.auto_remove
       FROM ip_entries ie 
       JOIN categories c ON ie.category_id = c.id
     `;
@@ -986,6 +969,8 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
         addedBy: addedBy,
         dateAdded: row.date_added ? new Date(row.date_added) : new Date(),
         lastModified: row.last_modified ? new Date(row.last_modified) : new Date(),
+        expiresAt: row.expires_at ? new Date(row.expires_at) : undefined,
+        autoRemove: row.auto_remove || false,
         source: row.source,
         sourceCategory: row.source_category,
         reputation: row.reputation,

@@ -442,6 +442,9 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Description
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Expiration
+                    </th>
                     {!isWhitelist && (
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Reputation
@@ -518,6 +521,29 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
                         <div className="text-sm text-gray-900">
                           {entry.description || <span className="text-gray-400 italic">No description</span>}
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {(entry as IPEntry).expiresAt ? (
+                          <div className="text-xs">
+                            <div className="text-gray-600">
+                              Expires: {new Date((entry as IPEntry).expiresAt!).toLocaleDateString()}
+                            </div>
+                            <div className="text-gray-500">
+                              {new Date((entry as IPEntry).expiresAt!).toLocaleTimeString()}
+                            </div>
+                            {new Date((entry as IPEntry).expiresAt!) > new Date() ? (
+                              <div className="text-orange-600 font-medium">
+                                ⏰ {Math.ceil((new Date((entry as IPEntry).expiresAt!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days left
+                              </div>
+                            ) : (
+                              <div className="text-red-600 font-medium">
+                                🔴 Expired - Will be auto-removed
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs italic">No expiration</span>
+                        )}
                       </td>
                       {!isWhitelist && (
                         <td className="px-6 py-4 whitespace-nowrap">

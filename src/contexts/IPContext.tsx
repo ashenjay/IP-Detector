@@ -33,6 +33,8 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
           ...entry,
           dateAdded: entry.dateAdded ? new Date(entry.dateAdded) : new Date(),
           lastModified: entry.lastModified ? new Date(entry.lastModified) : new Date(),
+          expiresAt: entry.expiresAt ? new Date(entry.expiresAt) : undefined,
+          autoRemove: entry.autoRemove || false,
           addedBy: entry.addedBy || 'Unknown', // Use the transformed field
           sourceCategory: entry.sourceCategory,
           vtReputation: entry.vtReputation
