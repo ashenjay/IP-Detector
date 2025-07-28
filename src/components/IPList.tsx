@@ -126,24 +126,24 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
 
     setLoading(true);
     try {
-      let success = false;
+      let result;
       if (isWhitelist) {
-        success = await addToWhitelist(newIP.trim(), newDescription.trim() || undefined);
+        result = await addToWhitelist(newIP.trim(), newDescription.trim() || undefined);
       } else {
-        success = await addIP(newIP.trim(), category!, newDescription.trim() || undefined);
-        if (success) {
+        result = await addIP(newIP.trim(), category!, newDescription.trim() || undefined);
+        if (result.success) {
           // Refresh categories to update IP count
           await refreshCategories();
         }
       }
 
-      if (success) {
+      if (result.success) {
         setNewIP('');
         setNewDescription('');
         setShowAddForm(false);
       } else {
         setErrorTitle('Cannot Add IP Address');
-        setErrorMessage('This IP address is already whitelisted or exists in the system. Whitelisted IPs are protected and cannot be added to threat categories.');
+        setErrorMessage(result.message || 'Failed to add IP address');
         setShowErrorModal(true);
       }
     } catch (error) {

@@ -100,9 +100,9 @@ export interface CategoryContextType {
 export interface IPContextType {
   ipEntries: IPEntry[];
   whitelistEntries: WhitelistEntry[];
-  addIP: (ip: string, category: string, description?: string) => Promise<boolean>;
+  addIP: (ip: string, category: string, description?: string) => Promise<{ success: boolean; message?: string }>;
   deleteIP: (id: string) => Promise<boolean>;
-  addToWhitelist: (ip: string, description?: string) => Promise<boolean>;
+  addToWhitelist: (ip: string, description?: string) => Promise<{ success: boolean; message?: string }>;
   removeFromWhitelist: (id: string) => Promise<boolean>;
   getEDLList: (category: string) => Promise<string[]>;
   refreshData: () => Promise<void>;

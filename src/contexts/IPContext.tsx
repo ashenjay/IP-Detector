@@ -71,11 +71,11 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     }
   };
 
-  const addIP = async (ip: string, category: string, description?: string): Promise<boolean> => {
-    if (!user) return false;
+  const addIP = async (ip: string, category: string, description?: string): Promise<{ success: boolean; message?: string }> => {
+    if (!user) return { success: false, message: 'User not authenticated' };
     
     if (user.role === 'soc_admin' && (!user.assignedCategories?.includes(category) || !user.isActive)) {
-      return false;
+      return { success: false, message: 'Insufficient permissions for this category' };
     }
     
     console.log('Adding IP to category:', { ip, category, description });
@@ -104,16 +104,18 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         if (window.location.hash.includes('/categories')) {
           window.location.reload();
         }
-        return true;
+        return { success: true };
       } else {
         const errorData = await response.json();
         console.error('Failed to add IP:', errorData);
+        return { success: false, message: errorData.error || 'Failed to add IP' };
       }
     } catch (error) {
       console.error('Add IP error:', error);
+      return { success: false, message: 'Network error occurred while adding IP' };
     }
 
-    return false;
+    return { success: false, message: 'Unknown error occurred' };
   };
 
   const deleteIP = async (id: string): Promise<boolean> => {
@@ -140,8 +142,10 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     return false;
   };
 
-  const addToWhitelist = async (ip: string, description?: string): Promise<boolean> => {
-    if (!user || user.role !== 'superadmin' || !user.isActive) return false;
+  const addToWhitelist = async (ip: string, description?: string): Promise<{ success: boolean; message?: string }> => {
+    if (!user || user.role !== 'superadmin' || !user.isActive) {
+      return { success: false, message: 'Only active superadmins can add to whitelist' };
+    }
     
     try {
       const token = localStorage.getItem('auth_token');
@@ -159,13 +163,17 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
       if (response.ok) {
         await fetchWhitelistEntries();
-        return true;
+        return { success: true };
+      } else {
+        const errorData = await response.json();
+        return { success: false, message: errorData.error || 'Failed to add to whitelist' };
       }
     } catch (error) {
       console.error('Add to whitelist error:', error);
+      return { success: false, message: 'Network error occurred while adding to whitelist' };
     }
 
-    return false;
+    return { success: false, message: 'Unknown error occurred' };
   };
 
   const removeFromWhitelist = async (id: string): Promise<boolean> => {
