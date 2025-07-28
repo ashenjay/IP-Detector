@@ -618,38 +618,65 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     const updateValues = [];
     let paramCount = 1;
     
-    // Process all fields with proper mapping
+    // Explicitly process each field with proper type handling
     Object.keys(updates).forEach(key => {
       if (key !== 'id') {
-        const dbKey = key === 'isActive' ? 'is_active' : 
-                     key === 'isDefault' ? 'is_default' : 
-                     key === 'createdBy' ? 'created_by' :
-                     key === 'autoCleanup' ? 'auto_cleanup' :
-                     key === 'expirationHours' ? 'expiration_hours' :
-                     key;
+        let dbKey, processedValue;
         
-        updateFields.push(`${dbKey} = $${paramCount}`);
-        
-        let value = updates[key];
-        
-        // Handle specific field types
-        if (key === 'autoCleanup') {
-          value = Boolean(value);
-        } else if (key === 'expirationHours') {
-          // Handle expiration hours: null or positive integer
-          if (value === null || value === undefined || value === '') {
-            value = null;
-          } else {
-            value = parseInt(value);
-            if (isNaN(value)) {
-              value = null;
+        // Map frontend keys to database columns and process values
+        switch (key) {
+          case 'name':
+            dbKey = 'name';
+            processedValue = typeof updates[key] === 'string' ? updates[key].trim() : updates[key];
+            break;
+          case 'label':
+            dbKey = 'label';
+            processedValue = typeof updates[key] === 'string' ? updates[key].trim() : updates[key];
+            break;
+          case 'description':
+            dbKey = 'description';
+            processedValue = typeof updates[key] === 'string' ? updates[key].trim() : updates[key];
+            break;
+          case 'color':
+            dbKey = 'color';
+            processedValue = typeof updates[key] === 'string' ? updates[key].trim() : updates[key];
+            break;
+          case 'icon':
+            dbKey = 'icon';
+            processedValue = typeof updates[key] === 'string' ? updates[key].trim() : updates[key];
+            break;
+          case 'isActive':
+            dbKey = 'is_active';
+            processedValue = Boolean(updates[key]);
+            break;
+          case 'isDefault':
+            dbKey = 'is_default';
+            processedValue = Boolean(updates[key]);
+            break;
+          case 'autoCleanup':
+            dbKey = 'auto_cleanup';
+            processedValue = Boolean(updates[key]);
+            break;
+          case 'expirationHours':
+            dbKey = 'expiration_hours';
+            if (updates[key] === null || updates[key] === undefined || updates[key] === '') {
+              processedValue = null;
+            } else {
+              const parsed = parseInt(updates[key]);
+              processedValue = isNaN(parsed) ? null : parsed;
             }
-          }
-        } else if (typeof value === 'string') {
-          value = value.trim();
+            break;
+          case 'createdBy':
+            dbKey = 'created_by';
+            processedValue = typeof updates[key] === 'string' ? updates[key].trim() : updates[key];
+            break;
+          default:
+            dbKey = key;
+            processedValue = typeof updates[key] === 'string' ? updates[key].trim() : updates[key];
         }
         
-        updateValues.push(value);
+        updateFields.push(`${dbKey} = $${paramCount}`);
+        updateValues.push(processedValue);
         paramCount++;
       }
     });
