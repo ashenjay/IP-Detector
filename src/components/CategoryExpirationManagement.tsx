@@ -33,6 +33,7 @@ const CategoryExpirationManagement: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [fixingSchema, setFixingSchema] = useState(false);
   const [expirationSettings, setExpirationSettings] = useState<{[key: string]: {
     expirationDays: number | null;
     autoCleanup: boolean;
@@ -60,6 +61,37 @@ const CategoryExpirationManagement: React.FC = () => {
     });
     setExpirationSettings(settings);
   }, [categories]);
+
+  const handleFixSchema = async () => {
+    setFixingSchema(true);
+    setError('');
+    setSuccess('');
+    
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('https://threatresponse.ndbbank.com/api/test/create-columns', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        setSuccess('Database schema updated successfully! You can now configure expiration settings.');
+        console.log('Schema fix result:', result);
+      } else {
+        setError('Failed to update database schema: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Schema fix error:', err);
+      setError('Error updating database schema: ' + err.message);
+    } finally {
+      setFixingSchema(false);
+    }
+  };
 
   const getIconComponent = (iconName: string) => {
     const iconMap: { [key: string]: React.ComponentType<any> } = {
@@ -231,6 +263,26 @@ const CategoryExpirationManagement: React.FC = () => {
             <span>{success}</span>
           </div>
         )}
+
+        {/* Temporary Schema Fix Button */}
+        <div className="bg-yellow-50 rounded-xl border border-yellow-200 p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-yellow-900 mb-2">Database Schema Fix</h3>
+              <p className="text-sm text-yellow-700">
+                If expiration settings are not working, click this button to update the database schema.
+              </p>
+            </div>
+            <button
+              onClick={handleFixSchema}
+              disabled={fixingSchema}
+              className="flex items-center space-x-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 transition-colors"
+            >
+              <Settings className="h-4 w-4" />
+              <span>{fixingSchema ? 'Fixing Schema...' : 'Fix Database Schema'}</span>
+            </button>
+          </div>
+        </div>
 
         {/* Info Card */}
         <div className="bg-blue-50 rounded-xl border border-blue-200 p-6 mb-6">
