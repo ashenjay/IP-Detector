@@ -581,8 +581,8 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
         const dbKey = key === 'isActive' ? 'is_active' : 
                      key === 'isDefault' ? 'is_default' : 
                      key === 'createdBy' ? 'created_by' : 
-                     key === 'expirationDays' ? 'expiration_days' :
-                     key === 'autoCleanup' ? 'auto_cleanup' : key;
+                     key === 'expiration_days' ? 'expiration_days' :
+                     key === 'auto_cleanup' ? 'auto_cleanup' : key;
         updateFields.push(`${dbKey} = $${paramCount}`);
         let value = updates[key];
         if (typeof value === 'string') {
