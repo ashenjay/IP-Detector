@@ -46,13 +46,12 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           createdBy: c.created_by || 'Unknown',
           expirationDays: c.expiration_days || null,
           autoCleanup: Boolean(c.auto_cleanup),
+          color: c.color || 'bg-blue-500',
+          icon: c.icon || 'Shield',
           icon: c.icon,
           isDefault: c.is_default,
           isActive: c.is_active,
           createdAt: new Date(c.created_at),
-          createdBy: c.created_by || 'Unknown',
-          expirationHours: c.expiration_hours || null,
-          autoCleanup: Boolean(c.auto_cleanup),
           ipCount: parseInt(c.ip_count) || 0
         }));
         
