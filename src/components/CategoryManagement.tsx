@@ -178,7 +178,7 @@ const CategoryManagement: React.FC = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/categories/${categoryId}/extend-expiration`, {
+      const response = await fetch(`https://threatresponse.ndbbank.com/api/categories/${categoryId}/extend-expiration`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -368,6 +368,47 @@ const CategoryManagement: React.FC = () => {
                 </div>
               </div>
               
+              {/* Expiration Settings */}
+              <div className="border-t border-gray-200 pt-4">
+                <h4 className="text-sm font-medium text-gray-900 mb-3">Expiration Settings (Optional)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Expiration Date & Time
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={formData.expiresAt}
+                      onChange={(e) => setFormData(prev => ({ ...prev, expiresAt: e.target.value }))}
+                      min={new Date().toISOString().slice(0, 16)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      When this category's data should expire
+                    </p>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="flex items-center h-5">
+                      <input
+                        id="autoCleanup"
+                        type="checkbox"
+                        checked={formData.autoCleanup}
+                        onChange={(e) => setFormData(prev => ({ ...prev, autoCleanup: e.target.checked }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                    </div>
+                    <div className="ml-3 text-sm">
+                      <label htmlFor="autoCleanup" className="font-medium text-gray-700">
+                        Auto-cleanup expired data
+                      </label>
+                      <p className="text-gray-500">
+                        Automatically remove IP entries when expired
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
               <div className="flex space-x-3">
                 <button
                   type="submit"
@@ -476,6 +517,47 @@ const CategoryManagement: React.FC = () => {
                       <option key={icon} value={icon}>{icon}</option>
                     ))}
                   </select>
+                </div>
+              </div>
+              
+              {/* Expiration Settings */}
+              <div className="border-t border-gray-200 pt-4">
+                <h4 className="text-sm font-medium text-gray-900 mb-3">Expiration Settings (Optional)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Expiration Date & Time
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={formData.expiresAt}
+                      onChange={(e) => setFormData(prev => ({ ...prev, expiresAt: e.target.value }))}
+                      min={new Date().toISOString().slice(0, 16)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      When this category's data should expire
+                    </p>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="flex items-center h-5">
+                      <input
+                        id="editAutoCleanup"
+                        type="checkbox"
+                        checked={formData.autoCleanup}
+                        onChange={(e) => setFormData(prev => ({ ...prev, autoCleanup: e.target.checked }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                    </div>
+                    <div className="ml-3 text-sm">
+                      <label htmlFor="editAutoCleanup" className="font-medium text-gray-700">
+                        Auto-cleanup expired data
+                      </label>
+                      <p className="text-gray-500">
+                        Automatically remove IP entries when expired
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
               
@@ -589,6 +671,16 @@ const CategoryManagement: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end space-x-2">
+                        {category.expirationStatus === 'Expired' && category.autoCleanup && (
+                          <button
+                            onClick={() => handleExtendExpiration(category.id, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString())}
+                            disabled={loading}
+                            className="flex items-center justify-center w-8 h-8 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-50"
+                            title="Extend expiration by 30 days"
+                          >
+                            <Calendar className="h-4 w-4" />
+                          </button>
+                        )}
                         {!category.isDefault && (
                           <>
                             <button
