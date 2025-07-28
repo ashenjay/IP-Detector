@@ -650,21 +650,25 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     console.log('Executing query:', query);
     console.log('With values:', updateValues);
     
-    const result = await pool.query(query, updateValues);
-    
-    console.log('Update result rows affected:', result.rowCount);
-    
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Category not found' });
-    }
-    
-    // If we updated expiration settings, also update existing IP entries
-    if (updates.expirationDays !== undefined || updates.autoCleanup !== undefined) {
-      try {
+    // Use a transaction to ensure data consistency
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      const result = await client.query(query, updateValues);
+      console.log('Update result rows affected:', result.rowCount);
+      
+      if (result.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Category not found' });
+      }
+      
+      // If we updated expiration settings, also update existing IP entries
+      if (updates.expirationDays !== undefined || updates.autoCleanup !== undefined) {
         console.log('Updating IP entries expiration for category:', id);
         
         // Get the updated category settings
-        const categoryResult = await pool.query(
+        const categoryResult = await client.query(
           'SELECT expiration_hours, auto_cleanup FROM categories WHERE id = $1',
           [id]
         );
@@ -675,32 +679,37 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
           
           if (category.auto_cleanup && category.expiration_hours && category.expiration_hours > 0) {
             // Set expiration for all IP entries in this category
-            await pool.query(`
+            const ipUpdateResult = await client.query(`
               UPDATE ip_entries 
               SET expires_at = date_added + ($1 || ' hours')::INTERVAL,
                   auto_remove = true
               WHERE category_id = $2
             `, [category.expiration_hours, id]);
-            console.log('Set expiration for IP entries in category:', id);
+            console.log('Set expiration for', ipUpdateResult.rowCount, 'IP entries in category:', id);
           } else {
             // Remove expiration for all IP entries in this category
-            await pool.query(`
+            const ipUpdateResult = await client.query(`
               UPDATE ip_entries 
               SET expires_at = NULL,
                   auto_remove = false
               WHERE category_id = $1
             `, [id]);
-            console.log('Removed expiration for IP entries in category:', id);
+            console.log('Removed expiration for', ipUpdateResult.rowCount, 'IP entries in category:', id);
           }
         }
-      } catch (ipUpdateError) {
-        console.error('Error updating IP entries expiration:', ipUpdateError);
-        // Don't fail the whole request if IP update fails
       }
+      
+      await client.query('COMMIT');
+      console.log('Category updated successfully');
+      res.json({ message: 'Category updated successfully' });
+      
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
     
-    console.log('Category updated successfully');
-    res.json({ message: 'Category updated successfully' });
   } catch (error) {
     console.error('Update category error:', error);
     console.error('Error stack:', error.stack);
