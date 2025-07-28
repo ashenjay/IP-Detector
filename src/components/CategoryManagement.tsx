@@ -515,6 +515,29 @@ const CategoryManagement: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-600">{category.description}</div>
+                      {category.expiresAt && (
+                        <div className="mt-1">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            category.expirationStatus === 'Expired' ? 'bg-red-100 text-red-800' :
+                            category.expirationStatus === 'Active' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {category.expirationStatus === 'Expired' ? '⚠️ Expired' :
+                             category.expirationStatus === 'Active' ? `⏰ ${Math.ceil(category.daysUntilExpiration || 0)} days left` :
+                             'Never expires'}
+                          </span>
+                          {category.autoCleanup && (
+                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              🔄 Auto-cleanup
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {category.ipCount !== undefined && (
+                        <div className="mt-1 text-xs text-gray-500">
+                          {category.ipCount} IP entries
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-2">

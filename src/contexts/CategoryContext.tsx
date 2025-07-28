@@ -95,7 +95,9 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           description: categoryData.description,
           color: categoryData.color,
           icon: categoryData.icon,
-          isActive: categoryData.isActive
+          isActive: categoryData.isActive,
+          expiresAt: categoryData.expiresAt?.toISOString(),
+          autoCleanup: categoryData.autoCleanup
         })
       });
 
