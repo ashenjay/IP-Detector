@@ -141,9 +141,13 @@ const CategoryManagement: React.FC = () => {
         (parseInt(formData.expirationSeconds) || 0);
       
       const updateData = {
-        ...formData,
+        name: formData.name,
+        label: formData.label,
+        description: formData.description,
+        color: formData.color,
+        icon: formData.icon,
         expirationHours: totalSeconds > 0 ? totalSeconds : null,
-        autoCleanup: formData.autoCleanup || false
+        autoCleanup: formData.autoCleanup
       };
       
       console.log('Sending update data:', updateData);
