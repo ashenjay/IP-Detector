@@ -559,8 +559,8 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
         false, 
         true, 
         req.user.username,
-        expirationHours || null,
-        autoCleanup || false
+        req.body.expirationHours ? parseInt(req.body.expirationHours) : null,
+        req.body.autoCleanup || false
       ]
     );
     
@@ -610,7 +610,7 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
         let value = updates[key];
         if (typeof value === 'string') {
           value = value.trim();
-        } else if (key === 'expirationHours' && value) {
+        } else if (key === 'expirationHours' && value !== null && value !== undefined) {
           value = parseInt(value) || null;
         }
         updateValues.push(value);

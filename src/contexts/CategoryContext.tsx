@@ -64,8 +64,8 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           description: categoryData.description,
           color: categoryData.color,
           icon: categoryData.icon,
-          expiresAt: categoryData.expiresAt ? new Date(categoryData.expiresAt).toISOString() : null,
-          autoCleanup: categoryData.autoCleanup
+          expirationHours: categoryData.expirationHours ? parseInt(categoryData.expirationHours.toString()) : null,
+          autoCleanup: categoryData.autoCleanup || false
         })
       });
 
@@ -98,8 +98,8 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           color: categoryData.color,
           icon: categoryData.icon,
           isActive: categoryData.isActive,
-          expiresAt: categoryData.expiresAt ? new Date(categoryData.expiresAt).toISOString() : null,
-          autoCleanup: categoryData.autoCleanup
+          expirationHours: categoryData.expirationHours ? parseInt(categoryData.expirationHours.toString()) : null,
+          autoCleanup: categoryData.autoCleanup || false
         })
       });
 

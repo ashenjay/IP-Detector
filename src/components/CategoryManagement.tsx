@@ -60,7 +60,7 @@ const CategoryManagement: React.FC = () => {
     description: '',
     color: 'bg-blue-500',
     icon: 'Shield',
-    expiresAt: '',
+    expirationHours: '',
     autoCleanup: false
   });
 
@@ -71,7 +71,7 @@ const CategoryManagement: React.FC = () => {
       description: '',
       color: 'bg-blue-500',
       icon: 'Shield',
-      expiresAt: '',
+      expirationHours: '',
       autoCleanup: false
     });
     setError('');
@@ -235,7 +235,7 @@ const CategoryManagement: React.FC = () => {
       description: category.description,
       color: category.color,
       icon: category.icon,
-      expiresAt: category.expiresAt ? new Date(category.expiresAt).toISOString().slice(0, 16) : '',
+      expirationHours: category.expirationHours ? category.expirationHours.toString() : '',
       autoCleanup: category.autoCleanup || false
     });
     setEditingCategory(category);
@@ -422,17 +422,19 @@ const CategoryManagement: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Expiration Date & Time
+                      Expiration Hours
                     </label>
                     <input
-                      type="datetime-local"
-                      value={formData.expiresAt}
-                      onChange={(e) => setFormData(prev => ({ ...prev, expiresAt: e.target.value }))}
+                      type="number"
+                      min="1"
+                      max="8760"
+                      value={formData.expirationHours}
+                      onChange={(e) => setFormData(prev => ({ ...prev, expirationHours: e.target.value }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      min={new Date().toISOString().slice(0, 16)}
+                      placeholder="e.g., 24"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Leave empty for no expiration
+                      Hours after which IP entries expire (1-8760 hours)
                     </p>
                   </div>
                   <div className="flex items-center">
@@ -566,17 +568,19 @@ const CategoryManagement: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Expiration Date & Time
+                      Expiration Hours
                     </label>
                     <input
-                      type="datetime-local"
-                      value={formData.expiresAt}
-                      onChange={(e) => setFormData(prev => ({ ...prev, expiresAt: e.target.value }))}
+                      type="number"
+                      min="1"
+                      max="8760"
+                      value={formData.expirationHours}
+                      onChange={(e) => setFormData(prev => ({ ...prev, expirationHours: e.target.value }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      min={new Date().toISOString().slice(0, 16)}
+                      placeholder="e.g., 24"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Leave empty for no expiration
+                      Hours after which IP entries expire (1-8760 hours)
                     </p>
                   </div>
                   <div className="flex items-center">
@@ -594,15 +598,11 @@ const CategoryManagement: React.FC = () => {
                 {editingCategory.expiresAt && (
                   <div className="mt-3 p-3 bg-blue-50 rounded-lg">
                     <div className="text-xs text-blue-700">
-                      <div><strong>Current:</strong> {new Date(editingCategory.expiresAt).toLocaleString()}</div>
-                      <div><strong>Status:</strong> {editingCategory.expirationStatus}</div>
-                      {editingCategory.daysUntilExpiration && (
-                        <div><strong>Time left:</strong> {Math.ceil(editingCategory.daysUntilExpiration)} days</div>
-                        {category.autoCleanup && category.expirationHours && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 mt-1">
-                            ⏰ Auto-remove: {category.expirationHours}h
-                          </span>
-                        )}
+                      {editingCategory.expirationHours && (
+                        <div><strong>Current:</strong> {editingCategory.expirationHours} hours</div>
+                      )}
+                      {editingCategory.autoCleanup && (
+                        <div><strong>Auto-cleanup:</strong> Enabled</div>
                       )}
                     </div>
                   </div>
@@ -687,19 +687,27 @@ const CategoryManagement: React.FC = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        {category.isActive ? (
+                          <Eye className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <EyeOff className="h-4 w-4 text-red-500" />
+                        )}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          category.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {category.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        <User className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm text-gray-600">{category.createdBy || 'System'}</span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end space-x-2">
-                        {category.expirationStatus === 'Expired' && category.autoCleanup && (
-                          <button
-                            onClick={() => handleExtendExpiration(category.id, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString())}
-                            disabled={loading}
-                            className="text-orange-600 hover:text-orange-700 disabled:opacity-50 transition-colors"
-                            title="Extend expiration by 30 days"
-                          >
-                            <Calendar className="h-4 w-4" />
-                          </button>
-                        )}
                         {!category.isDefault && (
                           <>
                             <button
