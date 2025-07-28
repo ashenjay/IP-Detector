@@ -51,8 +51,14 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           createdBy: c.created_by || 'Unknown',
           expirationHours: c.expiration_hours || null,
           autoCleanup: Boolean(c.auto_cleanup),
-          ipCount: parseInt(c.ip_count || '0') || 0
+          ipCount: parseInt(c.ip_count) || 0
         }));
+        
+        console.log('Formatted categories with IP counts:', formattedCategories.map(c => ({ 
+          name: c.name, 
+          label: c.label, 
+          ipCount: c.ipCount 
+        })));
         
         setCategories(formattedCategories);
       }

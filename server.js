@@ -482,20 +482,17 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
     const result = await pool.query(`
       SELECT 
         c.*,
-        CASE 
-          WHEN c.expires_at IS NULL THEN 'Never'
-          WHEN c.expires_at > CURRENT_TIMESTAMP THEN 'Active'
-          ELSE 'Expired'
-        END as expiration_status,
-        CASE 
-          WHEN c.expires_at IS NOT NULL AND c.expires_at > CURRENT_TIMESTAMP THEN
-            EXTRACT(EPOCH FROM (c.expires_at - CURRENT_TIMESTAMP)) / 86400
-          ELSE NULL
-        END as days_until_expiration,
-        (SELECT COUNT(*) FROM ip_entries WHERE category_id = c.id) as ip_count
+        COALESCE((SELECT COUNT(*) FROM ip_entries WHERE category_id = c.id), 0) as ip_count
       FROM categories c
       ORDER BY c.created_at
     `);
+    
+    console.log('Categories with IP counts:', result.rows.map(r => ({ 
+      name: r.name, 
+      label: r.label, 
+      ip_count: r.ip_count 
+    })));
+    
     res.json(result.rows);
   } catch (error) {
     console.error('Get categories error:', error);

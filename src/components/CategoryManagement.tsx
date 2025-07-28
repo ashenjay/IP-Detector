@@ -563,7 +563,7 @@ const CategoryManagement: React.FC = () => {
                       )}
                       {category.ipCount !== undefined && (
                         <div className="mt-1 text-xs text-gray-500">
-                          {category.ipCount || 0} IP entries
+                          {category.ipCount} IP entries
                         </div>
                       )}
                     </td>
