@@ -59,7 +59,7 @@ const CategoryManagement: React.FC = () => {
     description: '',
     color: 'bg-blue-500',
     icon: 'Shield',
-    expiresAt: '',
+    expirationHours: null as number | null,
     autoCleanup: false
   });
 
@@ -70,7 +70,7 @@ const CategoryManagement: React.FC = () => {
       description: '',
       color: 'bg-blue-500',
       icon: 'Shield',
-      expiresAt: '',
+      expirationHours: null,
       autoCleanup: false
     });
     setError('');
@@ -85,7 +85,7 @@ const CategoryManagement: React.FC = () => {
       const success = await createCategory({
         ...formData,
         isActive: true,
-        expiresAt: formData.expiresAt ? new Date(formData.expiresAt) : undefined,
+        expirationHours: formData.expirationHours,
         autoCleanup: formData.autoCleanup
       });
       
@@ -160,7 +160,7 @@ const CategoryManagement: React.FC = () => {
       description: category.description,
       color: category.color,
       icon: category.icon,
-      expiresAt: category.expiresAt ? category.expiresAt.toISOString().slice(0, 16) : '',
+      expirationHours: category.expirationHours || null,
       autoCleanup: category.autoCleanup || false
     });
     setEditingCategory(category);
