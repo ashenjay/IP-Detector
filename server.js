@@ -119,6 +119,14 @@ app.get('/api/debug', async (req, res) => {
     // Check categories
     const categoriesResult = await pool.query('SELECT id, name, label FROM categories ORDER BY name');
     
+    // Check categories table schema
+    const schemaResult = await pool.query(`
+      SELECT column_name, data_type, is_nullable, column_default
+      FROM information_schema.columns 
+      WHERE table_name = 'categories' 
+      ORDER BY ordinal_position
+    `);
+    
     // Check IP entries with category info and added_by field
     const ipEntriesResult = await pool.query(`
       SELECT ie.id, ie.ip, ie.category_id, ie.added_by, ie.date_added,
@@ -153,6 +161,7 @@ app.get('/api/debug', async (req, res) => {
     res.json({
       database: 'connected',
       categories: categoriesResult.rows,
+      categoriesSchema: schemaResult.rows,
       sampleIpEntries: ipEntriesResult.rows,
       countByCategory: countByCategory.rows,
       totalIPs: parseInt(totalIpCount.rows[0].count),
@@ -572,22 +581,27 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
       }
     }
     
-    // First, ensure the expiration columns exist
+    // First, ensure the expiration columns exist with better error handling
     try {
+      console.log('Checking/creating expiration columns...');
       await pool.query(`
         DO $$ 
         BEGIN
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'expiration_hours') THEN
             ALTER TABLE categories ADD COLUMN expiration_hours INTEGER NULL;
+            RAISE NOTICE 'Added expiration_hours column';
           END IF;
           
           IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'categories' AND column_name = 'auto_cleanup') THEN
             ALTER TABLE categories ADD COLUMN auto_cleanup BOOLEAN DEFAULT false;
+            RAISE NOTICE 'Added auto_cleanup column';
           END IF;
         END $$;
       `);
+      console.log('Schema check completed successfully');
     } catch (schemaError) {
       console.error('Schema update error:', schemaError);
+      return res.status(500).json({ error: 'Failed to update database schema: ' + schemaError.message });
     }
     
     const updateFields = [];
@@ -613,6 +627,7 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
             dbKey = 'expiration_hours';
             // Convert days to hours, handle null
             value = value !== null && value !== undefined ? value * 24 : null;
+            console.log('Converting expirationDays:', updates[key], 'to hours:', value);
             break;
           case 'autoCleanup':
             dbKey = 'auto_cleanup';
@@ -621,7 +636,7 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
         }
         
         updateFields.push(`${dbKey} = $${paramCount}`);
-        updateValues.push(value);
+        updateValues.push(typeof value === 'string' ? value.trim() : value);
         paramCount++;
       }
     });
@@ -636,10 +651,7 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     console.log('Executing query:', query);
     console.log('With values:', updateValues);
     
-    const result = await pool.query(
-      query,
-      updateValues
-    );
+    const result = await pool.query(query, updateValues);
     
     console.log('Update result rows affected:', result.rowCount);
     
@@ -650,6 +662,7 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     // If we updated expiration settings, also update existing IP entries
     if (updates.expirationDays !== undefined || updates.autoCleanup !== undefined) {
       try {
+        console.log('Updating IP entries expiration for category:', id);
         await pool.query(`
           UPDATE ip_entries 
           SET expires_at = CASE 
@@ -668,6 +681,7 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
         console.log('Updated IP entries expiration for category:', id);
       } catch (ipUpdateError) {
         console.error('Error updating IP entries expiration:', ipUpdateError);
+        // Don't fail the whole request if IP update fails
       }
     }
     
@@ -675,6 +689,7 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'Category updated successfully' });
   } catch (error) {
     console.error('Update category error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ error: 'Failed to update category: ' + error.message });
   }
 });
