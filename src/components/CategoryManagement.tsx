@@ -598,6 +598,11 @@ const CategoryManagement: React.FC = () => {
                       <div><strong>Status:</strong> {editingCategory.expirationStatus}</div>
                       {editingCategory.daysUntilExpiration && (
                         <div><strong>Time left:</strong> {Math.ceil(editingCategory.daysUntilExpiration)} days</div>
+                        {category.autoCleanup && category.expirationHours && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 mt-1">
+                            ⏰ Auto-remove: {category.expirationHours}h
+                          </span>
+                        )}
                       )}
                     </div>
                   </div>
@@ -693,24 +698,6 @@ const CategoryManagement: React.FC = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-2">
-                        {category.isActive ? (
-                          <Eye className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <EyeOff className="h-4 w-4 text-red-500" />
-                        )}
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          category.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {category.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-2">
-                        <User className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-600">{category.createdBy}</span>
-                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end space-x-2">

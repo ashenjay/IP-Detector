@@ -523,8 +523,39 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {(entry as IPEntry).expiresAt ? (
+                        {categoryObj?.autoCleanup && categoryObj?.expirationHours ? (
                           <div className="text-xs">
+                            {(() => {
+                              const addedTime = new Date(entry.dateAdded).getTime();
+                              const expirationTime = addedTime + (categoryObj.expirationHours * 60 * 60 * 1000);
+                              const now = new Date().getTime();
+                              const timeLeft = expirationTime - now;
+                              const hoursLeft = Math.ceil(timeLeft / (1000 * 60 * 60));
+                              
+                              if (timeLeft <= 0) {
+                                return (
+                                  <div className="text-red-600 font-medium">
+                                    🔴 EXPIRED - Will be auto-removed
+                                  </div>
+                                );
+                              } else {
+                                return (
+                                  <div>
+                                    <div className="text-gray-600">
+                                      Expires in: {hoursLeft} hours
+                                    </div>
+                                    <div className="text-orange-600 font-medium">
+                                      ⏰ {Math.floor(timeLeft / (1000 * 60))} minutes left
+                                    </div>
+                                  </div>
+                                );
+                              }
+                            })()}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs italic">No auto-removal</span>
+                        )}
+                      </td>
                             <div className="text-gray-600">
                               Expires: {new Date((entry as IPEntry).expiresAt!).toLocaleDateString()}
                             </div>

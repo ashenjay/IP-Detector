@@ -604,22 +604,14 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
         const dbKey = key === 'isActive' ? 'is_active' : 
                      key === 'isDefault' ? 'is_default' : 
                      key === 'createdBy' ? 'created_by' : 
-                     key === 'expiresAt' ? 'expires_at' :
+                     key === 'expirationHours' ? 'expiration_hours' :
                      key === 'autoCleanup' ? 'auto_cleanup' : key;
         updateFields.push(`${dbKey} = $${paramCount}`);
         let value = updates[key];
         if (typeof value === 'string') {
           value = value.trim();
-        } else if (key === 'expiresAt' && value) {
-          try {
-            value = new Date(value);
-            if (isNaN(value.getTime())) {
-              value = null;
-            }
-          } catch (error) {
-            console.error('Error parsing expiration date:', error);
-            value = null;
-          }
+        } else if (key === 'expirationHours' && value) {
+          value = parseInt(value) || null;
         }
         updateValues.push(value);
         paramCount++;
