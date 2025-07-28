@@ -630,6 +630,11 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
       }
     }
     
+    // Ensure auto-cleanup has valid expiration hours
+    if (updates.autoCleanup && (updates.expirationHours === null || updates.expirationHours === 0)) {
+      updates.expirationHours = 1; // Default to 1 hour if auto-cleanup is enabled but no valid time is set
+    }
+    
     // Build the update query using a simpler approach
     const updateFields = [];
     const updateValues = [];

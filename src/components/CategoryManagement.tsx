@@ -145,6 +145,12 @@ const CategoryManagement: React.FC = () => {
       let totalHours = null;
       if (formData.autoCleanup && totalSeconds > 0) {
         totalHours = Math.max(1, Math.ceil(totalSeconds / 3600));
+      } else if (formData.autoCleanup && totalSeconds === 0) {
+        // If auto-cleanup is enabled but no time is set, default to 1 hour
+        totalHours = 1;
+      } else if (formData.autoCleanup && totalSeconds === 0) {
+        // If auto-cleanup is enabled but no time is set, default to 1 hour
+        totalHours = 1;
       }
       
       const updateData = {
