@@ -552,10 +552,8 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
                               }
                             })()}
                           </div>
-                        ) : (
-                          <span className="text-gray-400 text-xs italic">No auto-removal</span>
-                        )}
-                      </td>
+                        ) : (entry as IPEntry).expiresAt ? (
+                          <div className="text-xs">
                             <div className="text-gray-600">
                               Expires: {new Date((entry as IPEntry).expiresAt!).toLocaleDateString()}
                             </div>
