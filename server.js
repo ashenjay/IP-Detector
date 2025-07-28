@@ -616,9 +616,9 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
         updateValues.push(null);
         paramCount++;
       } else if ('expirationHours' in updates) {
-        // Only set expiration_hours if auto_cleanup is true
+        // Only set expiration_hours if auto_cleanup is true, 0 is valid
         let expirationValue = updates.expirationHours;
-        if (expirationValue === null || expirationValue === undefined || expirationValue === '' || expirationValue === 0) {
+        if (expirationValue === null || expirationValue === undefined || expirationValue === '') {
           expirationValue = null;
         } else {
           const parsed = parseInt(expirationValue);
@@ -629,9 +629,9 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
         paramCount++;
       }
     } else if ('expirationHours' in updates) {
-      // Handle expirationHours when autoCleanup is not in updates
+      // Handle expirationHours when autoCleanup is not in updates, 0 is valid
       let expirationValue = updates.expirationHours;
-      if (expirationValue === null || expirationValue === undefined || expirationValue === '' || expirationValue === 0) {
+      if (expirationValue === null || expirationValue === undefined || expirationValue === '') {
         expirationValue = null;
       } else {
         const parsed = parseInt(expirationValue);
