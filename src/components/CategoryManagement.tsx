@@ -235,13 +235,21 @@ const CategoryManagement: React.FC = () => {
   };
 
   const startEdit = (category: any) => {
+    // Convert total seconds back to hours, minutes, seconds
+    const totalSeconds = category.expirationHours || 0;
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    
     setFormData({
       name: category.name,
       label: category.label,
       description: category.description,
       color: category.color,
       icon: category.icon,
-      expirationHours: category.expirationHours ? category.expirationHours.toString() : '',
+      expirationHours: hours > 0 ? hours.toString() : '',
+      expirationMinutes: minutes > 0 ? minutes.toString() : '',
+      expirationSeconds: seconds > 0 ? seconds.toString() : '',
       autoCleanup: category.autoCleanup || false
     });
     setEditingCategory(category);
