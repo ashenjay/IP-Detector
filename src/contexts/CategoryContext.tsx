@@ -43,7 +43,9 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           name: c.name,
           label: c.label,
           description: c.description,
-          color: c.color,
+          createdBy: c.created_by || 'Unknown',
+          expirationDays: c.expiration_days || null,
+          autoCleanup: Boolean(c.auto_cleanup)
           icon: c.icon,
           isDefault: c.is_default,
           isActive: c.is_active,

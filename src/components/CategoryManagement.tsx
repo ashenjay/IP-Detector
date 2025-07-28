@@ -160,7 +160,7 @@ const CategoryManagement: React.FC = () => {
       description: category.description,
       color: category.color,
       icon: category.icon,
-      expirationHours: category.expirationHours || null,
+      expirationDays: category.expirationDays || null,
       autoCleanup: category.autoCleanup || false
     });
     setEditingCategory(category);
