@@ -376,6 +376,7 @@ const Dashboard: React.FC = () => {
                     )}
                   </div>
                 </div>
+              ) : null}
               
               <div className="flex space-x-2">
                 <button
