@@ -615,7 +615,8 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
         
         // Handle expirationHours with robust type conversion
         if (key === 'expirationHours') {
-          if (value === null || value === undefined || value === '' || value === 0) {
+          // If autoCleanup is being disabled, allow expirationHours to be null
+          if (value === null || value === undefined || value === '' || value === 0 || updates.autoCleanup === false) {
             value = null;
           } else {
             const parsed = parseInt(value);
@@ -625,6 +626,17 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
         // Handle autoCleanup with explicit boolean conversion
         else if (key === 'autoCleanup') {
           value = Boolean(value);
+          // If autoCleanup is being disabled, ensure expirationHours is also null
+          if (value === false) {
+            // Find expirationHours in the updates and set it to null
+            const expirationIndex = updateFields.findIndex(field => field.includes('expiration_hours'));
+            if (expirationIndex === -1) {
+              // Add expirationHours = null if not already in updates
+              updateFields.push(`expiration_hours = $${paramCount + 1}`);
+              updateValues.push(null);
+              paramCount++;
+            }
+          }
         }
         // Handle string fields
         else if (typeof value === 'string') {
