@@ -200,7 +200,7 @@ const CategoryManagement: React.FC = () => {
 
   const startEdit = (category: any) => {
     // Convert seconds back to hours, minutes, seconds for editing
-    const totalSeconds = category.expirationHours || 0;
+    const totalSeconds = category.expirationHours || category.expiration_hours || 0;
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
@@ -214,7 +214,7 @@ const CategoryManagement: React.FC = () => {
       expirationHours: hours.toString(),
       expirationMinutes: minutes.toString(),
       expirationSeconds: seconds.toString(),
-      autoCleanup: category.autoCleanup || false
+      autoCleanup: category.autoCleanup || category.auto_cleanup || false
     });
     setEditingCategory(category);
     setShowEditForm(true);
@@ -756,9 +756,9 @@ const CategoryManagement: React.FC = () => {
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                             ✅ Auto-remove enabled
                           </span>
-                          {category.expirationHours && category.expirationHours > 0 ? (
+                          {(category.expirationHours || category.expiration_hours) && (category.expirationHours || category.expiration_hours) > 0 ? (
                             <div className="text-xs text-orange-600 font-medium">
-                              ⏰ Expires after: {formatTime(category.expirationHours)}
+                              ⏰ Expires after: {formatTime(category.expirationHours || category.expiration_hours)}
                             </div>
                           ) : (
                             <div className="text-xs text-gray-500">

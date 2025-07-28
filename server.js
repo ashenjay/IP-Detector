@@ -613,7 +613,7 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
         } else if (key === 'expirationHours' && value !== null && value !== undefined) {
           value = typeof value === 'number' ? value : (parseInt(value) || null);
         } else if (key === 'autoCleanup') {
-          value = Boolean(value);
+          value = value === true || value === 'true';
         }
         updateValues.push(value);
         paramCount++;
@@ -621,6 +621,9 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     });
     
     updateValues.push(id);
+    
+    console.log('Updating category with fields:', updateFields);
+    console.log('Updating category with values:', updateValues);
     
     await pool.query(
       `UPDATE categories SET ${updateFields.join(', ')} WHERE id = $${paramCount}`,

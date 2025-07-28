@@ -365,9 +365,9 @@ const Dashboard: React.FC = () => {
                 <div className="mb-4 p-2 rounded-lg bg-gray-50 border">
                   <div className="text-xs text-gray-700 space-y-1">
                     <div><strong>🔄 Auto-removal:</strong> Enabled</div>
-                    {category.expirationHours && category.expirationHours > 0 ? (
+                    {(category.expirationHours || category.expiration_hours) && (category.expirationHours || category.expiration_hours) > 0 ? (
                       <div className="text-orange-600 font-medium">
-                        ⏰ IP entries expire after {formatExpirationTime(category.expirationHours)}
+                        ⏰ IP entries expire after {formatExpirationTime(category.expirationHours || category.expiration_hours)}
                       </div>
                     ) : (
                       <div className="text-gray-500">
