@@ -143,17 +143,12 @@ const Dashboard: React.FC = () => {
   };
 
   const getCategoryCount = (category: string) => {
-    console.log('🔍 Dashboard getCategoryCount for:', category);
-    console.log('🔍 Available categories:', categories.map(c => ({ id: c.id, name: c.name, ipCount: c.ipCount })));
-    
     // First try to get count from category object (from database)
     const categoryObj = categories.find(cat => cat.id === category || cat.name === category);
     if (categoryObj && categoryObj.ipCount !== undefined) {
-      console.log('✅ Dashboard using category.ipCount:', categoryObj.ipCount, 'for category:', categoryObj.name);
       return categoryObj.ipCount;
     }
     
-    console.log('⚠️ Dashboard: Category not found or no ipCount, returning 0');
     return 0;
   };
 
