@@ -174,6 +174,34 @@ const CategoryManagement: React.FC = () => {
     resetForm();
   };
 
+  const handleExtendExpiration = async (categoryId: string, newExpiration: string) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`http://ec2-18-138-231-76.ap-southeast-1.compute.amazonaws.com/api/categories/${categoryId}/extend-expiration`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          newExpiration: newExpiration
+        })
+      });
+
+      if (response.ok) {
+        await refreshCategories();
+        setError('Category expiration extended successfully!');
+        setTimeout(() => setError(''), 3000);
+      } else {
+        setError('Failed to extend category expiration');
+      }
+    } catch (err) {
+      setError('Error extending category expiration');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const colorOptions = [
     'bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500',
@@ -337,44 +365,6 @@ const CategoryManagement: React.FC = () => {
                       <option key={icon} value={icon}>{icon}</option>
                     ))}
                   </select>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Expiration Date & Time (Optional)
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={formData.expiresAt}
-                    onChange={(e) => setFormData(prev => ({ ...prev, expiresAt: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    min={new Date().toISOString().slice(0, 16)}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    When this category's data should expire
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Auto-cleanup Settings
-                  </label>
-                  <div className="flex items-center space-x-2 mt-2">
-                    <input
-                      type="checkbox"
-                      id="autoCleanup"
-                      checked={formData.autoCleanup}
-                      onChange={(e) => setFormData(prev => ({ ...prev, autoCleanup: e.target.checked }))}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <label htmlFor="autoCleanup" className="text-sm text-gray-700">
-                      Automatically remove IP data when expired
-                    </label>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Category will remain but IP entries will be deleted
-                  </p>
                 </div>
               </div>
               
