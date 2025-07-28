@@ -621,8 +621,8 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
         if (key === 'autoCleanup') {
           value = Boolean(value);
         } else if (key === 'expirationHours') {
-          // Handle expiration hours: null, 0, or positive integer
-          if (value === null || value === undefined || value === '' || value === 0) {
+          // Handle expiration hours: null or positive integer
+          if (value === null || value === undefined || value === '') {
             value = null;
           } else {
             value = parseInt(value);
