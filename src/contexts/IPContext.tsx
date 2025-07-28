@@ -101,7 +101,6 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         console.log('IP added successfully, refreshing data...');
         await fetchIPEntries();
         // Trigger category refresh to update IP counts
-        console.log('🔄 Triggering category refresh after IP add');
         // Add a small delay to ensure database transaction is complete
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('refreshCategories'));
@@ -136,7 +135,6 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
       if (response.ok) {
         await fetchIPEntries();
         // Trigger category refresh to update IP counts
-        console.log('🔄 Triggering category refresh after IP delete');
         // Add a small delay to ensure database transaction is complete
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('refreshCategories'));

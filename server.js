@@ -502,9 +502,6 @@ app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
 // Categories
 app.get('/api/categories', authenticateToken, async (req, res) => {
   try {
-    console.log('🔍 Fetching categories with IP counts...');
-    
-    // Use simple subquery approach - most reliable
     const result = await pool.query(`
       SELECT 
         c.id,
@@ -523,11 +520,6 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
       FROM categories c
       ORDER BY c.name
     `);
-    
-    console.log('🔍 Categories query results:');
-    result.rows.forEach(row => {
-      console.log(`  ${row.name}: ${row.ip_count} IPs (type: ${typeof row.ip_count})`);
-    });
     
     res.json(result.rows);
   } catch (error) {
