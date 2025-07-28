@@ -549,7 +549,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
     }
     
     const result = await pool.query(
-      'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by, expires_at, auto_cleanup) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+      'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by, expiration_hours, auto_cleanup) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
       [
         name.trim().toLowerCase(), 
         label.trim(), 
@@ -559,7 +559,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
         false, 
         true, 
         req.user.username,
-        expirationDate,
+        expirationHours || null,
         autoCleanup || false
       ]
     );

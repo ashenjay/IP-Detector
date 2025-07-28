@@ -22,9 +22,9 @@ export interface Category {
   createdBy: string;
   createdAt: Date;
   isActive: boolean;
-  expirationHours?: number; // ✅ NEW: Hours after which IP entries expire
-  autoCleanup?: boolean; // ✅ NEW: Auto cleanup expired data
-  ipCount?: number; // ✅ NEW: Number of IPs in category
+  expirationHours?: number | null; // Hours after which IP entries expire
+  autoCleanup?: boolean; // Auto cleanup expired data
+  ipCount?: number; // Number of IPs in category
 }
 
 export interface IPEntry {
