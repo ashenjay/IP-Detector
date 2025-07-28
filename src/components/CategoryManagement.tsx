@@ -117,9 +117,15 @@ const CategoryManagement: React.FC = () => {
     try {
       console.log('Updating category with form data:', formData);
       
+      // Calculate total seconds from hours, minutes, seconds
+      const totalSeconds = 
+        (parseInt(formData.expirationHours) || 0) * 3600 +
+        (parseInt(formData.expirationMinutes) || 0) * 60 +
+        (parseInt(formData.expirationSeconds) || 0);
+      
       const updateData = {
         ...formData,
-        expiresAt: formData.expiresAt ? new Date(formData.expiresAt) : undefined,
+        expirationHours: totalSeconds > 0 ? totalSeconds : null,
         autoCleanup: formData.autoCleanup || false
       };
       

@@ -611,7 +611,7 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
         if (typeof value === 'string') {
           value = value.trim();
         } else if (key === 'expirationHours' && value !== null && value !== undefined) {
-          value = parseInt(value) || null;
+          value = typeof value === 'number' ? value : (parseInt(value) || null);
         }
         updateValues.push(value);
         paramCount++;

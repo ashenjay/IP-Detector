@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useIP } from '../contexts/IPContext';
 import { useCategory } from '../contexts/CategoryContext';
@@ -26,7 +26,7 @@ interface IPListProps {
 const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
   const { user } = useAuth();
   const { ipEntries, whitelistEntries, addIP, deleteIP, addToWhitelist, removeFromWhitelist, checkIPReputation, extractFromSources, refreshData } = useIP();
-  const { getCategoryById } = useCategory();
+  const { getCategoryById, refreshCategories } = useCategory();
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [newIP, setNewIP] = useState('');
@@ -39,6 +39,7 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
   const [errorMessage, setErrorMessage] = useState('');
   const [errorTitle, setErrorTitle] = useState('');
   const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [countdownTimers, setCountdownTimers] = useState<{[key: string]: string}>({});
 
   // Auto-refresh every 5 minutes
   React.useEffect(() => {
@@ -50,6 +51,43 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
 
     return () => clearInterval(interval);
   }, [refreshData]);
+
+  // Real-time countdown timer
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const categoryObj = category ? getCategoryById(category) : null;
+      if (categoryObj?.autoCleanup && categoryObj?.expirationHours) {
+        const newTimers: {[key: string]: string} = {};
+        
+        entries.forEach(entry => {
+          const addedTime = new Date(entry.dateAdded).getTime();
+          const expirationTime = addedTime + (categoryObj.expirationHours! * 1000);
+          const now = new Date().getTime();
+          const timeLeft = expirationTime - now;
+          
+          if (timeLeft > 0) {
+            const totalSecondsLeft = Math.ceil(timeLeft / 1000);
+            const hoursLeft = Math.floor(totalSecondsLeft / 3600);
+            const minutesLeft = Math.floor((totalSecondsLeft % 3600) / 60);
+            const secondsLeft = totalSecondsLeft % 60;
+            
+            const timeString = [];
+            if (hoursLeft > 0) timeString.push(`${hoursLeft}h`);
+            if (minutesLeft > 0) timeString.push(`${minutesLeft}m`);
+            if (secondsLeft > 0) timeString.push(`${secondsLeft}s`);
+            
+            newTimers[entry.id] = timeString.join(' ') || '0s';
+          } else {
+            newTimers[entry.id] = 'EXPIRED';
+          }
+        });
+        
+        setCountdownTimers(newTimers);
+      }
+    }, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, [entries, category, getCategoryById]);
 
   const entries = isWhitelist ? whitelistEntries : ipEntries.filter(entry => 
     !category || entry.category === category
@@ -81,6 +119,10 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
         success = await addToWhitelist(newIP.trim(), newDescription.trim() || undefined);
       } else {
         success = await addIP(newIP.trim(), category!, newDescription.trim() || undefined);
+        if (success) {
+          // Refresh categories to update IP count
+          await refreshCategories();
+        }
       }
 
       if (success) {
@@ -102,12 +144,16 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
   };
 
   const handleDelete = async (id: string) => {
-
     setLoading(true);
     try {
       const success = isWhitelist 
         ? await removeFromWhitelist(id)
         : await deleteIP(id);
+
+      if (success && !isWhitelist) {
+        // Refresh categories to update IP count
+        await refreshCategories();
+      }
 
       if (!success) {
         setErrorTitle('Delete Failed');
@@ -196,6 +242,7 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
       setSelectedEntries(new Set(filteredEntries.map(entry => entry.id)));
     }
   };
+  
   const getSourceIcon = (source: string) => {
     switch (source) {
       case 'abuseipdb':
@@ -484,20 +531,20 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            (entry as IPEntry).type === 'ip' ? 'bg-blue-100 text-blue-800' :
-                            (entry as IPEntry).type === 'hostname' ? 'bg-green-100 text-green-800' :
+                            (entry as any).type === 'ip' ? 'bg-blue-100 text-blue-800' :
+                            (entry as any).type === 'hostname' ? 'bg-green-100 text-green-800' :
                             'bg-purple-100 text-purple-800'
                           }`}>
-                            {(entry as IPEntry).type?.toUpperCase() || 'IP'}
+                            {(entry as any).type?.toUpperCase() || 'IP'}
                           </span>
                         </div>
                       </td>
                       {!isWhitelist && (
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center space-x-2">
-                            {getSourceIcon((entry as IPEntry).source)}
+                            {getSourceIcon((entry as any).source)}
                             <span className="text-sm text-gray-600">
-                              {getSourceLabel((entry as IPEntry).source)}
+                              {getSourceLabel((entry as any).source)}
                             </span>
                           </div>
                         </td>
@@ -506,13 +553,13 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center space-x-2">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              (entry as IPEntry).sourceCategory === 'malware' ? 'bg-red-100 text-red-800' :
-                              (entry as IPEntry).sourceCategory === 'phishing' ? 'bg-orange-100 text-orange-800' :
-                              (entry as IPEntry).sourceCategory === 'c2' ? 'bg-purple-100 text-purple-800' :
-                              (entry as IPEntry).sourceCategory === 'bruteforce' ? 'bg-yellow-100 text-yellow-800' :
+                              (entry as any).sourceCategory === 'malware' ? 'bg-red-100 text-red-800' :
+                              (entry as any).sourceCategory === 'phishing' ? 'bg-orange-100 text-orange-800' :
+                              (entry as any).sourceCategory === 'c2' ? 'bg-purple-100 text-purple-800' :
+                              (entry as any).sourceCategory === 'bruteforce' ? 'bg-yellow-100 text-yellow-800' :
                               'bg-gray-100 text-gray-800'
                             }`}>
-                              {(entry as IPEntry).sourceCategory || 'Unknown'}
+                              {(entry as any).sourceCategory || 'Unknown'}
                             </span>
                           </div>
                         </td>
@@ -525,48 +572,22 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         {categoryObj?.autoCleanup && categoryObj?.expirationHours ? (
                           <div className="text-xs">
-                            {(() => {
-                              const addedTime = new Date(entry.dateAdded).getTime();
-                              const expirationTime = addedTime + (categoryObj.expirationHours * 60 * 60 * 1000);
-                              const now = new Date().getTime();
-                              const timeLeft = expirationTime - now;
-                              const hoursLeft = Math.ceil(timeLeft / (1000 * 60 * 60));
-                              
-                              if (timeLeft <= 0) {
-                                return (
-                                  <div className="text-red-600 font-medium">
-                                    🔴 EXPIRED - Will be auto-removed
-                                  </div>
-                                );
-                              } else {
-                                return (
-                                  <div>
-                                    <div className="text-gray-600">
-                                      Expires in: {hoursLeft} hours
-                                    </div>
-                                    <div className="text-orange-600 font-medium">
-                                      ⏰ {Math.floor(timeLeft / (1000 * 60))} minutes left
-                                    </div>
-                                  </div>
-                                );
-                              }
-                            })()}
-                          </div>
-                        ) : (entry as IPEntry).expiresAt ? (
-                          <div className="text-xs">
-                            <div className="text-gray-600">
-                              Expires: {new Date((entry as IPEntry).expiresAt!).toLocaleDateString()}
-                            </div>
-                            <div className="text-gray-500">
-                              {new Date((entry as IPEntry).expiresAt!).toLocaleTimeString()}
-                            </div>
-                            {new Date((entry as IPEntry).expiresAt!) > new Date() ? (
-                              <div className="text-orange-600 font-medium">
-                                ⏰ {Math.ceil((new Date((entry as IPEntry).expiresAt!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days left
+                            {countdownTimers[entry.id] === 'EXPIRED' ? (
+                              <div className="text-red-600 font-medium">
+                                🔴 EXPIRED - Will be auto-removed
+                              </div>
+                            ) : countdownTimers[entry.id] ? (
+                              <div>
+                                <div className="text-gray-600">
+                                  Expires in: {countdownTimers[entry.id]}
+                                </div>
+                                <div className="text-orange-600 font-medium">
+                                  ⏰ Live countdown
+                                </div>
                               </div>
                             ) : (
-                              <div className="text-red-600 font-medium">
-                                🔴 Expired - Will be auto-removed
+                              <div className="text-gray-500">
+                                Calculating...
                               </div>
                             )}
                           </div>
@@ -577,43 +598,43 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
                       {!isWhitelist && (
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center space-x-2">
-                            {(entry as IPEntry).type === 'ip' && (entry as IPEntry).reputation ? (
+                            {(entry as any).type === 'ip' && (entry as any).reputation ? (
                               <div className="flex items-center space-x-2">
                                 <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  (entry as IPEntry).reputation!.abuseConfidence >= 90 
+                                  (entry as any).reputation!.abuseConfidence >= 90 
                                     ? 'bg-red-100 text-red-800' 
-                                    : (entry as IPEntry).reputation!.abuseConfidence >= 80
+                                    : (entry as any).reputation!.abuseConfidence >= 80
                                     ? 'bg-orange-100 text-orange-800'
                                     : 'bg-yellow-100 text-yellow-800'
                                 }`}>
-                                  ADB: {(entry as IPEntry).reputation!.abuseConfidence}%
+                                  ADB: {(entry as any).reputation!.abuseConfidence}%
                                 </div>
-                                {(entry as IPEntry).reputation!.countryCode && (
+                                {(entry as any).reputation!.countryCode && (
                                   <span className="text-xs text-gray-500">
-                                    {(entry as IPEntry).reputation!.countryCode}
+                                    {(entry as any).reputation!.countryCode}
                                   </span>
                                 )}
                               </div>
                             ) : null}
                             
-                            {(entry as IPEntry).type === 'ip' && (entry as IPEntry).vtReputation ? (
+                            {(entry as any).type === 'ip' && (entry as any).vtReputation ? (
                               <div className="flex items-center space-x-2">
                                 <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  (entry as IPEntry).vtReputation!.maliciousPercentage >= 90 
+                                  (entry as any).vtReputation!.maliciousPercentage >= 90 
                                     ? 'bg-red-100 text-red-800' 
-                                    : (entry as IPEntry).vtReputation!.maliciousPercentage >= 80
+                                    : (entry as any).vtReputation!.maliciousPercentage >= 80
                                     ? 'bg-orange-100 text-orange-800'
                                     : 'bg-yellow-100 text-yellow-800'
                                 }`}>
-                                  VT: {(entry as IPEntry).vtReputation!.maliciousPercentage}%
+                                  VT: {(entry as any).vtReputation!.maliciousPercentage}%
                                 </div>
                                 <span className="text-xs text-gray-500">
-                                  {(entry as IPEntry).vtReputation!.country}
+                                  {(entry as any).vtReputation!.country}
                                 </span>
                               </div>
                             ) : null}
                             
-                            {(entry as IPEntry).type === 'ip' && !(entry as IPEntry).reputation && !(entry as IPEntry).vtReputation && (
+                            {(entry as any).type === 'ip' && !(entry as any).reputation && !(entry as any).vtReputation && (
                               <button
                                 onClick={() => handleCheckReputation(entry.ip)}
                                 disabled={checkingReputation === entry.ip}
@@ -624,9 +645,9 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
                               </button>
                             )}
                             
-                            {(entry as IPEntry).type !== 'ip' && (
+                            {(entry as any).type !== 'ip' && (
                               <span className="text-xs text-gray-500 italic">
-                                Reputation check not available for {(entry as IPEntry).type}s
+                                Reputation check not available for {(entry as any).type}s
                               </span>
                             )}
                           </div>
@@ -651,7 +672,7 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          {!isWhitelist && (entry as IPEntry).type === 'ip' && !(entry as IPEntry).reputation && (
+                          {!isWhitelist && (entry as any).type === 'ip' && !(entry as any).reputation && (
                             <button
                               onClick={() => handleCheckReputation(entry.ip)}
                               disabled={checkingReputation === entry.ip}
