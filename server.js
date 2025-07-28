@@ -589,7 +589,7 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
       if (!trimmedName) {
         return res.status(400).json({ error: 'Category name cannot be empty' });
       }
-      updates.name = trimmedName;
+      updates.name = trimmedName.toLowerCase();
     }
     
     if (updates.label !== undefined) {
