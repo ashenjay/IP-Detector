@@ -779,14 +779,14 @@ const CategoryManagement: React.FC = () => {
                       </div>
                       
                       {/* AUTO-REMOVE STATUS AND EXPIRATION TIME */}
-                      {Boolean(category.autoCleanup) ? (
+                      {category.autoCleanup ? (
                         <div className="mt-2 space-y-1">
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                             ✅ Auto-remove enabled
                           </span>
                           {category.expirationHours && category.expirationHours > 0 ? (
                             <div className="text-xs text-orange-600 font-medium">
-                              ⏰ Expires after: {formatTime(category.expirationHours)}
+                              ⏰ Expires after: {formatTime(category.expirationHours * 3600)}
                             </div>
                           ) : (
                             <div className="text-xs text-gray-500">

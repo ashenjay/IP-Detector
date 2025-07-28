@@ -33,7 +33,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           isActive: c.is_active,
           isDefault: c.is_default,
           createdBy: c.created_by || 'Unknown',
-          expirationHours: c.expiration_hours || c.expirationHours || null,
+          expirationHours: c.expiration_hours || null,
           autoCleanup: Boolean(c.auto_cleanup),
           ipCount: c.ip_count || 0
         }));

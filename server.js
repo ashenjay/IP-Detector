@@ -559,8 +559,8 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
         false, 
         true, 
         req.user.username,
-        req.body.expirationHours && req.body.expirationHours > 0 ? parseInt(req.body.expirationHours) : null,
-        req.body.autoCleanup || false
+        req.body.autoCleanup && req.body.expirationHours && req.body.expirationHours > 0 ? parseInt(req.body.expirationHours) : null,
+        Boolean(req.body.autoCleanup)
       ]
     );
     
