@@ -612,13 +612,25 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
                      key === 'autoCleanup' ? 'auto_cleanup' : key;
         updateFields.push(`${dbKey} = $${paramCount}`);
         let value = updates[key];
-        if (typeof value === 'string') {
-          value = value.trim();
-        } else if (key === 'expirationHours' && value !== null && value !== undefined) {
-          value = typeof value === 'number' ? value : (parseInt(value) || null);
-        } else if (key === 'autoCleanup') {
-          value = value === true || value === 'true';
+        
+        // Handle expirationHours with robust type conversion
+        if (key === 'expirationHours') {
+          if (value === null || value === undefined || value === '' || value === 0) {
+            value = null;
+          } else {
+            const parsed = parseInt(value);
+            value = isNaN(parsed) ? null : parsed;
+          }
         }
+        // Handle autoCleanup with explicit boolean conversion
+        else if (key === 'autoCleanup') {
+          value = Boolean(value);
+        }
+        // Handle string fields
+        else if (typeof value === 'string') {
+          value = value.trim();
+        }
+        
         updateValues.push(value);
         paramCount++;
       }
