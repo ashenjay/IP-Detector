@@ -347,30 +347,30 @@ const Dashboard: React.FC = () => {
                 {category.description}
               </p>
               
-             {/* Expiration Info */}
-             {category.expiresAt && (
-               <div className="mb-4 p-2 rounded-lg bg-gray-50 border">
-                 <div className="text-xs text-gray-600">
-                   <strong>Expires:</strong> {new Date(category.expiresAt).toLocaleDateString()} at {new Date(category.expiresAt).toLocaleTimeString()}
-                 </div>
-                 {category.expirationStatus === 'Active' && category.daysUntilExpiration && (
-                   <div className="text-xs text-orange-600 font-medium">
-                     ⏰ {Math.ceil(category.daysUntilExpiration)} days remaining
-                   </div>
-                 )}
-                 {category.expirationStatus === 'Expired' && (
-                   <div className="text-xs text-red-600 font-medium">
-                     ⚠️ EXPIRED - IP entries will be auto-removed
-                   </div>
-                 )}
-                 {category.autoCleanup && (
-                   <div className="text-xs text-blue-600">
-                     🔄 Auto-cleanup enabled
-                   </div>
-                 )}
-               </div>
-             )}
-             
+              {/* Expiration Info */}
+              {category.expiresAt && (
+                <div className="mb-4 p-2 rounded-lg bg-gray-50 border">
+                  <div className="text-xs text-gray-600">
+                    <strong>Expires:</strong> {new Date(category.expiresAt).toLocaleDateString()} at {new Date(category.expiresAt).toLocaleTimeString()}
+                  </div>
+                  {category.expirationStatus === 'Active' && category.daysUntilExpiration && (
+                    <div className="text-xs text-orange-600 font-medium">
+                      ⏰ {Math.ceil(category.daysUntilExpiration)} days remaining
+                    </div>
+                  )}
+                  {category.expirationStatus === 'Expired' && (
+                    <div className="text-xs text-red-600 font-medium">
+                      ⚠️ EXPIRED - IP entries will be auto-removed
+                    </div>
+                  )}
+                  {category.autoCleanup && (
+                    <div className="text-xs text-blue-600">
+                      🔄 Auto-cleanup enabled
+                    </div>
+                  )}
+                </div>
+              )}
+              
               <div className="flex space-x-2">
                 <button
                   onClick={() => window.location.hash = `/list/${category.id}`}

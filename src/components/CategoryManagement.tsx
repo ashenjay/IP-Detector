@@ -82,13 +82,13 @@ const CategoryManagement: React.FC = () => {
     setLoading(true);
 
     try {
-     console.log('Creating category with form data:', formData);
-     
+      console.log('Creating category with form data:', formData);
+      
       const success = await createCategory({
         ...formData,
         isActive: true,
-       expiresAt: formData.expiresAt ? new Date(formData.expiresAt) : null,
-       autoCleanup: formData.autoCleanup || false
+        expiresAt: formData.expiresAt ? new Date(formData.expiresAt) : undefined,
+        autoCleanup: formData.autoCleanup || false
       });
       
       if (success) {
@@ -109,15 +109,15 @@ const CategoryManagement: React.FC = () => {
     setLoading(true);
 
     try {
-     console.log('Updating category with form data:', formData);
-     
-     const updateData = {
-       ...formData,
-       expiresAt: formData.expiresAt ? new Date(formData.expiresAt) : null,
-       autoCleanup: formData.autoCleanup || false
-     };
-     
-     const success = await updateCategory(categoryId, updateData);
+      console.log('Updating category with form data:', formData);
+      
+      const updateData = {
+        ...formData,
+        expiresAt: formData.expiresAt ? new Date(formData.expiresAt) : undefined,
+        autoCleanup: formData.autoCleanup || false
+      };
+      
+      const success = await updateCategory(categoryId, updateData);
       if (success) {
         setShowEditForm(false);
         setEditingCategory(null);
@@ -622,9 +622,9 @@ const CategoryManagement: React.FC = () => {
              <button
                onClick={handleManualCleanup}
                disabled={loading}
-               className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
              >
-               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                <span>{loading ? 'Cleaning...' : 'Cleanup Expired Categories'}</span>
              </button>
            </div>
@@ -697,23 +697,23 @@ const CategoryManagement: React.FC = () => {
                           {category.ipCount} IP entries
                         </div>
                       )}
-                     {category.expiresAt && (
-                       <div className="mt-2">
-                         <div className="text-xs text-gray-600">
-                           <strong>Expires:</strong> {new Date(category.expiresAt).toLocaleString()}
-                         </div>
-                         {category.expirationStatus === 'Active' && category.daysUntilExpiration && (
-                           <div className="text-xs text-orange-600">
-                             <strong>{Math.ceil(category.daysUntilExpiration)} days remaining</strong>
-                           </div>
-                         )}
-                         {category.expirationStatus === 'Expired' && (
-                           <div className="text-xs text-red-600">
-                             <strong>⚠️ EXPIRED - IP entries will be removed</strong>
-                           </div>
-                         )}
-                       </div>
-                     )}
+                      {category.expiresAt && (
+                        <div className="mt-2">
+                          <div className="text-xs text-gray-600">
+                            <strong>Expires:</strong> {new Date(category.expiresAt).toLocaleString()}
+                          </div>
+                          {category.expirationStatus === 'Active' && category.daysUntilExpiration && (
+                            <div className="text-xs text-orange-600">
+                              <strong>{Math.ceil(category.daysUntilExpiration)} days remaining</strong>
+                            </div>
+                          )}
+                          {category.expirationStatus === 'Expired' && (
+                            <div className="text-xs text-red-600">
+                              <strong>⚠️ EXPIRED - IP entries will be removed</strong>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
