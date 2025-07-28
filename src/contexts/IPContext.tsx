@@ -102,7 +102,10 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         await fetchIPEntries();
         // Trigger category refresh to update IP counts
         console.log('🔄 Triggering category refresh after IP add');
-        window.dispatchEvent(new CustomEvent('refreshCategories'));
+        // Add a small delay to ensure database transaction is complete
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('refreshCategories'));
+        }, 500);
         return { success: true };
       } else {
         const errorData = await response.json();
@@ -134,7 +137,10 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         await fetchIPEntries();
         // Trigger category refresh to update IP counts
         console.log('🔄 Triggering category refresh after IP delete');
-        window.dispatchEvent(new CustomEvent('refreshCategories'));
+        // Add a small delay to ensure database transaction is complete
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('refreshCategories'));
+        }, 500);
         return true;
       }
     } catch (error) {
