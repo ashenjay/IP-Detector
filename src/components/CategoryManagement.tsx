@@ -598,11 +598,6 @@ const CategoryManagement: React.FC = () => {
                       <div><strong>Status:</strong> {editingCategory.expirationStatus}</div>
                       {editingCategory.daysUntilExpiration && (
                         <div><strong>Time left:</strong> {Math.ceil(editingCategory.daysUntilExpiration)} days</div>
-                        {category.autoCleanup && category.expirationHours && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 mt-1">
-                            ⏰ Auto-remove: {category.expirationHours}h
-                          </span>
-                        )}
                       )}
                     </div>
                   </div>
@@ -684,6 +679,11 @@ const CategoryManagement: React.FC = () => {
                              category.expirationStatus === 'Active' ? `⏰ ${Math.ceil(category.daysUntilExpiration || 0)} days left` :
                              'Never expires'}
                           </span>
+                          {category.autoCleanup && category.expirationHours && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 mt-1">
+                              ⏰ Auto-remove: {category.expirationHours}h
+                            </span>
+                          )}
                           {category.autoCleanup && (
                             <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                               🔄 Auto-remove IPs
