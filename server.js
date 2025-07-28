@@ -1098,48 +1098,6 @@ app.get('/api/whitelist', authenticateToken, async (req, res) => {
   }
 });
 
-// Test endpoint to create expiration columns
-app.post('/api/test/create-columns', authenticateToken, async (req, res) => {
-  try {
-    console.log('🔧 Creating expiration columns...');
-    
-    // Simple ALTER TABLE commands
-    try {
-      await pool.query('ALTER TABLE categories ADD COLUMN IF NOT EXISTS expiration_hours INTEGER NULL');
-      console.log('✅ Added expiration_hours column');
-    } catch (e) {
-      console.log('⚠️ expiration_hours column might already exist:', e.message);
-    }
-    
-    try {
-      await pool.query('ALTER TABLE categories ADD COLUMN IF NOT EXISTS auto_cleanup BOOLEAN DEFAULT false');
-      console.log('✅ Added auto_cleanup column');
-    } catch (e) {
-      console.log('⚠️ auto_cleanup column might already exist:', e.message);
-    }
-    
-    // Check if columns now exist
-    const checkResult = await pool.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'categories' 
-      AND column_name IN ('expiration_hours', 'auto_cleanup')
-    `);
-    
-    res.json({ 
-      message: 'Column creation attempted',
-      columnsFound: checkResult.rows,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('❌ Create columns error:', error);
-    res.status(500).json({ 
-      error: 'Failed to create columns: ' + error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
 // Serve static files from dist directory
 console.log('📁 Serving static files from:', path.join(__dirname, 'dist'));
 app.use(express.static(path.join(__dirname, 'dist')));
