@@ -42,6 +42,31 @@
   }
 }
 
+@keyframes matrix-rain {
+  0% {
+    transform: translateY(-100vh);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+@keyframes cyber-pulse {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(0, 255, 255, 0.3), 0 0 10px rgba(0, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.6), 0 0 30px rgba(0, 255, 255, 0.4);
+  }
+}
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
@@ -54,6 +79,44 @@
   animation: pulse-border 2s ease-in-out infinite;
 }
 
+.animate-matrix-rain {
+  animation: matrix-rain 3s linear infinite;
+}
+
+.animate-cyber-pulse {
+  animation: cyber-pulse 2s ease-in-out infinite;
+}
+
+/* Cybersecurity scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(0, 255, 255, 0.6), rgba(0, 150, 255, 0.6));
+  border-radius: 4px;
+  border: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(0, 255, 255, 0.8), rgba(0, 150, 255, 0.8));
+}
+
+/* Cybersecurity selection */
+::selection {
+  background: rgba(0, 255, 255, 0.3);
+  color: white;
+}
+
+::-moz-selection {
+  background: rgba(0, 255, 255, 0.3);
+  color: white;
+}
 /* Responsive utilities */
 @media (max-width: 640px) {
   .text-responsive {
@@ -83,20 +146,38 @@
   }
 }
 
-/* Custom scrollbar for webkit browsers */
-::-webkit-scrollbar {
-  width: 6px;
+/* Enhanced responsive design for cybersecurity theme */
+@media (max-width: 768px) {
+  .cyber-nav-mobile {
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(20px);
+  }
+  
+  .cyber-button-mobile {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
+/* Cybersecurity focus states */
+.cyber-focus:focus {
+  outline: 2px solid rgba(0, 255, 255, 0.6);
+  outline-offset: 2px;
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 255, 0.3);
-  border-radius: 3px;
+/* Cybersecurity loading states */
+.cyber-loading {
+  position: relative;
+  overflow: hidden;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 255, 255, 0.5);
+.cyber-loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
+  animation: scan-line 2s infinite;
 }
