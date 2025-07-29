@@ -15,7 +15,6 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [user]);
 
-  // Listen for refresh events from IP operations
   useEffect(() => {
     const handleRefreshCategories = () => {
       console.log('Refreshing categories due to IP operation');
@@ -35,10 +34,10 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (response.ok) {
         const categoriesData = await response.json();
-        
+
         const formattedCategories = categoriesData.map((c: any) => ({
           id: c.id,
           name: c.name,
@@ -54,13 +53,13 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           createdAt: new Date(c.created_at),
           ipCount: parseInt(c.ip_count) || 0
         }));
-        
-        console.log('Formatted categories with IP counts:', formattedCategories.map(c => ({ 
-          name: c.name, 
-          label: c.label, 
-          ipCount: c.ipCount 
+
+        console.log('Formatted categories with IP counts:', formattedCategories.map(c => ({
+          name: c.name,
+          label: c.label,
+          ipCount: c.ipCount
         })));
-        
+
         setCategories(formattedCategories);
       }
     } catch (error) {
@@ -70,10 +69,10 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const createCategory = async (categoryData: Omit<Category, 'id' | 'createdAt' | 'createdBy'>): Promise<boolean> => {
     if (!user || user.role !== 'superadmin' || !user.isActive) return false;
-    
+
     try {
       console.log('Sending category data to API:', categoryData);
-      
+
       const token = localStorage.getItem('auth_token');
       const response = await fetch(`${CONFIG.apiEndpoint}/categories`, {
         method: 'POST',
@@ -108,7 +107,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const updateCategory = async (categoryId: string, categoryData: Partial<Category>): Promise<boolean> => {
     if (!user || user.role !== 'superadmin' || !user.isActive) return false;
-    
+
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(`${CONFIG.apiEndpoint}/categories/${categoryId}`, {
@@ -124,7 +123,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           color: categoryData.color,
           icon: categoryData.icon,
           isActive: categoryData.isActive,
-          expiration_days: categoryData.expirationDays,
+          expiration_days: categoryData.expirationDays, // ✅ FIXED here
           auto_cleanup: categoryData.autoCleanup
         })
       });
@@ -132,6 +131,9 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (response.ok) {
         await fetchCategories();
         return true;
+      } else {
+        const errorData = await response.json();
+        console.error('Update category failed:', errorData);
       }
     } catch (error) {
       console.error('Update category error:', error);
@@ -142,15 +144,17 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const deleteCategory = async (categoryId: string, migrateTo?: string): Promise<boolean> => {
     if (!user || user.role !== 'superadmin' || !user.isActive) return false;
-    
+
     console.log('Deleting category:', categoryId, 'migrateTo:', migrateTo);
-    
+
     try {
       const token = localStorage.getItem('auth_token');
-      const url = migrateTo ? `${CONFIG.apiEndpoint}/categories/${categoryId}?migrateTo=${migrateTo}` : `${CONFIG.apiEndpoint}/categories/${categoryId}`;
-      
+      const url = migrateTo
+        ? `${CONFIG.apiEndpoint}/categories/${categoryId}?migrateTo=${migrateTo}`
+        : `${CONFIG.apiEndpoint}/categories/${categoryId}`;
+
       console.log('Making delete request to:', url);
-      
+
       const response = await fetch(url, {
         method: 'DELETE',
         headers: {
@@ -160,13 +164,13 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
 
       console.log('Delete category response status:', response.status);
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Delete category failed:', errorData);
         return false;
       }
-      
+
       if (response.ok) {
         console.log('Category deleted successfully, refreshing categories');
         await fetchCategories();
@@ -200,16 +204,18 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   return (
-    <CategoryContext.Provider value={{
-      categories,
-      createCategory,
-      updateCategory,
-      deleteCategory,
-      toggleCategoryStatus,
-      refreshCategories,
-      getCategoryById,
-      getCategoryByName
-    }}>
+    <CategoryContext.Provider
+      value={{
+        categories,
+        createCategory,
+        updateCategory,
+        deleteCategory,
+        toggleCategoryStatus,
+        refreshCategories,
+        getCategoryById,
+        getCategoryByName
+      }}
+    >
       {children}
     </CategoryContext.Provider>
   );
