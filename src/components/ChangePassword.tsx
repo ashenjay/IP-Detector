@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Lock, AlertCircle, Shield, Eye, EyeOff, Calendar, Clock } from 'lucide-react';
 
 const ChangePassword: React.FC = () => {
-  const { updatePassword, logout, user, passwordStatus } = useAuth();
+  const { updatePassword, logout, user } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -88,20 +88,35 @@ const ChangePassword: React.FC = () => {
             </p>
           )}
           
-          {passwordStatus && (
+          {user && user.passwordExpiresAt && user.role !== 'superadmin' && (
             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
               <div className="flex items-center justify-center space-x-2 text-sm">
                 <Calendar className="h-4 w-4 text-blue-600" />
                 <span className="text-blue-800">
-                  {passwordStatus.password_status === 'No Expiration' || user?.role === 'superadmin' ? (
-                    'Your password does not expire'
-                  ) : passwordStatus.days_until_expiry !== null && passwordStatus.days_until_expiry > 0 ? (
-                    `Password expires in ${passwordStatus.days_until_expiry} days`
-                  ) : passwordStatus.days_until_expiry !== null && passwordStatus.days_until_expiry < 0 ? (
-                    `Password expired ${Math.abs(passwordStatus.days_until_expiry)} days ago`
-                  ) : (
-                    'Password expires today'
-                  )}
+                  {(() => {
+                    const now = new Date();
+                    const expiresAt = new Date(user.passwordExpiresAt);
+                    const daysUntilExpiry = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                    
+                    if (daysUntilExpiry > 0) {
+                      return `Password expires in ${daysUntilExpiry} days`;
+                    } else if (daysUntilExpiry < 0) {
+                      return `Password expired ${Math.abs(daysUntilExpiry)} days ago`;
+                    } else {
+                      return 'Password expires today';
+                    }
+                  })()}
+                </span>
+              </div>
+            </div>
+          )}
+          
+          {user?.role === 'superadmin' && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center justify-center space-x-2 text-sm">
+                <Shield className="h-4 w-4 text-blue-600" />
+                <span className="text-blue-800">
+                  Your password does not expire (Admin account)
                 </span>
               </div>
             </div>

@@ -88,7 +88,6 @@ export interface AuthContextType {
   toggleUserStatus: (userId: string) => Promise<boolean>;
   refreshUsers: () => Promise<void>;
   updatePassword: (newPassword: string, currentPassword?: string) => Promise<{ success: boolean; message?: string }>; // ✅ UPDATED
-  passwordStatus?: any; // Current user's password status
 }
 
 export interface CategoryContextType {

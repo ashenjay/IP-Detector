@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { user, logout, passwordStatus } = useAuth();
+  const { user, logout } = useAuth();
   const { categories } = useCategory();
   const { ipEntries, whitelistEntries, refreshData, syncAbuseIPDB, syncVirusTotal, updateSourceIPs, bulkExtractFromSources } = useIP();
   const [refreshing, setRefreshing] = React.useState(false);
@@ -44,16 +44,19 @@ const Dashboard: React.FC = () => {
 
   const environmentMessage = getEnvironmentMessage();
 
-  // Check password expiration status
+  // Check password expiration - show warning 15 days before expiration
   React.useEffect(() => {
-    if (passwordStatus && user?.role !== 'superadmin' && passwordStatus.days_until_expiry !== null) {
-      const daysUntilExpiry = passwordStatus.days_until_expiry;
-      // Show alert if password expires in 7 days or less, or is already expired
-      if (daysUntilExpiry <= 7) {
+    if (user && user.role !== 'superadmin' && user.passwordExpiresAt) {
+      const now = new Date();
+      const expiresAt = new Date(user.passwordExpiresAt);
+      const daysUntilExpiry = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Show alert if password expires in 15 days or less, or is already expired
+      if (daysUntilExpiry <= 15) {
         setShowPasswordAlert(true);
       }
     }
-  }, [passwordStatus, user]);
+  }, [user]);
   // Auto-refresh every 5 minutes
   React.useEffect(() => {
     const interval = setInterval(async () => {
@@ -324,7 +327,7 @@ const Dashboard: React.FC = () => {
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
 
         {/* Password Expiration Alert */}
-        {showPasswordAlert && passwordStatus && (
+        {showPasswordAlert && user && user.passwordExpiresAt && user.role !== 'superadmin' && (
           <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
@@ -332,17 +335,27 @@ const Dashboard: React.FC = () => {
                   <Clock className="h-5 w-5 text-yellow-600" />
                 </div>
                 <div>
+                  {(() => {
+                    const now = new Date();
+                    const expiresAt = new Date(user.passwordExpiresAt);
+                    const daysUntilExpiry = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                    
+                    return (
+                      <>
                   <h3 className="text-sm font-semibold text-yellow-800">
-                    {passwordStatus.days_until_expiry < 0 ? 'Password Expired' : 'Password Expiring Soon'}
+                        {daysUntilExpiry < 0 ? 'Password Expired' : 'Password Expiring Soon'}
                   </h3>
                   <p className="text-sm text-yellow-700">
-                    {passwordStatus.days_until_expiry < 0 
-                      ? `Your password expired ${Math.abs(passwordStatus.days_until_expiry)} days ago. Please change it immediately.`
-                      : passwordStatus.days_until_expiry === 0
+                        {daysUntilExpiry < 0 
+                          ? `Your password expired ${Math.abs(daysUntilExpiry)} days ago. Please change it immediately.`
+                          : daysUntilExpiry === 0
                       ? 'Your password expires today. Please change it now.'
-                      : `Your password will expire in ${passwordStatus.days_until_expiry} days.`
+                            : `Your password will expire in ${daysUntilExpiry} days.`
                     }
                   </p>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
               <div className="flex items-center space-x-2">

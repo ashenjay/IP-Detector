@@ -8,7 +8,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
-  const [passwordStatus, setPasswordStatus] = useState<any>(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('auth_user');
@@ -17,36 +16,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userData = JSON.parse(storedUser);
       setUser(userData);
       setIsAuthenticated(true);
-      // Fetch password status for authenticated user
-      fetchPasswordStatus();
     }
   }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
       fetchUsers();
-      fetchPasswordStatus();
     }
   }, [isAuthenticated]);
 
-  const fetchPasswordStatus = async () => {
-    try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/users/my-password-status`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const statusData = await response.json();
-        setPasswordStatus(statusData);
-      }
-    } catch (error) {
-      console.error('Failed to fetch password status:', error);
-    }
-  };
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('auth_token');
@@ -240,8 +218,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(updatedUser);
         setIsAuthenticated(true);
         localStorage.setItem('auth_user', JSON.stringify(updatedUser));
-        // Refresh password status after successful change
-        await fetchPasswordStatus();
         console.log('Password updated successfully');
         return { success: true };
     } catch (error) {
@@ -321,8 +297,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteUser,
         toggleUserStatus,
         refreshUsers,
-        updatePassword,
-        passwordStatus
+        updatePassword
       }}
     >
       {children}

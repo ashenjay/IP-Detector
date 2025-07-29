@@ -881,19 +881,73 @@ const UserManagement: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="flex items-center space-x-2">
-                          {getPasswordStatusIcon(userItem.passwordStatus || 'Not Set')}
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPasswordStatusColor(userItem.passwordStatus || 'Not Set')}`}>
-                            {userItem.passwordStatus || 'Not Set'}
+                          {userItem.role === 'superadmin' ? (
+                            <>
+                              <Shield className="h-3 w-3" />
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                No Expiration
+                              </span>
+                            </>
+                          ) : userItem.passwordExpiresAt ? (
+                            (() => {
+                              const now = new Date();
+                              const expiresAt = new Date(userItem.passwordExpiresAt);
+                              const daysUntilExpiry = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                              
+                              if (daysUntilExpiry < 0) {
+                                return (
+                                  <>
+                                    <AlertTriangle className="h-3 w-3" />
+                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                      Expired
+                                    </span>
+                                  </>
+                                );
+                              } else if (daysUntilExpiry <= 15) {
+                                return (
+                                  <>
+                                    <Clock className="h-3 w-3" />
+                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                      Expiring Soon
+                                    </span>
+                                  </>
+                                );
+                              } else {
+                                return (
+                                  <>
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                      Active
+                                    </span>
+                                  </>
+                                );
+                              }
+                            })()
+                          ) : (
+                            <>
+                              <AlertCircle className="h-3 w-3" />
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                Not Set
+                              </span>
+                            </>
+                          )}
                           </span>
                         </div>
-                        {userItem.daysUntilExpiry !== null && userItem.daysUntilExpiry !== undefined && userItem.role !== 'superadmin' && (
+                        {userItem.passwordExpiresAt && userItem.role !== 'superadmin' && (
                           <div className="text-xs text-gray-500 mt-1">
-                            {userItem.daysUntilExpiry > 0 
-                              ? `${userItem.daysUntilExpiry} days left`
-                              : userItem.daysUntilExpiry < 0
-                              ? `${Math.abs(userItem.daysUntilExpiry)} days overdue`
-                              : 'Expires today'
-                            }
+                            {(() => {
+                              const now = new Date();
+                              const expiresAt = new Date(userItem.passwordExpiresAt);
+                              const daysUntilExpiry = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                              
+                              if (daysUntilExpiry > 0) {
+                                return `${daysUntilExpiry} days left`;
+                              } else if (daysUntilExpiry < 0) {
+                                return `${Math.abs(daysUntilExpiry)} days overdue`;
+                              } else {
+                                return 'Expires today';
+                              }
+                            })()}
                           </div>
                         )}
                         {userItem.passwordChangedAt && (
