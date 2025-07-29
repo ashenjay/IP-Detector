@@ -1,14 +1,14 @@
-// Environment configuration - AWS RDS PostgreSQL ONLY
+// Environment configuration - Production Only
 export const CONFIG = {
   environment: 'production',
   isNetlify: false,
   isProduction: true,
   isDevelopment: false,
   
-  // API endpoints - AWS EC2 server
-  apiEndpoint: '/api',
+  // API endpoints - Production server
+  apiEndpoint: 'https://threatresponse.ndbbank.com/api',
     
-  // Feature flags - real database only
+  // Feature flags - production only
   features: {
     realTimeSync: true,
     mockData: false,
@@ -16,11 +16,11 @@ export const CONFIG = {
   }
 };
 
-// No environment messages - production only
+// Production environment message
 export const getEnvironmentMessage = () => {
   return {
     type: 'success',
-    title: 'AWS EC2 Production Server',
-    message: 'Connected to AWS EC2 instance: threatresponse.ndbbank.com'
+    title: 'Production Server',
+    message: 'Connected to production server: threatresponse.ndbbank.com'
   };
 };

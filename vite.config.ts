@@ -7,26 +7,33 @@ export default defineConfig({
   define: {
     'process.env': {}
   },
+  base: '/',
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    minify: 'esbuild',
+    target: 'es2015',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          icons: ['lucide-react']
+        }
+      }
+    }
+  },
   server: {
     host: true,
     port: 5173,
-    preview: {
-      host: true,
-      port: 3000
-    },
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-        secure: false
-      },
-    },
-  },
-  optimizeDeps: {
-    exclude: ['lucide-react'],
+    strictPort: false
   },
   preview: {
     host: true,
-    port: 3000
+    port: 3000,
+    strictPort: false
+  },
+  optimizeDeps: {
+    exclude: ['lucide-react'],
   }
 });

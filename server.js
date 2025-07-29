@@ -23,12 +23,12 @@ console.log('📁 dist path:', path.join(__dirname, 'dist'));
 
 // Database connection with increased timeout
 const pool = new Pool({
-  host: process.env.DB_HOST,
+  host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'postgres',
+  database: process.env.DB_NAME || 'threatresponse',
   user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  password: process.env.DB_PASSWORD || 'your_password',
+  ssl: { rejectUnauthorized: false },
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 120000,
@@ -1099,9 +1099,9 @@ app.use((err, req, res, next) => {
 });
 
 // Start server - BIND TO LOCALHOST ONLY for security
-app.listen(port, '127.0.0.1', () => {
-  console.log(`🚀 Server running on localhost:${port} (internal only)`);
-  console.log(`🔒 External access via Nginx reverse proxy`);
+app.listen(port, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${port}`);
+  console.log(`🌐 Production server: https://threatresponse.ndbbank.com`);
   console.log(`📡 API: http://localhost:${port}/api`);
   console.log(`📁 Serving static files from: ${path.join(__dirname, 'dist')}`);
   console.log(`🌐 PUBLIC EDL endpoints available at: /api/edl/{category}`);

@@ -21,8 +21,8 @@ const PlainTextEDL: React.FC<PlainTextEDLProps> = ({ category, categoryName }) =
   const loadEDLList = async () => {
     setLoading(true);
     try {
-      // Direct API call without authentication for plain text view
-      const response = await fetch(`${CONFIG.apiEndpoint}/edl/${category}`);
+      // Direct API call to production server
+      const response = await fetch(`https://threatresponse.ndbbank.com/api/edl/${category}`);
       if (response.ok) {
         const text = await response.text();
         const list = text.split('\n').filter(ip => ip.trim());
