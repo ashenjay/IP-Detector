@@ -23,11 +23,11 @@ console.log('📁 dist path:', path.join(__dirname, 'dist'));
 
 // Database connection with increased timeout
 const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
+  host: process.env.DB_HOST || 'threatresponse.ndbbank.com',
   port: process.env.DB_PORT || 5432,
   database: process.env.DB_NAME || 'threatresponse',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'your_password',
+  user: process.env.DB_USER || 'threatresponse_user',
+  password: process.env.DB_PASSWORD || process.env.DATABASE_PASSWORD,
   ssl: { rejectUnauthorized: false },
   max: 20,
   idleTimeoutMillis: 30000,
@@ -61,9 +61,10 @@ pool.connect((err, client, release) => {
   } else {
     console.log('✅ Connected to PostgreSQL database');
     console.log('✅ Database info:', {
-      host: process.env.DB_HOST,
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER
+      host: process.env.DB_HOST || 'threatresponse.ndbbank.com',
+      database: process.env.DB_NAME || 'threatresponse',
+      user: process.env.DB_USER || 'threatresponse_user',
+      ssl: 'enabled'
     });
     release();
   }
@@ -91,9 +92,9 @@ app.get('/api/health', (req, res) => {
     port: port,
     proxy: 'nginx',
     database: {
-      host: process.env.DB_HOST,
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER,
+      host: process.env.DB_HOST || 'threatresponse.ndbbank.com',
+      database: process.env.DB_NAME || 'threatresponse',
+      user: process.env.DB_USER || 'threatresponse_user',
       ssl: 'enabled'
     }
   });
