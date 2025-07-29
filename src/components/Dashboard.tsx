@@ -286,15 +286,6 @@ const Dashboard: React.FC = () => {
                       <span className="hidden md:inline">Categories</span>
                       <span className="md:hidden">C</span>
                     </button>
-                    
-                    <button
-                      onClick={() => window.location.hash = '/expiration'}
-                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-cyan-300 bg-black/40 backdrop-blur-xl hover:bg-cyan-500/20 hover:text-cyan-100 rounded-lg transition-all duration-300 border border-cyan-500/30"
-                    >
-                      <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
-                      <span className="hidden md:inline">Expiration</span>
-                      <span className="md:hidden">E</span>
-                    </button>
                   </>
                 )}
                 

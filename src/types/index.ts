@@ -27,8 +27,6 @@ export interface Category {
   createdAt: Date;
   isActive: boolean;
   ipCount?: number; // Number of IPs in category
-  expirationHours?: number; // Hours after which IPs expire
-  autoCleanup?: boolean; // Auto-remove expired IPs
 }
 
 export interface IPEntry {
@@ -40,8 +38,6 @@ export interface IPEntry {
   addedBy: string;
   dateAdded: Date;
   lastModified: Date;
-  expiresAt?: Date; // ✅ NEW: When this IP entry expires
-  autoRemove?: boolean; // ✅ NEW: Auto-remove when expired
   source: 'manual' | 'abuseipdb' | 'other';
   sourceCategory?: string; // For sources category, this stores the original threat type
   reputation?: {

@@ -615,7 +615,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
     }
     
     const { name, label, description, color, icon, expiresAt, autoCleanup } = req.body;
-    const { name, label, description, color, icon, expirationHours, autoCleanup } = req.body;
+    const { name, label, description, color, icon } = req.body;
     
     if (!name || !label || !description) {
       return res.status(400).json({ error: 'Name, label, and description are required' });
@@ -635,7 +635,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
     }
     
     const result = await pool.query(
-      'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by, expiration_hours, auto_cleanup) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+      'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
       [
         name.trim().toLowerCase(), 
         label.trim(), 
@@ -644,9 +644,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
         icon || 'Shield', 
         false, 
         true, 
-        req.user.username,
-        expirationHours || null,
-        autoCleanup || false
+        req.user.username
       ]
     );
     
@@ -675,20 +673,7 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     const updateValues = [];
     let paramCount = 1;
     
-    // Handle expiration settings
-    if (updates.expirationHours !== undefined) {
-      updateFields.push(`expiration_hours = $${paramCount}`);
-      updateValues.push(updates.expirationHours);
-      paramCount++;
-    }
-    
-    if (updates.autoCleanup !== undefined) {
-      updateFields.push(`auto_cleanup = $${paramCount}`);
-      updateValues.push(updates.autoCleanup);
-      paramCount++;
-    }
-    
-    // Handle other fields
+    // Handle fields
     if (updates.name) {
       updateFields.push(`name = $${paramCount}`);
       updateValues.push(updates.name);
