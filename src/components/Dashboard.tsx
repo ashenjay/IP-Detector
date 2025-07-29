@@ -42,6 +42,7 @@ const Dashboard: React.FC = () => {
   const [lastRefresh, setLastRefresh] = React.useState(new Date());
   const [showPasswordAlert, setShowPasswordAlert] = React.useState(false);
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
+  const [dropdownOpen, setDropdownOpen] = React.useState(false);
 
   // Check password expiration - show warning 15 days before expiration
   React.useEffect(() => {
@@ -66,6 +67,26 @@ const Dashboard: React.FC = () => {
 
     return () => clearInterval(interval);
   }, [refreshData]);
+
+  const toggleDropdown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDropdownOpen(!dropdownOpen);
+  };
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = () => {
+      setDropdownOpen(false);
+    };
+
+    if (dropdownOpen) {
+      document.addEventListener('click', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [dropdownOpen]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -339,53 +360,68 @@ const Dashboard: React.FC = () => {
                       className="absolute right-0 mt-2 w-48 bg-black/90 backdrop-blur-xl rounded-lg shadow-2xl border border-cyan-500/30 transition-all duration-200 z-50"
                       onClick={(e) => e.stopPropagation()}
                     >
-                    <div className="py-1">
-                      <button 
-                        onClick={() => window.location.hash = '/change-password'}
-                        className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors"
-                      >
-                        <Lock className="h-4 w-4" />
-                        <span>Change Password</span>
-                      </button>
-                      
-                      {user?.role === 'superadmin' && (
-                        <>
-                          <button
-                            onClick={() => window.open('#/users', '_self')}
-                            className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors"
-                          >
-                            <User className="h-4 w-4" />
-                            <span>User Management</span>
-                          </button>
-                          
-                          <button
-                            onClick={() => window.open('#/categories', '_self')}
-                            className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors"
-                          >
-                            <Settings className="h-4 w-4" />
-                            <span>Category Management</span>
-                          </button>
-                          
-                          <button
-                            onClick={() => window.open('#/expiration', '_self')}
-                            className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors"
-                          >
-                            <Clock className="h-4 w-4" />
-                            <span>Expiration Management</span>
-                          </button>
-                        </>
-                      )}
-                      
-                      <div className="border-t border-cyan-500/30 my-1"></div>
-                      
-                      <button
-                        onClick={logout}
-                        className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        <span>Logout</span>
-                      </button>
-                    </div>
+                      <div className="py-1">
+                        <button 
+                          onClick={() => {
+                            setDropdownOpen(false);
+                            window.location.hash = '/change-password';
+                          }}
+                          className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors"
+                        >
+                          <Lock className="h-4 w-4" />
+                          <span>Change Password</span>
+                        </button>
+                        
+                        {user?.role === 'superadmin' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setDropdownOpen(false);
+                                window.location.hash = '/users';
+                              }}
+                              className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors"
+                            >
+                              <User className="h-4 w-4" />
+                              <span>User Management</span>
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                setDropdownOpen(false);
+                                window.location.hash = '/categories';
+                              }}
+                              className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors"
+                            >
+                              <Settings className="h-4 w-4" />
+                              <span>Category Management</span>
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                setDropdownOpen(false);
+                                window.location.hash = '/expiration';
+                              }}
+                              className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors"
+                            >
+                              <Clock className="h-4 w-4" />
+                              <span>Expiration Management</span>
+                            </button>
+                          </>
+                        )}
+                        
+                        <div className="border-t border-cyan-500/30 my-1"></div>
+                        
+                        <button
+                          onClick={() => {
+                            setDropdownOpen(false);
+                            logout();
+                          }}
+                          className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          <span>Logout</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
