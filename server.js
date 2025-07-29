@@ -615,6 +615,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
     }
     
     const { name, label, description, color, icon, expiresAt, autoCleanup } = req.body;
+    const { name, label, description, color, icon, expirationHours, autoCleanup } = req.body;
     
     if (!name || !label || !description) {
       return res.status(400).json({ error: 'Name, label, and description are required' });
@@ -634,7 +635,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
     }
     
     const result = await pool.query(
-      'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by, expires_at, auto_cleanup) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+      'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by, expiration_hours, auto_cleanup) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
       [
         name.trim().toLowerCase(), 
         label.trim(), 
@@ -644,7 +645,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
         false, 
         true, 
         req.user.username,
-        expiresAt ? new Date(expiresAt) : null,
+        expirationHours || null,
         autoCleanup || false
       ]
     );
