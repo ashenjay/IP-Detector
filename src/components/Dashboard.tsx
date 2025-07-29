@@ -339,66 +339,66 @@ const Dashboard: React.FC = () => {
                       className="absolute right-0 mt-2 w-48 bg-black/90 backdrop-blur-xl rounded-lg shadow-2xl border border-cyan-500/30 transition-all duration-200 z-50"
                     >
                       <div className="py-1">
-                        <button 
+                        <div 
                           onClick={() => {
                             setDropdownOpen(false);
                             window.location.hash = '/change-password';
                           }}
-                          className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors"
+                          className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors cursor-pointer"
                         >
                           <Lock className="h-4 w-4" />
                           <span>Change Password</span>
-                        </button>
+                        </div>
                         
                         {user?.role === 'superadmin' && (
                           <>
-                            <button
+                            <div
                               onClick={() => {
                                 setDropdownOpen(false);
                                 window.location.hash = '/users';
                               }}
-                              className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors"
+                              className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors cursor-pointer"
                             >
                               <User className="h-4 w-4" />
                               <span>User Management</span>
-                            </button>
+                            </div>
                             
-                            <button
+                            <div
                               onClick={() => {
                                 setDropdownOpen(false);
                                 window.location.hash = '/categories';
                               }}
-                              className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors"
+                              className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors cursor-pointer"
                             >
                               <Settings className="h-4 w-4" />
                               <span>Category Management</span>
-                            </button>
+                            </div>
                             
-                            <button
+                            <div
                               onClick={() => {
                                 setDropdownOpen(false);
                                 window.location.hash = '/expiration';
                               }}
-                              className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors"
+                              className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors cursor-pointer"
                             >
                               <Clock className="h-4 w-4" />
                               <span>Expiration Management</span>
-                            </button>
+                            </div>
                           </>
                         )}
                         
                         <div className="border-t border-cyan-500/30 my-1"></div>
                         
-                        <button
+                        <div
                           onClick={() => {
                             setDropdownOpen(false);
                             logout();
                           }}
-                          className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                          className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                         >
                           <LogOut className="h-4 w-4" />
                           <span>Logout</span>
-                        </button>
+                        </div>
                       </div>
                     </div>
                   )}
