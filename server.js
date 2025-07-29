@@ -681,7 +681,11 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
       paramCount++;
     }
     
-    if (updates.autoCleanup !== undefined) {
+    if (updates.auto_cleanup !== undefined) {
+      updateFields.push(`auto_cleanup = $${paramCount}`);
+      updateValues.push(updates.auto_cleanup);
+      paramCount++;
+    } else if (updates.autoCleanup !== undefined) {
       updateFields.push(`auto_cleanup = $${paramCount}`);
       updateValues.push(updates.autoCleanup);
       paramCount++;
