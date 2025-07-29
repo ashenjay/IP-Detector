@@ -32,7 +32,7 @@ import {
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { categories, expirationCategories } = useCategory();
+  const { categories } = useCategory();
   const { ipEntries, whitelistEntries, refreshData, syncAbuseIPDB, syncVirusTotal, updateSourceIPs, bulkExtractFromSources } = useIP();
   const [refreshing, setRefreshing] = React.useState(false);
   const [syncing, setSyncing] = React.useState(false);
@@ -187,7 +187,6 @@ const Dashboard: React.FC = () => {
 
   // Filter categories based on user access
   const visibleCategories = activeCategories.filter(category => canAccessCategory(category.id));
-  const visibleExpirationCategories = expirationCategories.filter(category => category.isActive && canAccessCategory(category.id));
 
   const getSourceStats = () => {
     const manual = ipEntries.filter(entry => entry.source === 'manual').length;
@@ -458,66 +457,6 @@ const Dashboard: React.FC = () => {
           ))}
         </div>
 
-        {/* Expiration Categories Section */}
-        {visibleExpirationCategories.length > 0 && (
-          <>
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-transparent bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text mb-2 font-mono">Expiration Categories</h2>
-              <p className="text-orange-200">
-                Temporary IP blocks with automatic expiration and cleanup
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8 relative z-10">
-              {visibleExpirationCategories.map((category) => (
-                <div
-                  key={category.id}
-                  className="bg-black/40 backdrop-blur-xl rounded-xl shadow-2xl border border-orange-500/20 p-6 hover:shadow-orange-500/20 hover:border-orange-500/40 transition-all duration-300"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`p-3 rounded-lg ${category.color} text-white`}>
-                      <Clock className="h-6 w-6" />
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-orange-300 font-mono">
-                        {category.ipCount || 0}
-                      </div>
-                      <div className="text-sm text-orange-400">entries</div>
-                    </div>
-                  </div>
-                  
-                  <h3 className="text-lg font-semibold text-orange-200 mb-2 font-mono">
-                    {category.label}
-                  </h3>
-                  <p className="text-sm text-orange-300 mb-2">
-                    {category.description}
-                  </p>
-                  <p className="text-xs text-orange-400 mb-4">
-                    Auto-expires: {Math.round(category.expirationHours / 24)} days
-                  </p>
-                  
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => window.location.hash = `/expiration-list/${category.id}`}
-                      className="flex-1 px-3 py-2 bg-gradient-to-r from-orange-600 to-red-600 text-white text-sm rounded-lg hover:from-orange-700 hover:to-red-700 transition-all duration-300 flex items-center justify-center space-x-1 border border-orange-500/30"
-                    >
-                      <Eye className="h-4 w-4" />
-                      <span>View</span>
-                    </button>
-                    
-                    <button
-                      onClick={() => window.open(`https://threatresponse.ndbbank.com/api/expiration-edl/${category.name}`, '_blank')}
-                      className="px-3 py-2 bg-gray-500/20 text-gray-400 text-sm rounded-lg hover:bg-gray-500/30 transition-colors flex items-center justify-center border border-gray-500/30"
-                      title="External Dynamic List Feed"
-                    >
-                      <span className="text-xs">EDL</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
         {/* Whitelist Section */}
         {user?.role === 'superadmin' && (
           <div className="bg-black/40 backdrop-blur-xl rounded-xl shadow-2xl border border-cyan-500/20 p-6 mb-8">

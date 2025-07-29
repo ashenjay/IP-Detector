@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Category, ExpirationCategory, CategoryContextType } from '../types';
+import { Category, CategoryContextType } from '../types';
 import { useAuth } from './AuthContext';
 import { CONFIG } from '../config/environment';
 
@@ -7,13 +7,11 @@ const CategoryContext = createContext<CategoryContextType | undefined>(undefined
 
 export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [expirationCategories, setExpirationCategories] = useState<ExpirationCategory[]>([]);
   const { user } = useAuth();
 
   useEffect(() => {
     if (user) {
       fetchCategories();
-      fetchExpirationCategories();
     }
   }, [user]);
 
@@ -21,7 +19,6 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const handleRefreshCategories = () => {
       console.log('Refreshing categories due to IP operation');
       fetchCategories();
-      fetchExpirationCategories();
     };
 
     window.addEventListener('refreshCategories', handleRefreshCategories);
@@ -68,40 +65,6 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const fetchExpirationCategories = async () => {
-    try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/expiration-categories`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const categoriesData = await response.json();
-
-        const formattedCategories = categoriesData.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          label: c.label,
-          description: c.description,
-          createdBy: c.created_by || 'Unknown',
-          expirationHours: c.expiration_hours,
-          autoCleanup: Boolean(c.auto_cleanup),
-          color: c.color || 'bg-orange-500',
-          icon: c.icon || 'Clock',
-          isActive: c.is_active,
-          createdAt: new Date(c.created_at),
-          ipCount: parseInt(c.ip_count) || 0
-        }));
-
-        setExpirationCategories(formattedCategories);
-      }
-    } catch (error) {
-      console.error('Failed to fetch expiration categories:', error);
-    }
-  };
   const createCategory = async (categoryData: Omit<Category, 'id' | 'createdAt' | 'createdBy'>): Promise<boolean> => {
     if (!user || user.role !== 'superadmin' || !user.isActive) return false;
 
@@ -140,38 +103,6 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return false;
   };
 
-  const createExpirationCategory = async (categoryData: Omit<ExpirationCategory, 'id' | 'createdAt' | 'createdBy'>): Promise<boolean> => {
-    if (!user || user.role !== 'superadmin' || !user.isActive) return false;
-
-    try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/expiration-categories`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: categoryData.name,
-          label: categoryData.label,
-          description: categoryData.description,
-          color: categoryData.color,
-          icon: categoryData.icon,
-          expirationHours: categoryData.expirationHours,
-          autoCleanup: categoryData.autoCleanup
-        })
-      });
-
-      if (response.ok) {
-        await fetchExpirationCategories();
-        return true;
-      }
-    } catch (error) {
-      console.error('Create expiration category error:', error);
-    }
-
-    return false;
-  };
   const updateCategory = async (categoryId: string, categoryData: Partial<Category>): Promise<boolean> => {
     if (!user || user.role !== 'superadmin' || !user.isActive) return false;
 
@@ -258,7 +189,6 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const refreshCategories = async (): Promise<void> => {
     console.log('🔄 CategoryContext: Refreshing categories...');
     await fetchCategories();
-    await fetchExpirationCategories();
   };
 
   const getCategoryById = (id: string): Category | undefined => {
@@ -273,9 +203,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     <CategoryContext.Provider
       value={{
         categories,
-        expirationCategories,
         createCategory,
-        createExpirationCategory,
         updateCategory,
         deleteCategory,
         toggleCategoryStatus,

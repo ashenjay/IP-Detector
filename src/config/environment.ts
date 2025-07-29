@@ -11,7 +11,7 @@ export const CONFIG = {
   // Feature flags - Dynamic based on environment
   features: {
     realTimeSync: true,
-    mockData: import.meta.env.DEV,
+    mockData: import.meta.env.NETLIFY === 'true',
     proxyAPIs: false
   }
 };
