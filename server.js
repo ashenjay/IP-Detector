@@ -23,49 +23,23 @@ console.log('📁 dist path:', path.join(__dirname, 'dist'));
 
 // Database connection with increased timeout
 const pool = new Pool({
-  host: process.env.DB_HOST || 'threatresponse.ndbbank.com',
+  host: process.env.DB_HOST,
   port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'threatresponse',
-  user: process.env.DB_USER || 'threatresponse_user',
-  password: process.env.DB_PASSWORD || process.env.DATABASE_PASSWORD,
-  ssl: { rejectUnauthorized: false },
+  database: process.env.DB_NAME || 'postgres',
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 120000,
+  connectionTimeoutMillis: 60000,
 });
 
 // Test database connection
 pool.connect((err, client, release) => {
   if (err) {
-    console.error('❌ Error connecting to database:', err.message);
-    console.error('❌ Database connection details:');
-    console.error('   Host:', process.env.DB_HOST || 'localhost');
-    console.error('   Port:', process.env.DB_PORT || 5432);
-    console.error('   Database:', process.env.DB_NAME || 'threatresponse');
-    console.error('   User:', process.env.DB_USER || 'postgres');
-    console.error('   SSL:', 'enabled (rejectUnauthorized: false)');
-    console.error('   Error Code:', err.code);
-    console.error('   Error Details:', err.detail || 'No additional details');
-    console.error('❌ Please check your database credentials and ensure the database is running');
-    
-    // Specific guidance based on error code
-    if (err.code === '28P01') {
-      console.error('❌ SOLUTION: Check DB_PASSWORD environment variable');
-    } else if (err.code === 'ENOTFOUND') {
-      console.error('❌ SOLUTION: Check DB_HOST - DNS resolution failed');
-    } else if (err.code === 'ECONNREFUSED') {
-      console.error('❌ SOLUTION: Check if database server is running and accessible');
-    } else if (err.code === 'ETIMEDOUT') {
-      console.error('❌ SOLUTION: Check network connectivity and security groups');
-    }
+    console.error('❌ Error connecting to database:', err.stack);
   } else {
     console.log('✅ Connected to PostgreSQL database');
-    console.log('✅ Database info:', {
-      host: process.env.DB_HOST || 'threatresponse.ndbbank.com',
-      database: process.env.DB_NAME || 'threatresponse',
-      user: process.env.DB_USER || 'threatresponse_user',
-      ssl: 'enabled'
-    });
     release();
   }
 });
@@ -84,19 +58,22 @@ app.use((req, res, next) => {
 app.set('trust proxy', true);
 
 // Basic health check route
+app.get('/', (req, res) => {
+  // Serve React app for root route
+  console.log('Serving React app for root route');
+  const indexPath = path.join(__dirname, 'dist', 'index.html');
+  console.log('📄 Serving index.html from:', indexPath);
+  res.sendFile(indexPath);
+});
+
+// API health check
 app.get('/api/health', (req, res) => {
   res.json({ 
     message: 'Abuse IP Detector Server',
     status: 'running',
     timestamp: new Date().toISOString(),
     port: port,
-    proxy: 'nginx',
-    database: {
-      host: process.env.DB_HOST || 'threatresponse.ndbbank.com',
-      database: process.env.DB_NAME || 'threatresponse',
-      user: process.env.DB_USER || 'threatresponse_user',
-      ssl: 'enabled'
-    }
+    proxy: 'nginx'
   });
 });
 
@@ -142,14 +119,6 @@ app.get('/api/debug', async (req, res) => {
     // Check categories
     const categoriesResult = await pool.query('SELECT id, name, label FROM categories ORDER BY name');
     
-    // Check categories table schema
-    const schemaResult = await pool.query(`
-      SELECT column_name, data_type, is_nullable, column_default
-      FROM information_schema.columns 
-      WHERE table_name = 'categories' 
-      ORDER BY ordinal_position
-    `);
-    
     // Check IP entries with category info and added_by field
     const ipEntriesResult = await pool.query(`
       SELECT ie.id, ie.ip, ie.category_id, ie.added_by, ie.date_added,
@@ -181,36 +150,14 @@ app.get('/api/debug', async (req, res) => {
       FROM ip_entries
     `);
     
-    // Check if expiration columns exist
-    let hasExpirationColumns = { expiration_hours: false, auto_cleanup: false };
-    try {
-      const expirationColumnsCheck = await pool.query(`
-        SELECT column_name 
-        FROM information_schema.columns 
-        WHERE table_name = 'categories' 
-        AND column_name IN ('expiration_hours', 'auto_cleanup')
-      `);
-      
-      console.log('🔍 Expiration columns check result:', expirationColumnsCheck.rows);
-      
-      expirationColumnsCheck.rows.forEach(row => {
-        hasExpirationColumns[row.column_name] = true;
-      });
-    } catch (error) {
-      console.error('❌ Error checking expiration columns:', error);
-    }
-    
     res.json({
       database: 'connected',
       categories: categoriesResult.rows,
-      categoriesSchema: schemaResult.rows,
       sampleIpEntries: ipEntriesResult.rows,
       countByCategory: countByCategory.rows,
       totalIPs: parseInt(totalIpCount.rows[0].count),
       totalWhitelist: parseInt(whitelistResult.rows[0].count),
       addedByStatus: addedByStatus.rows[0],
-      hasExpirationColumns: hasExpirationColumns,
-      hasExpirationColumns: hasExpirationColumns,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -246,27 +193,10 @@ app.post('/api/auth/login', async (req, res) => {
     
     console.log('Login attempt:', { username, password: '***' });
     
-    let result;
-    try {
-      result = await pool.query(
-        'SELECT * FROM users WHERE LOWER(username) = LOWER($1) AND is_active = true',
-        [username]
-      );
-    } catch (dbError) {
-      console.error('Database query error:', dbError.message);
-      if (dbError.code === '28P01') {
-        console.error('❌ Database authentication failed. Please check DB_PASSWORD environment variable.');
-      } else if (dbError.code === '3D000') {
-        console.error('❌ Database does not exist. Please check DB_NAME environment variable.');
-      } else if (dbError.code === 'ECONNREFUSED') {
-        console.error('❌ Cannot connect to database server. Please check if PostgreSQL is running.');
-      } else if (dbError.code === 'ENOTFOUND') {
-        console.error('❌ Database host not found. Please check DB_HOST environment variable.');
-      } else if (dbError.code === 'ETIMEDOUT') {
-        console.error('❌ Database connection timeout. Check network connectivity and security groups.');
-      }
-      return res.status(500).json({ error: 'Database connection error. Please contact administrator.' });
-    }
+    const result = await pool.query(
+      'SELECT * FROM users WHERE LOWER(username) = LOWER($1) AND is_active = true',
+      [username]
+    );
     
     console.log('Database query result:', result.rows.length, 'users found');
     
@@ -320,13 +250,8 @@ app.post('/api/auth/login', async (req, res) => {
     console.log('Login successful for user:', username);
     res.json({ user: userResponse, token });
   } catch (error) {
-    console.error('Login error:', error.message);
-    if (error.code === '28P01') {
-      console.error('❌ Database authentication failed. Check your database password.');
-      res.status(500).json({ error: 'Database configuration error. Please contact administrator.' });
-    } else {
-      res.status(500).json({ error: 'Login failed. Please try again.' });
-    }
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed' });
   }
 });
 
@@ -509,17 +434,14 @@ app.delete('/api/users/:id', authenticateToken, async (req, res) => {
 app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { newPassword, currentPassword } = req.body;
+    const { newPassword } = req.body;
     
     console.log('Password change request for user ID:', id);
     console.log('Request user ID:', req.user.userId);
     console.log('New password provided:', !!newPassword);
     
-    // Users can change their own password, or superadmin can change any
-    const isOwnPassword = req.user.userId === id;
-    const isSuperAdmin = req.user.role === 'superadmin';
-    
-    if (!isOwnPassword && !isSuperAdmin) {
+    // Users can only change their own password, or superadmin can change any
+    if (req.user.userId !== id && req.user.role !== 'superadmin') {
       console.log('Access denied: user can only change own password');
       return res.status(403).json({ error: 'Access denied' });
     }
@@ -530,36 +452,6 @@ app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
         length: newPassword ? newPassword.length : 0 
       });
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
-    }
-    
-    // If user is changing their own password, verify current password
-    if (isOwnPassword && !isSuperAdmin) {
-      if (!currentPassword) {
-        return res.status(400).json({ error: 'Current password is required' });
-      }
-      
-      // Verify current password
-      const userCheck = await pool.query('SELECT password FROM users WHERE id = $1', [id]);
-      if (userCheck.rows.length === 0) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      
-      if (currentPassword !== userCheck.rows[0].password) {
-        return res.status(400).json({ error: 'Current password is incorrect' });
-      }
-    }
-    
-    // Check if password was recently used
-    const historyCheck = await pool.query(
-      'SELECT password_history FROM users WHERE id = $1',
-      [id]
-    );
-    
-    if (historyCheck.rows.length > 0) {
-      const passwordHistory = historyCheck.rows[0].password_history || [];
-      if (passwordHistory.includes(newPassword)) {
-        return res.status(400).json({ error: 'Cannot reuse a recent password. Please choose a different password.' });
-      }
     }
     
     console.log('Updating password for user:', id);
@@ -587,20 +479,7 @@ app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
 // Categories
 app.get('/api/categories', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT 
-        c.*,
-        COALESCE((SELECT COUNT(*) FROM ip_entries WHERE category_id = c.id), 0) as ip_count
-      FROM categories c
-      ORDER BY c.created_at
-    `);
-    
-    console.log('Categories with IP counts:', result.rows.map(r => ({ 
-      name: r.name, 
-      label: r.label, 
-      ip_count: r.ip_count 
-    })));
-    
+    const result = await pool.query('SELECT * FROM categories ORDER BY created_at');
     res.json(result.rows);
   } catch (error) {
     console.error('Get categories error:', error);
@@ -635,16 +514,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
     
     const result = await pool.query(
       'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-      [
-        name.trim().toLowerCase(), 
-        label.trim(), 
-        description.trim(), 
-        color || 'bg-blue-500', 
-        icon || 'Shield', 
-        false, 
-        true, 
-        req.user.username
-      ]
+      [name.trim().toLowerCase(), label.trim(), description.trim(), color || 'bg-blue-500', icon || 'Shield', false, true, req.user.username]
     );
     
     console.log('Category created successfully:', result.rows[0].name);
@@ -664,72 +534,44 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
     
-    console.log('🔧 Updating category:', id);
-    console.log('🔧 Updates received:', JSON.stringify(updates, null, 2));
+    console.log('Updating category:', id, 'with data:', updates);
     
-    // Build dynamic update query
+    // If updating name, check for duplicates (excluding current category)
+    if (updates.name) {
+      const existingCategory = await pool.query(
+        'SELECT id FROM categories WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND id != $2',
+        [updates.name, id]
+      );
+      
+      if (existingCategory.rows.length > 0) {
+        return res.status(400).json({ error: 'Category name already exists' });
+      }
+    }
+    
     const updateFields = [];
     const updateValues = [];
     let paramCount = 1;
     
-    // Handle fields
-    if (updates.name) {
-      updateFields.push(`name = $${paramCount}`);
-      updateValues.push(updates.name);
-      paramCount++;
-    }
+    Object.keys(updates).forEach(key => {
+      if (key !== 'id') {
+        const dbKey = key === 'isActive' ? 'is_active' : 
+                     key === 'isDefault' ? 'is_default' : 
+                     key === 'createdBy' ? 'created_by' : key;
+        updateFields.push(`${dbKey} = $${paramCount}`);
+        updateValues.push(typeof updates[key] === 'string' ? updates[key].trim() : updates[key]);
+        paramCount++;
+      }
+    });
     
-    if (updates.label) {
-      updateFields.push(`label = $${paramCount}`);
-      updateValues.push(updates.label);
-      paramCount++;
-    }
-    
-    if (updates.description) {
-      updateFields.push(`description = $${paramCount}`);
-      updateValues.push(updates.description);
-      paramCount++;
-    }
-    
-    if (updates.color) {
-      updateFields.push(`color = $${paramCount}`);
-      updateValues.push(updates.color);
-      paramCount++;
-    }
-    
-    if (updates.icon) {
-      updateFields.push(`icon = $${paramCount}`);
-      updateValues.push(updates.icon);
-      paramCount++;
-    }
-    
-    if (updates.isActive !== undefined) {
-      updateFields.push(`is_active = $${paramCount}`);
-      updateValues.push(updates.isActive);
-      paramCount++;
-    }
-    
-    if (updateFields.length === 0) {
-      return res.status(400).json({ error: 'No fields to update' });
-    }
-    
-    // Add category ID as last parameter
     updateValues.push(id);
     
-    const query = `UPDATE categories SET ${updateFields.join(', ')} WHERE id = $${paramCount}`;
-    console.log('🔧 Executing query:', query);
-    console.log('🔧 With values:', updateValues);
+    await pool.query(
+      `UPDATE categories SET ${updateFields.join(', ')} WHERE id = $${paramCount}`,
+      updateValues
+    );
     
-    const result = await pool.query(query, updateValues);
-    
-    console.log('🔧 Update result:', result.rowCount, 'rows affected');
-    
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Category not found' });
-    }
-    
+    console.log('Category updated successfully');
     res.json({ message: 'Category updated successfully' });
-    
   } catch (error) {
     console.error('Update category error:', error);
     res.status(500).json({ error: 'Failed to update category' });
@@ -818,61 +660,6 @@ app.delete('/api/categories/:id', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/categories/cleanup-expired', authenticateToken, async (req, res) => {
-  try {
-    if (req.user.role !== 'superadmin') {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-    
-    console.log('Running expired category cleanup...');
-    
-    const result = await pool.query('SELECT cleanup_expired_category_data() as cleaned_count');
-    const cleanedCount = result.rows[0].cleaned_count;
-    
-    console.log('Cleanup completed, cleaned entries:', cleanedCount);
-    res.json({ 
-      message: 'Cleanup completed successfully',
-      cleanedEntries: cleanedCount
-    });
-  } catch (error) {
-    console.error('Cleanup expired categories error:', error);
-    res.status(500).json({ error: 'Failed to cleanup expired categories' });
-  }
-});
-
-// Add extend expiration endpoint
-app.put('/api/categories/:id/extend-expiration', authenticateToken, async (req, res) => {
-  try {
-    if (req.user.role !== 'superadmin') {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-    
-    const { id } = req.params;
-    const { newExpiration } = req.body;
-    
-    if (!newExpiration) {
-      return res.status(400).json({ error: 'New expiration date is required' });
-    }
-    
-    console.log('Extending category expiration:', id, 'to:', newExpiration);
-    
-    const result = await pool.query(
-      'SELECT extend_category_expiration($1, $2) as success',
-      [id, new Date(newExpiration)]
-    );
-    
-    if (result.rows[0].success) {
-      console.log('Category expiration extended successfully');
-      res.json({ message: 'Category expiration extended successfully' });
-    } else {
-      res.status(404).json({ error: 'Category not found' });
-    }
-  } catch (error) {
-    console.error('Extend category expiration error:', error);
-    res.status(500).json({ error: 'Failed to extend category expiration' });
-  }
-});
-
 // IP Entries
 app.post('/api/ip-entries', authenticateToken, async (req, res) => {
   try {
@@ -919,25 +706,9 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
       return 'hostname';
     };
     
-    // Get category expiration settings
-    const categoryResult = await pool.query(
-      'SELECT expiration_days, auto_cleanup FROM categories WHERE id = $1',
-      [categoryId]
-    );
-    
-    let expiresAt = null;
-    if (categoryResult.rows.length > 0) {
-      const category = categoryResult.rows[0];
-      if (category.auto_cleanup && category.expiration_days) {
-        const expirationDate = new Date();
-        expirationDate.setDate(expirationDate.getDate() + category.expiration_days);
-        expiresAt = expirationDate;
-      }
-    }
-    
     const result = await pool.query(
-      'INSERT INTO ip_entries (ip, type, category_id, description, added_by, source, expires_at, auto_remove) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-      [ip, detectType(ip), categoryId, description || '', addedBy, 'manual', expiresAt, expiresAt ? true : false]
+      'INSERT INTO ip_entries (ip, type, category_id, description, added_by, source) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [ip, detectType(ip), categoryId, description || '', addedBy, 'manual']
     );
     
     console.log('✅ IP entry created successfully:', {
@@ -1137,9 +908,9 @@ app.use((err, req, res, next) => {
 });
 
 // Start server - BIND TO LOCALHOST ONLY for security
-app.listen(port, '0.0.0.0', () => {
-  console.log(`🚀 Server running on port ${port}`);
-  console.log(`🌐 Production server: https://threatresponse.ndbbank.com`);
+app.listen(port, '127.0.0.1', () => {
+  console.log(`🚀 Server running on localhost:${port} (internal only)`);
+  console.log(`🔒 External access via Nginx reverse proxy`);
   console.log(`📡 API: http://localhost:${port}/api`);
   console.log(`📁 Serving static files from: ${path.join(__dirname, 'dist')}`);
   console.log(`🌐 PUBLIC EDL endpoints available at: /api/edl/{category}`);
