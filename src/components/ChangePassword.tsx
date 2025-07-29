@@ -168,7 +168,7 @@ const ChangePassword: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="w-full bg-gray-500/20 text-gray-300 py-3 rounded-lg hover:bg-gray-500/30 transition-colors border border-gray-500/30 font-mono"
+                  className="absolute top-2.5 right-3 text-cyan-400 hover:text-cyan-300 transition-colors"
                 >
                   {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -275,9 +275,14 @@ const ChangePassword: React.FC = () => {
               <button
                 type="button"
                 onClick={() => {
-                  console.log('Cancel button clicked');
-                  window.location.hash = '#/';
-                  window.location.reload();
+                  // Clear form data
+                  setCurrentPassword('');
+                  setPassword('');
+                  setConfirm('');
+                  setError('');
+                  setSuccess('');
+                  // Navigate back to dashboard
+                  window.location.href = '#/';
                 }}
                 className="w-full bg-gray-500/20 text-gray-300 py-3 rounded-lg hover:bg-gray-500/30 transition-colors border border-gray-500/30 font-mono"
               >
