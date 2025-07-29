@@ -268,50 +268,42 @@ const Dashboard: React.FC = () => {
               
               {/* Action Buttons - Responsive Layout */}
               <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                {(user?.role === 'superadmin' || user?.role === 'soc_admin') && (
+                <button
+                  onClick={() => window.location.hash = '/change-password'}
+                  className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 rounded-lg transition-all duration-300 border border-orange-500/30"
+                >
+                  <Lock className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Change Password</span>
+                  <span className="sm:hidden">Pass</span>
+                </button>
+                
+                {user?.role === 'superadmin' && (
                   <>
                     <button
-                      onClick={handleAbuseIPDBSync}
-                      disabled={syncing}
-                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-lg transition-all duration-300 disabled:opacity-50 border border-purple-500/30"
-                      title="Sync with AbuseIPDB (80%+ confidence)"
+                      onClick={() => window.location.hash = '/users'}
+                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-300 border border-blue-500/30"
                     >
-                      <Download className={`h-3 w-3 sm:h-4 sm:w-4 ${syncing ? 'animate-bounce' : ''}`} />
-                      <span className="hidden sm:inline">{syncing ? 'Syncing...' : 'Sync AbuseIPDB'}</span>
-                      <span className="sm:hidden">ADB</span>
+                      <User className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="hidden sm:inline">Users</span>
+                      <span className="sm:hidden">Users</span>
                     </button>
                     
                     <button
-                      onClick={handleVirusTotalSync}
-                      disabled={syncingVT}
-                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-lg transition-all duration-300 disabled:opacity-50 border border-green-500/30"
-                      title="Sync with VirusTotal (80%+ malicious)"
+                      onClick={() => window.location.hash = '/categories'}
+                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-lg transition-all duration-300 border border-purple-500/30"
                     >
-                      <Download className={`h-3 w-3 sm:h-4 sm:w-4 ${syncingVT ? 'animate-bounce' : ''}`} />
-                      <span className="hidden sm:inline">{syncingVT ? 'Syncing VT...' : 'Sync VirusTotal'}</span>
-                      <span className="sm:hidden">VT</span>
+                      <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="hidden sm:inline">Categories</span>
+                      <span className="sm:hidden">Cat</span>
                     </button>
                     
                     <button
-                      onClick={handleUpdateSources}
-                      disabled={updating}
-                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 rounded-lg transition-all duration-300 disabled:opacity-50 border border-indigo-500/30"
-                      title="Update source IP intelligence"
+                      onClick={() => window.location.hash = '/expiration'}
+                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-lg transition-all duration-300 border border-green-500/30"
                     >
-                      <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 ${updating ? 'animate-spin' : ''}`} />
-                      <span className="hidden lg:inline">{updating ? 'Updating...' : 'Update Sources'}</span>
-                      <span className="lg:hidden">Update</span>
-                    </button>
-                    
-                    <button
-                      onClick={handleBulkExtract}
-                      disabled={extracting}
-                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 rounded-lg transition-all duration-300 disabled:opacity-50 border border-emerald-500/30"
-                      title="Extract IPs from sources to categories"
-                    >
-                      <TrendingUp className={`h-3 w-3 sm:h-4 sm:w-4 ${extracting ? 'animate-bounce' : ''}`} />
-                      <span className="hidden lg:inline">{extracting ? 'Extracting...' : 'Extract Sources'}</span>
-                      <span className="lg:hidden">Extract</span>
+                      <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="hidden sm:inline">Expiration</span>
+                      <span className="sm:hidden">Exp</span>
                     </button>
                   </>
                 )}
@@ -325,84 +317,14 @@ const Dashboard: React.FC = () => {
                   <RefreshCw className={`h-4 w-4 sm:h-5 sm:w-5 ${refreshing ? 'animate-spin' : ''}`} />
                 </button>
                 
-                {/* Dropdown Menu for smaller screens */}
-                <div className="relative">
-                  <button 
-                    onClick={toggleDropdown}
-                    className="p-1 sm:p-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors border border-cyan-500/30"
-                  >
-                    <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
-                  </button>
-                  
-                  {dropdownOpen && (
-                    <div 
-                      className="absolute right-0 mt-2 w-48 bg-black/90 backdrop-blur-xl rounded-lg shadow-2xl border border-cyan-500/30 transition-all duration-200 z-50"
-                    >
-                      <div className="py-1">
-                        <div 
-                          onClick={() => {
-                            setDropdownOpen(false);
-                            window.location.hash = '/change-password';
-                          }}
-                          className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors cursor-pointer"
-                        >
-                          <Lock className="h-4 w-4" />
-                          <span>Change Password</span>
-                        </div>
-                        
-                        {user?.role === 'superadmin' && (
-                          <>
-                            <div
-                              onClick={() => {
-                                setDropdownOpen(false);
-                                window.location.hash = '/users';
-                              }}
-                              className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors cursor-pointer"
-                            >
-                              <User className="h-4 w-4" />
-                              <span>User Management</span>
-                            </div>
-                            
-                            <div
-                              onClick={() => {
-                                setDropdownOpen(false);
-                                window.location.hash = '/categories';
-                              }}
-                              className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors cursor-pointer"
-                            >
-                              <Settings className="h-4 w-4" />
-                              <span>Category Management</span>
-                            </div>
-                            
-                            <div
-                              onClick={() => {
-                                setDropdownOpen(false);
-                                window.location.hash = '/expiration';
-                              }}
-                              className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/10 transition-colors cursor-pointer"
-                            >
-                              <Clock className="h-4 w-4" />
-                              <span>Expiration Management</span>
-                            </div>
-                          </>
-                        )}
-                        
-                        <div className="border-t border-cyan-500/30 my-1"></div>
-                        
-                        <div
-                          onClick={() => {
-                            setDropdownOpen(false);
-                            logout();
-                          }}
-                          className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
-                        >
-                          <LogOut className="h-4 w-4" />
-                          <span>Logout</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <button
+                  onClick={logout}
+                  className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-lg transition-all duration-300 border border-red-500/30"
+                >
+                  <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Logout</span>
+                  <span className="sm:hidden">Out</span>
+                </button>
               </div>
             </div>
           </div>
