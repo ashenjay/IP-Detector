@@ -326,6 +326,15 @@ const Dashboard: React.FC = () => {
                 )}
                 
                 <button
+                  onClick={() => window.location.hash = '/change-password'}
+                  className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 rounded-lg transition-all duration-300 border border-orange-500/30"
+                >
+                  <Lock className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Change Password</span>
+                  <span className="sm:hidden">Pass</span>
+                </button>
+                
+                <button
                   onClick={handleRefresh}
                   disabled={refreshing}
                   className="p-1 sm:p-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors border border-cyan-500/30"
