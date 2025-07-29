@@ -26,8 +26,21 @@ export interface Category {
   createdBy: string;
   createdAt: Date;
   isActive: boolean;
-  expirationDays?: number | null; // Days after which IP entries expire (1-31)
-  autoCleanup?: boolean; // Auto cleanup expired data
+  ipCount?: number; // Number of IPs in category
+}
+
+export interface ExpirationCategory {
+  id: string;
+  name: string;
+  label: string;
+  description: string;
+  color: string;
+  icon: string;
+  expirationHours: number; // Hours after which IP entries expire
+  autoCleanup: boolean; // Always true for expiration categories
+  isActive: boolean;
+  createdBy: string;
+  createdAt: Date;
   ipCount?: number; // Number of IPs in category
 }
 
@@ -67,6 +80,39 @@ export interface IPEntry {
   };
 }
 
+export interface ExpirationIPEntry {
+  id: string;
+  ip: string;
+  type: 'ip' | 'hostname' | 'fqdn';
+  expirationCategory: string; // References expiration_category.id
+  description?: string;
+  addedBy: string;
+  dateAdded: Date;
+  expiresAt: Date; // Always has expiration
+  autoRemove: boolean; // Always true
+  source: 'manual' | 'abuseipdb' | 'other';
+  reputation?: {
+    abuseConfidence: number;
+    totalReports: number;
+    lastReported?: Date;
+    countryCode?: string;
+    isp?: string;
+  };
+  vtReputation?: {
+    maliciousPercentage: number;
+    detectionStats: {
+      harmless: number;
+      malicious: number;
+      suspicious: number;
+      undetected: number;
+      timeout: number;
+    };
+    reputation: number;
+    country: string;
+    asOwner: string;
+    network: string;
+  };
+}
 export interface WhitelistEntry {
   id: string;
   ip: string; // Can be IP, hostname, or FQDN
@@ -92,7 +138,9 @@ export interface AuthContextType {
 
 export interface CategoryContextType {
   categories: Category[];
+  expirationCategories: ExpirationCategory[];
   createCategory: (categoryData: Omit<Category, 'id' | 'createdAt' | 'createdBy'>) => Promise<boolean>;
+  createExpirationCategory: (categoryData: Omit<ExpirationCategory, 'id' | 'createdAt' | 'createdBy'>) => Promise<boolean>;
   updateCategory: (categoryId: string, categoryData: Partial<Category>) => Promise<boolean>;
   deleteCategory: (categoryId: string, migrateTo?: string) => Promise<boolean>;
   toggleCategoryStatus: (categoryId: string) => Promise<boolean>;

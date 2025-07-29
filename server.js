@@ -607,6 +607,90 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
   }
 });
 
+// Expiration Categories
+app.get('/api/expiration-categories', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        ec.*,
+        COALESCE((SELECT COUNT(*) FROM expiration_ip_entries WHERE expiration_category_id = ec.id), 0) as ip_count
+      FROM expiration_categories ec
+      WHERE ec.is_active = true
+      ORDER BY ec.created_at
+    `);
+    
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get expiration categories error:', error);
+    res.status(500).json({ error: 'Failed to get expiration categories' });
+  }
+});
+
+app.post('/api/expiration-categories', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const { name, label, description, color, icon, expirationHours, autoCleanup } = req.body;
+    
+    if (!name || !label || !description || !expirationHours) {
+      return res.status(400).json({ error: 'Name, label, description, and expiration hours are required' });
+    }
+    
+    const result = await pool.query(
+      'INSERT INTO expiration_categories (name, label, description, color, icon, expiration_hours, auto_cleanup, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [
+        name.trim().toLowerCase(), 
+        label.trim(), 
+        description.trim(), 
+        color || 'bg-orange-500', 
+        icon || 'Clock', 
+        expirationHours,
+        autoCleanup !== false, // Default to true
+        req.user.username
+      ]
+    );
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create expiration category error:', error);
+    res.status(500).json({ error: 'Failed to create expiration category' });
+  }
+});
+
+// Expiration EDL endpoint
+app.get('/api/expiration-edl/:category', async (req, res) => {
+  try {
+    const categoryName = req.params.category;
+    console.log('🌐 PUBLIC Expiration EDL request for category:', categoryName);
+    
+    const result = await pool.query(`
+      SELECT eie.ip 
+      FROM expiration_ip_entries eie 
+      JOIN expiration_categories ec ON eie.expiration_category_id = ec.id 
+      WHERE (ec.name = $1 OR ec.id::text = $1)
+      AND eie.expires_at > CURRENT_TIMESTAMP
+      AND eie.ip NOT IN (SELECT ip FROM whitelist)
+      ORDER BY eie.date_added DESC
+    `, [categoryName]);
+    
+    const ips = result.rows.map(row => row.ip);
+    
+    res.set({
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    
+    const response = ips.length > 0 ? ips.join('\n') : '# No active entries found';
+    res.send(response);
+  } catch (error) {
+    console.error('❌ Get expiration EDL feed error:', error);
+    res.status(500).set('Content-Type', 'text/plain').send('# Error: Failed to get expiration EDL feed');
+  }
+});
 app.post('/api/categories', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
