@@ -337,7 +337,6 @@ const Dashboard: React.FC = () => {
                   {dropdownOpen && (
                     <div 
                       className="absolute right-0 mt-2 w-48 bg-black/90 backdrop-blur-xl rounded-lg shadow-2xl border border-cyan-500/30 transition-all duration-200 z-50"
-                      onClick={(e) => e.stopPropagation()}
                     >
                       <div className="py-1">
                         <button 
