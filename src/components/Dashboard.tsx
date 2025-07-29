@@ -26,7 +26,8 @@ import {
   Info,
   CheckCircle,
   AlertCircle as AlertCircleIcon,
-  X
+  X,
+  Terminal
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
