@@ -7,16 +7,22 @@ export const LoginForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setIsLoading(true);
     
     try {
-      await login(username, password);
+      const result = await login(username, password);
+      if (!result.success && !result.forcePasswordChange) {
+        setError('Invalid username or password');
+      }
     } catch (error) {
       console.error('Login failed:', error);
+      setError('Invalid username or password');
     } finally {
       setIsLoading(false);
     }
@@ -82,6 +88,18 @@ export const LoginForm: React.FC = () => {
 
             {/* Login Form */}
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-3">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs">!</span>
+                    </div>
+                    <span className="text-red-300 text-sm font-mono">{error}</span>
+                  </div>
+                </div>
+              )}
+
               {/* Username Field */}
               <div className="space-y-2">
                 <label htmlFor="username" className="block text-sm font-medium text-cyan-200 font-mono">
