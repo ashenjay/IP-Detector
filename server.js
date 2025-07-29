@@ -571,6 +571,38 @@ app.get('/api/users/password-status', authenticateToken, async (req, res) => {
 // Get current user's password status
 app.get('/api/users/my-password-status', authenticateToken, async (req, res) => {
   try {
+    // Check if password policy view exists, if not return basic info
+    const viewCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'user_password_status'
+      );
+    `);
+    
+    if (!viewCheck.rows[0].exists) {
+      // Return basic status if password policy not implemented yet
+      const userResult = await pool.query(`
+        SELECT 
+          created_at as password_changed_at,
+          NULL as password_expires_at,
+          must_change_password,
+          CASE 
+            WHEN role = 'superadmin' THEN 'No Expiration'
+            ELSE 'Not Set'
+          END as password_status,
+          NULL as days_until_expiry
+        FROM users
+        WHERE id = $1
+      `, [req.user.userId]);
+      
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      return res.json(userResult.rows[0]);
+    }
+    
+    // Use password policy view if it exists
     const result = await pool.query(`
       SELECT 
         password_changed_at,

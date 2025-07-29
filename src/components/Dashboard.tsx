@@ -46,10 +46,10 @@ const Dashboard: React.FC = () => {
 
   // Check password expiration status
   React.useEffect(() => {
-    if (passwordStatus && user?.role !== 'superadmin') {
+    if (passwordStatus && user?.role !== 'superadmin' && passwordStatus.days_until_expiry !== null) {
       const daysUntilExpiry = passwordStatus.days_until_expiry;
       // Show alert if password expires in 7 days or less, or is already expired
-      if (daysUntilExpiry !== null && daysUntilExpiry <= 7) {
+      if (daysUntilExpiry <= 7) {
         setShowPasswordAlert(true);
       }
     }

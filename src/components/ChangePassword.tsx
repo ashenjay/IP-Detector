@@ -93,11 +93,11 @@ const ChangePassword: React.FC = () => {
               <div className="flex items-center justify-center space-x-2 text-sm">
                 <Calendar className="h-4 w-4 text-blue-600" />
                 <span className="text-blue-800">
-                  {passwordStatus.password_status === 'No Expiration' ? (
+                  {passwordStatus.password_status === 'No Expiration' || user?.role === 'superadmin' ? (
                     'Your password does not expire'
-                  ) : passwordStatus.days_until_expiry > 0 ? (
+                  ) : passwordStatus.days_until_expiry !== null && passwordStatus.days_until_expiry > 0 ? (
                     `Password expires in ${passwordStatus.days_until_expiry} days`
-                  ) : passwordStatus.days_until_expiry < 0 ? (
+                  ) : passwordStatus.days_until_expiry !== null && passwordStatus.days_until_expiry < 0 ? (
                     `Password expired ${Math.abs(passwordStatus.days_until_expiry)} days ago`
                   ) : (
                     'Password expires today'

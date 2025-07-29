@@ -74,6 +74,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }));
         console.log('🔍 Formatted users data:', formattedUsers.slice(0, 2));
         setUsers(formattedUsers);
+      } else {
+        console.error('Failed to fetch users:', response.status);
       }
     } catch (error) {
       console.error('Failed to fetch users:', error);
