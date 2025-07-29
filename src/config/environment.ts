@@ -5,16 +5,14 @@ export const CONFIG = {
   isProduction: !import.meta.env.DEV,
   isDevelopment: import.meta.env.DEV,
   
-  // API endpoints - Dynamic based on environment
-  apiEndpoint: import.meta.env.DEV 
-    ? 'http://localhost:3000/api'
-    : 'https://threatresponse.ndbbank.com/api',
+  // API endpoints - Always use production
+  apiEndpoint: 'https://threatresponse.ndbbank.com/api',
     
-  // Feature flags - Dynamic based on environment
+  // Feature flags - Always use production settings
   features: {
     realTimeSync: true,
-    mockData: import.meta.env.DEV,
-    proxyAPIs: import.meta.env.DEV
+    mockData: false,
+    proxyAPIs: false
   }
 };
 
@@ -23,8 +21,8 @@ export const getEnvironmentMessage = () => {
   if (import.meta.env.DEV) {
     return {
       type: 'info',
-      title: 'Development Server',
-      message: 'Connected to local development server: localhost:3000'
+      title: 'Development Mode',
+      message: 'Connected to production server: threatresponse.ndbbank.com'
     };
   } else {
     return {
