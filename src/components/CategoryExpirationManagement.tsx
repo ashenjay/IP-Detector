@@ -35,7 +35,7 @@ const CategoryExpirationManagement: React.FC = () => {
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [expirationSettings, setExpirationSettings] = useState<{[key: string]: {
-    expirationDays: number | null;
+    expirationHours: number | null;
     autoCleanup: boolean;
   }}>({});
 
@@ -52,10 +52,10 @@ const CategoryExpirationManagement: React.FC = () => {
 
   // Initialize expiration settings from categories
   React.useEffect(() => {
-    const settings: {[key: string]: {expirationDays: number | null; autoCleanup: boolean}} = {};
+    const settings: {[key: string]: {expirationHours: number | null; autoCleanup: boolean}} = {};
     categories.forEach(category => {
       settings[category.id] = {
-        expirationDays: category.expirationDays || null,
+        expirationHours: category.expirationHours || null,
         autoCleanup: category.autoCleanup || false
       };
     });
@@ -96,7 +96,7 @@ const CategoryExpirationManagement: React.FC = () => {
       console.log('Settings to update:', settings);
 
       const success = await updateCategory(categoryId, {
-        expirationDays: settings.expirationDays,
+        expirationHours: settings.expirationHours,
         autoCleanup: settings.autoCleanup
       });
 
@@ -117,13 +117,13 @@ const CategoryExpirationManagement: React.FC = () => {
     }
   };
 
-  const handleExpirationChange = (categoryId: string, days: number | null) => {
+  const handleExpirationChange = (categoryId: string, hours: number | null) => {
     setExpirationSettings(prev => ({
       ...prev,
       [categoryId]: {
         ...prev[categoryId],
-        expirationDays: days,
-        autoCleanup: days !== null && days > 0 // Auto-enable cleanup when days are set
+        expirationHours: hours,
+        autoCleanup: hours !== null && hours > 0 // Auto-enable cleanup when hours are set
       }
     }));
   };
@@ -144,7 +144,7 @@ const CategoryExpirationManagement: React.FC = () => {
       setExpirationSettings(prev => ({
         ...prev,
         [categoryId]: {
-          expirationDays: category.expirationDays || null,
+          expirationHours: category.expirationHours || null,
           autoCleanup: category.autoCleanup || false
         }
       }));
@@ -153,19 +153,19 @@ const CategoryExpirationManagement: React.FC = () => {
 
   const getExpirationStatus = (category: any) => {
     const settings = expirationSettings[category.id];
-    if (!settings || !settings.expirationDays) {
+    if (!settings || !settings.expirationHours) {
       return { text: 'No expiration', color: 'bg-gray-100 text-gray-800', icon: null };
     }
 
     if (settings.autoCleanup) {
       return { 
-        text: `Auto-cleanup: ${settings.expirationDays} days`, 
+        text: `Auto-cleanup: ${Math.round(settings.expirationHours / 24)} days`, 
         color: 'bg-green-100 text-green-800',
         icon: <RotateCcw className="h-3 w-3" />
       };
     } else {
       return { 
-        text: `${settings.expirationDays} days (manual)`, 
+        text: `${Math.round(settings.expirationHours / 24)} days (manual)`, 
         color: 'bg-yellow-100 text-yellow-800',
         icon: <Clock className="h-3 w-3" />
       };
@@ -347,23 +347,32 @@ const CategoryExpirationManagement: React.FC = () => {
                         {/* Expiration Days */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Expiration Period
+                            Expiration Period (Hours)
                           </label>
                           <div className="space-y-2">
                             <select
-                              value={settings.expirationDays || ''}
+                              value={settings.expirationHours || ''}
                               onChange={(e) => handleExpirationChange(category.id, e.target.value ? parseInt(e.target.value) : null)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                             >
                               <option value="">No expiration</option>
-                              {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                                <option key={day} value={day}>
-                                  {day} day{day !== 1 ? 's' : ''}
+                              <option value="1">1 hour</option>
+                              <option value="6">6 hours</option>
+                              <option value="12">12 hours</option>
+                              <option value="24">1 day</option>
+                              <option value="48">2 days</option>
+                              <option value="72">3 days</option>
+                              <option value="168">1 week</option>
+                              <option value="336">2 weeks</option>
+                              <option value="720">1 month</option>
+                              {Array.from({ length: 12 }, (_, i) => (i + 2) * 720).map(hours => (
+                                <option key={hours} value={hours}>
+                                  {Math.round(hours / 720)} months
                                 </option>
                               ))}
                             </select>
                             <p className="text-xs text-gray-500">
-                              IP entries will expire after this period from their creation date
+                              IP entries will expire after this many hours from their creation date
                             </p>
                           </div>
                         </div>
@@ -406,14 +415,14 @@ const CategoryExpirationManagement: React.FC = () => {
                       </div>
 
                       {/* Preview */}
-                      {settings.expirationDays && (
+                      {settings.expirationHours && (
                         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                           <div className="flex items-center space-x-2 text-blue-800">
                             <Clock className="h-4 w-4" />
                             <span className="text-sm font-medium">Preview:</span>
                           </div>
                           <p className="text-sm text-blue-700 mt-1">
-                            IP entries in "{category.label}" will expire after {settings.expirationDays} day{settings.expirationDays !== 1 ? 's' : ''} 
+                            IP entries in "{category.label}" will expire after {settings.expirationHours} hours ({Math.round(settings.expirationHours / 24)} days)
                             {settings.autoCleanup ? ' and be automatically removed' : ' but require manual removal'}.
                           </p>
                         </div>

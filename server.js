@@ -674,18 +674,13 @@ app.put('/api/categories/:id', authenticateToken, async (req, res) => {
     let paramCount = 1;
     
     // Handle expiration settings
-    if (updates.expirationDays !== undefined) {
-      const expirationHours = updates.expirationDays ? updates.expirationDays * 24 : null;
+    if (updates.expirationHours !== undefined) {
       updateFields.push(`expiration_hours = $${paramCount}`);
-      updateValues.push(expirationHours);
+      updateValues.push(updates.expirationHours);
       paramCount++;
     }
     
-    if (updates.auto_cleanup !== undefined) {
-      updateFields.push(`auto_cleanup = $${paramCount}`);
-      updateValues.push(updates.auto_cleanup);
-      paramCount++;
-    } else if (updates.autoCleanup !== undefined) {
+    if (updates.autoCleanup !== undefined) {
       updateFields.push(`auto_cleanup = $${paramCount}`);
       updateValues.push(updates.autoCleanup);
       paramCount++;

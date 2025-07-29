@@ -49,7 +49,9 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           isDefault: c.is_default,
           isActive: c.is_active,
           createdAt: new Date(c.created_at),
-          ipCount: parseInt(c.ip_count) || 0
+          ipCount: parseInt(c.ip_count) || 0,
+          expirationHours: c.expiration_hours,
+          autoCleanup: c.auto_cleanup || false
         }));
 
         console.log('Formatted categories with IP counts:', formattedCategories.map(c => ({
@@ -84,8 +86,8 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           description: categoryData.description,
           color: categoryData.color,
           icon: categoryData.icon,
-          expiration_days: categoryData.expirationDays,
-          auto_cleanup: categoryData.autoCleanup || false
+          expirationHours: categoryData.expirationHours,
+          autoCleanup: categoryData.autoCleanup || false
         })
       });
 
@@ -120,7 +122,9 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           description: categoryData.description,
           color: categoryData.color,
           icon: categoryData.icon,
-          isActive: categoryData.isActive
+          isActive: categoryData.isActive,
+          expirationHours: categoryData.expirationHours,
+          autoCleanup: categoryData.autoCleanup
         })
       });
 

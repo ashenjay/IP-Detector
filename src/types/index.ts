@@ -27,6 +27,8 @@ export interface Category {
   createdAt: Date;
   isActive: boolean;
   ipCount?: number; // Number of IPs in category
+  expirationHours?: number; // Hours after which IPs expire
+  autoCleanup?: boolean; // Auto-remove expired IPs
 }
 
 export interface IPEntry {
