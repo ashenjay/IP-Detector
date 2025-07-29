@@ -305,12 +305,12 @@ const Dashboard: React.FC = () => {
                 </button>
                 
                 {/* Dropdown Menu for smaller screens */}
-                <div className="relative group">
+                <div className="relative">
                   <button className="p-1 sm:p-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors border border-cyan-500/30">
                     <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
                   </button>
                   
-                  <div className="absolute right-0 mt-2 w-48 bg-black/90 backdrop-blur-xl rounded-lg shadow-2xl border border-cyan-500/30 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="absolute right-0 mt-2 w-48 bg-black/90 backdrop-blur-xl rounded-lg shadow-2xl border border-cyan-500/30 opacity-0 invisible transition-all duration-200 z-50" id="dropdown-menu">
                     <div className="py-1">
                       <button 
                         onClick={() => window.location.hash = '/change-password'}
@@ -365,6 +365,39 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* JavaScript for dropdown menu */}
+      <script dangerouslySetInnerHTML={{
+        __html: `
+          document.addEventListener('DOMContentLoaded', function() {
+            const dropdownButton = document.querySelector('.relative button');
+            const dropdownMenu = document.getElementById('dropdown-menu');
+            let isOpen = false;
+            
+            if (dropdownButton && dropdownMenu) {
+              dropdownButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                isOpen = !isOpen;
+                if (isOpen) {
+                  dropdownMenu.classList.remove('opacity-0', 'invisible');
+                  dropdownMenu.classList.add('opacity-100', 'visible');
+                } else {
+                  dropdownMenu.classList.add('opacity-0', 'invisible');
+                  dropdownMenu.classList.remove('opacity-100', 'visible');
+                }
+              });
+              
+              document.addEventListener('click', function(e) {
+                if (!dropdownButton.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                  isOpen = false;
+                  dropdownMenu.classList.add('opacity-0', 'invisible');
+                  dropdownMenu.classList.remove('opacity-100', 'visible');
+                }
+              });
+            }
+          });
+        `
+      }} />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 relative z-10">
