@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Lock, AlertCircle, Shield, Eye, EyeOff, Calendar, Clock } from 'lucide-react';
+import { Lock, AlertCircle, Shield, Eye, EyeOff, Calendar, Clock, ArrowLeft } from 'lucide-react';
 
 const ChangePassword: React.FC = () => {
   const { updatePassword, logout, user } = useAuth();
@@ -274,10 +274,11 @@ const ChangePassword: React.FC = () => {
             {!isForceChange && (
               <button
                 type="button"
-                onClick={() => window.location.hash = '#/'}
-                className="w-full bg-gray-500/20 text-gray-300 py-3 rounded-lg hover:bg-gray-500/30 transition-colors border border-gray-500/30 font-mono"
+                onClick={() => window.history.back()}
+                className="w-full bg-gray-500/20 text-gray-300 py-3 rounded-lg hover:bg-gray-500/30 transition-colors border border-gray-500/30 font-mono flex items-center justify-center space-x-2"
               >
-                CANCEL
+                <ArrowLeft className="h-4 w-4" />
+                <span>BACK</span>
               </button>
             )}
           </div>
