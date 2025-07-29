@@ -69,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (
     username: string,
     password: string
-  ): Promise<{ success?: boolean; forcePasswordChange?: boolean }> => {
+  ): Promise<{ success?: boolean; forcePasswordChange?: boolean; message?: string }> => {
     try {
       console.log('Attempting database login for:', username);
       
@@ -106,11 +106,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         const errorData = await response.json();
         console.error('Login failed:', errorData);
-        return {};
+        return { success: false, message: errorData.error };
       }
     } catch (error) {
       console.error('Login error:', error);
-      return {};
+      return { success: false, message: 'Network error occurred' };
     }
   };
 

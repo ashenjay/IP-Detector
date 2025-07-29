@@ -17,8 +17,8 @@ export const LoginForm: React.FC = () => {
     
     try {
       const result = await login(username, password);
-      if (!result.success && !result.forcePasswordChange) {
-        setError('Invalid username or password');
+      if (!result.success) {
+        setError(result.message || 'Invalid username or password');
       }
     } catch (error) {
       console.error('Login failed:', error);
