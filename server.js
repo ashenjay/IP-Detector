@@ -43,9 +43,28 @@ pool.connect((err, client, release) => {
     console.error('   Port:', process.env.DB_PORT || 5432);
     console.error('   Database:', process.env.DB_NAME || 'threatresponse');
     console.error('   User:', process.env.DB_USER || 'postgres');
+    console.error('   SSL:', 'enabled (rejectUnauthorized: false)');
+    console.error('   Error Code:', err.code);
+    console.error('   Error Details:', err.detail || 'No additional details');
     console.error('❌ Please check your database credentials and ensure the database is running');
+    
+    // Specific guidance based on error code
+    if (err.code === '28P01') {
+      console.error('❌ SOLUTION: Check DB_PASSWORD environment variable');
+    } else if (err.code === 'ENOTFOUND') {
+      console.error('❌ SOLUTION: Check DB_HOST - DNS resolution failed');
+    } else if (err.code === 'ECONNREFUSED') {
+      console.error('❌ SOLUTION: Check if database server is running and accessible');
+    } else if (err.code === 'ETIMEDOUT') {
+      console.error('❌ SOLUTION: Check network connectivity and security groups');
+    }
   } else {
     console.log('✅ Connected to PostgreSQL database');
+    console.log('✅ Database info:', {
+      host: process.env.DB_HOST,
+      database: process.env.DB_NAME,
+      user: process.env.DB_USER
+    });
     release();
   }
 });
@@ -70,7 +89,13 @@ app.get('/api/health', (req, res) => {
     status: 'running',
     timestamp: new Date().toISOString(),
     port: port,
-    proxy: 'nginx'
+    proxy: 'nginx',
+    database: {
+      host: process.env.DB_HOST,
+      database: process.env.DB_NAME,
+      user: process.env.DB_USER,
+      ssl: 'enabled'
+    }
   });
 });
 
@@ -234,6 +259,10 @@ app.post('/api/auth/login', async (req, res) => {
         console.error('❌ Database does not exist. Please check DB_NAME environment variable.');
       } else if (dbError.code === 'ECONNREFUSED') {
         console.error('❌ Cannot connect to database server. Please check if PostgreSQL is running.');
+      } else if (dbError.code === 'ENOTFOUND') {
+        console.error('❌ Database host not found. Please check DB_HOST environment variable.');
+      } else if (dbError.code === 'ETIMEDOUT') {
+        console.error('❌ Database connection timeout. Check network connectivity and security groups.');
       }
       return res.status(500).json({ error: 'Database connection error. Please contact administrator.' });
     }
