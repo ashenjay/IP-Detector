@@ -67,26 +67,6 @@ const Dashboard: React.FC = () => {
     return () => clearInterval(interval);
   }, [refreshData]);
 
-  const toggleUserDropdown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setUserDropdownOpen(!userDropdownOpen);
-  };
-
-  // Close dropdown when clicking outside
-  React.useEffect(() => {
-    const handleClickOutside = () => {
-      setUserDropdownOpen(false);
-    };
-
-    if (userDropdownOpen) {
-      document.addEventListener('click', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, [userDropdownOpen]);
-
   const handleRefresh = async () => {
     setRefreshing(true);
     await refreshData();
