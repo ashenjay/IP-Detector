@@ -39,6 +39,16 @@ const Router: React.FC = () => {
     return null;
   }
 
+  // ✅ Check if password is expired (for non-admin users)
+  if (user && user.role !== 'superadmin' && user.passwordExpiresAt) {
+    const now = new Date();
+    const expiresAt = new Date(user.passwordExpiresAt);
+    if (expiresAt < now && path !== 'change-password') {
+      // Force password change for expired passwords
+      window.location.hash = '#/change-password';
+      return null;
+    }
+  }
   // ✅ Handle password change route
   if (path === 'change-password') {
     return <ChangePassword />;

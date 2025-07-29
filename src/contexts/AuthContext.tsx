@@ -8,6 +8,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
+  const [passwordStatus, setPasswordStatus] = useState<any>(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('auth_user');
@@ -16,15 +17,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userData = JSON.parse(storedUser);
       setUser(userData);
       setIsAuthenticated(true);
+      // Fetch password status for authenticated user
+      fetchPasswordStatus();
     }
   }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
       fetchUsers();
+      fetchPasswordStatus();
     }
   }, [isAuthenticated]);
 
+  const fetchPasswordStatus = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${CONFIG.apiEndpoint}/users/my-password-status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const statusData = await response.json();
+        setPasswordStatus(statusData);
+      }
+    } catch (error) {
+      console.error('Failed to fetch password status:', error);
+    }
+  };
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('auth_token');
@@ -44,7 +66,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isActive: u.is_active,
           mustChangePassword: u.must_change_password || false,
           assignedCategories: u.assigned_categories || [],
-          createdBy: u.created_by || 'Unknown'
+          createdBy: u.created_by || 'Unknown',
+          passwordChangedAt: u.password_changed_at ? new Date(u.password_changed_at) : undefined,
+          passwordExpiresAt: u.password_expires_at ? new Date(u.password_expires_at) : undefined,
+          passwordStatus: u.password_status,
+          daysUntilExpiry: u.days_until_expiry
         }));
         console.log('🔍 Formatted users data:', formattedUsers.slice(0, 2));
         setUsers(formattedUsers);
@@ -182,7 +208,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return false;
   };
 
-  const updatePassword = async (newPassword: string): Promise<{ success: boolean }> => {
+  const updatePassword = async (newPassword: string, currentPassword?: string): Promise<{ success: boolean; message?: string }> => {
     if (!user) return { success: false };
 
     try {
@@ -195,7 +221,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          newPassword: newPassword
+          newPassword: newPassword,
+          currentPassword: currentPassword
         })
       });
 
@@ -204,20 +231,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Password update failed:', errorData);
-        return { success: false };
+        return { success: false, message: errorData.error };
       }
 
         const updatedUser = { ...user, mustChangePassword: false };
         setUser(updatedUser);
         setIsAuthenticated(true);
         localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+        // Refresh password status after successful change
+        await fetchPasswordStatus();
         console.log('Password updated successfully');
         return { success: true };
     } catch (error) {
       console.error('Update password error:', error);
     }
 
-    return { success: false };
+    return { success: false, message: 'Network error occurred' };
   };
 
   const deleteUser = async (userId: string): Promise<boolean> => {
@@ -290,7 +319,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteUser,
         toggleUserStatus,
         refreshUsers,
-        updatePassword
+        updatePassword,
+        passwordStatus
       }}
     >
       {children}

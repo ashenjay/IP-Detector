@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, passwordStatus } = useAuth();
   const { categories } = useCategory();
   const { ipEntries, whitelistEntries, refreshData, syncAbuseIPDB, syncVirusTotal, updateSourceIPs, bulkExtractFromSources } = useIP();
   const [refreshing, setRefreshing] = React.useState(false);
@@ -40,9 +40,20 @@ const Dashboard: React.FC = () => {
   const [extracting, setExtracting] = React.useState(false);
   const [lastRefresh, setLastRefresh] = React.useState(new Date());
   const [showEnvironmentInfo, setShowEnvironmentInfo] = React.useState(true);
+  const [showPasswordAlert, setShowPasswordAlert] = React.useState(false);
 
   const environmentMessage = getEnvironmentMessage();
 
+  // Check password expiration status
+  React.useEffect(() => {
+    if (passwordStatus && user?.role !== 'superadmin') {
+      const daysUntilExpiry = passwordStatus.days_until_expiry;
+      // Show alert if password expires in 7 days or less, or is already expired
+      if (daysUntilExpiry !== null && daysUntilExpiry <= 7) {
+        setShowPasswordAlert(true);
+      }
+    }
+  }, [passwordStatus, user]);
   // Auto-refresh every 5 minutes
   React.useEffect(() => {
     const interval = setInterval(async () => {
@@ -266,6 +277,15 @@ const Dashboard: React.FC = () => {
                 <span>Logout</span>
               </button>
               
+              <button
+                onClick={() => window.location.hash = '/change-password'}
+                className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Change Password"
+              >
+                <Lock className="h-4 w-4" />
+                <span>Password</span>
+              </button>
+              
               {user?.role === 'superadmin' && (
                 <button
                   onClick={() => window.open('#/users', '_self')}
@@ -303,6 +323,45 @@ const Dashboard: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
 
+        {/* Password Expiration Alert */}
+        {showPasswordAlert && passwordStatus && (
+          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-yellow-100 rounded-lg">
+                  <Clock className="h-5 w-5 text-yellow-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-yellow-800">
+                    {passwordStatus.days_until_expiry < 0 ? 'Password Expired' : 'Password Expiring Soon'}
+                  </h3>
+                  <p className="text-sm text-yellow-700">
+                    {passwordStatus.days_until_expiry < 0 
+                      ? `Your password expired ${Math.abs(passwordStatus.days_until_expiry)} days ago. Please change it immediately.`
+                      : passwordStatus.days_until_expiry === 0
+                      ? 'Your password expires today. Please change it now.'
+                      : `Your password will expire in ${passwordStatus.days_until_expiry} days.`
+                    }
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => window.location.hash = '/change-password'}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium"
+                >
+                  Change Password
+                </button>
+                <button
+                  onClick={() => setShowPasswordAlert(false)}
+                  className="p-2 text-yellow-600 hover:text-yellow-800 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">IP Category Management</h2>
           <p className="text-gray-600">

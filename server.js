@@ -464,14 +464,17 @@ app.delete('/api/users/:id', authenticateToken, async (req, res) => {
 app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { newPassword } = req.body;
+    const { newPassword, currentPassword } = req.body;
     
     console.log('Password change request for user ID:', id);
     console.log('Request user ID:', req.user.userId);
     console.log('New password provided:', !!newPassword);
     
-    // Users can only change their own password, or superadmin can change any
-    if (req.user.userId !== id && req.user.role !== 'superadmin') {
+    // Users can change their own password, or superadmin can change any
+    const isOwnPassword = req.user.userId === id;
+    const isSuperAdmin = req.user.role === 'superadmin';
+    
+    if (!isOwnPassword && !isSuperAdmin) {
       console.log('Access denied: user can only change own password');
       return res.status(403).json({ error: 'Access denied' });
     }
@@ -482,6 +485,36 @@ app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
         length: newPassword ? newPassword.length : 0 
       });
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+    
+    // If user is changing their own password, verify current password
+    if (isOwnPassword && !isSuperAdmin) {
+      if (!currentPassword) {
+        return res.status(400).json({ error: 'Current password is required' });
+      }
+      
+      // Verify current password
+      const userCheck = await pool.query('SELECT password FROM users WHERE id = $1', [id]);
+      if (userCheck.rows.length === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      if (currentPassword !== userCheck.rows[0].password) {
+        return res.status(400).json({ error: 'Current password is incorrect' });
+      }
+    }
+    
+    // Check if password was recently used
+    const historyCheck = await pool.query(
+      'SELECT password_history FROM users WHERE id = $1',
+      [id]
+    );
+    
+    if (historyCheck.rows.length > 0) {
+      const passwordHistory = historyCheck.rows[0].password_history || [];
+      if (passwordHistory.includes(newPassword)) {
+        return res.status(400).json({ error: 'Cannot reuse a recent password. Please choose a different password.' });
+      }
     }
     
     console.log('Updating password for user:', id);
@@ -506,6 +539,60 @@ app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
   }
 });
 
+// Get password policy status for all users (superadmin only)
+app.get('/api/users/password-status', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const result = await pool.query(`
+      SELECT 
+        id,
+        username,
+        email,
+        role,
+        password_changed_at,
+        password_expires_at,
+        must_change_password,
+        password_status,
+        days_until_expiry
+      FROM user_password_status
+      ORDER BY password_expires_at ASC NULLS LAST
+    `);
+    
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get password status error:', error);
+    res.status(500).json({ error: 'Failed to get password status' });
+  }
+});
+
+// Get current user's password status
+app.get('/api/users/my-password-status', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        password_changed_at,
+        password_expires_at,
+        must_change_password,
+        password_status,
+        days_until_expiry
+      FROM user_password_status
+      WHERE id = $1
+    `, [req.user.userId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Get my password status error:', error);
+    res.status(500).json({ error: 'Failed to get password status' });
+  }
+});
+
 // Categories
 app.get('/api/categories', authenticateToken, async (req, res) => {
   try {
@@ -522,7 +609,25 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
       label: r.label, 
       ip_count: r.ip_count 
     })));
-    
+    const result = await pool.query(`
+      SELECT 
+        u.id, 
+        u.username, 
+        u.email, 
+        u.role, 
+        u.assigned_categories, 
+        u.is_active, 
+        u.must_change_password, 
+        u.created_by, 
+        u.created_at,
+        u.password_changed_at,
+        u.password_expires_at,
+        ups.password_status,
+        ups.days_until_expiry
+      FROM users u
+      LEFT JOIN user_password_status ups ON u.id = ups.id
+      ORDER BY u.created_at DESC
+    `);
     res.json(result.rows);
   } catch (error) {
     console.error('Get categories error:', error);

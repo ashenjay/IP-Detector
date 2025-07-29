@@ -9,6 +9,10 @@ export interface User {
   isActive?: boolean;
   password?: string; // For demo purposes - in production this would be hashed
   mustChangePassword: boolean; // ✅ NEW
+  passwordChangedAt?: Date; // When password was last changed
+  passwordExpiresAt?: Date; // When password expires (null for admins)
+  passwordStatus?: 'Active' | 'Expiring Soon' | 'Expired' | 'No Expiration' | 'Not Set';
+  daysUntilExpiry?: number; // Days until expiry (negative if expired)
 }
 
 export interface Category {
@@ -83,7 +87,8 @@ export interface AuthContextType {
   deleteUser: (userId: string) => Promise<boolean>;
   toggleUserStatus: (userId: string) => Promise<boolean>;
   refreshUsers: () => Promise<void>;
-  updatePassword: (newPassword: string) => Promise<{ success: boolean }>; // ✅ NEW
+  updatePassword: (newPassword: string, currentPassword?: string) => Promise<{ success: boolean; message?: string }>; // ✅ UPDATED
+  passwordStatus?: any; // Current user's password status
 }
 
 export interface CategoryContextType {

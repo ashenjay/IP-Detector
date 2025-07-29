@@ -15,7 +15,10 @@ import {
   Save,
   X,
   AlertCircle,
-  Key
+  Key,
+  Clock,
+  CheckCircle2,
+  AlertTriangle
 } from 'lucide-react';
 
 const UserManagement: React.FC = () => {
@@ -363,6 +366,25 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  const getPasswordStatusColor = (status: string) => {
+    switch (status) {
+      case 'Active': return 'bg-green-100 text-green-800';
+      case 'Expiring Soon': return 'bg-yellow-100 text-yellow-800';
+      case 'Expired': return 'bg-red-100 text-red-800';
+      case 'No Expiration': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPasswordStatusIcon = (status: string) => {
+    switch (status) {
+      case 'Active': return <CheckCircle2 className="h-3 w-3" />;
+      case 'Expiring Soon': return <Clock className="h-3 w-3" />;
+      case 'Expired': return <AlertTriangle className="h-3 w-3" />;
+      case 'No Expiration': return <Shield className="h-3 w-3" />;
+      default: return <AlertCircle className="h-3 w-3" />;
+    }
+  };
   const { categories } = useCategory();
 
   if (user?.role !== 'superadmin') {
@@ -796,6 +818,9 @@ const UserManagement: React.FC = () => {
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Password Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Created By
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -851,6 +876,31 @@ const UserManagement: React.FC = () => {
                         }`}>
                           {userItem.isActive ? 'Active' : 'Inactive'}
                         </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          {getPasswordStatusIcon(userItem.passwordStatus || 'Not Set')}
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPasswordStatusColor(userItem.passwordStatus || 'Not Set')}`}>
+                            {userItem.passwordStatus || 'Not Set'}
+                          </span>
+                        </div>
+                        {userItem.daysUntilExpiry !== null && userItem.daysUntilExpiry !== undefined && userItem.role !== 'superadmin' && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {userItem.daysUntilExpiry > 0 
+                              ? `${userItem.daysUntilExpiry} days left`
+                              : userItem.daysUntilExpiry < 0
+                              ? `${Math.abs(userItem.daysUntilExpiry)} days overdue`
+                              : 'Expires today'
+                            }
+                          </div>
+                        )}
+                        {userItem.passwordChangedAt && (
+                          <div className="text-xs text-gray-400 mt-1">
+                            Changed: {new Date(userItem.passwordChangedAt).toLocaleDateString()}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
