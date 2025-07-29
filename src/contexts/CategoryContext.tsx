@@ -123,7 +123,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           color: categoryData.color,
           icon: categoryData.icon,
           isActive: categoryData.isActive,
-          expiration_days: categoryData.expirationDays, // ✅ FIXED here
+          expirationDays: categoryData.expirationDays,
           auto_cleanup: categoryData.autoCleanup
         })
       });
