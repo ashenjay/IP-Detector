@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCategory } from '../contexts/CategoryContext';
 import { useIP } from '../contexts/IPContext';
+import { CONFIG } from '../config/environment';
 
 interface PlainTextEDLProps {
   category: string;
@@ -21,7 +22,7 @@ const PlainTextEDL: React.FC<PlainTextEDLProps> = ({ category, categoryName }) =
     setLoading(true);
     try {
       // Direct API call without authentication for plain text view
-      const response = await fetch(`https://threatresponse.ndbbank.com/api/edl/${category}`);
+      const response = await fetch(`${CONFIG.apiEndpoint}/edl/${category}`);
       if (response.ok) {
         const text = await response.text();
         const list = text.split('\n').filter(ip => ip.trim());

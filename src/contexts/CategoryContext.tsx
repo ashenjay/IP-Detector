@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Category, CategoryContextType } from '../types';
 import { useAuth } from './AuthContext';
+import { CONFIG } from '../config/environment';
 
 const CategoryContext = createContext<CategoryContextType | undefined>(undefined);
 
@@ -28,7 +29,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const fetchCategories = async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('https://threatresponse.ndbbank.com/api/categories', {
+      const response = await fetch(`${CONFIG.apiEndpoint}/categories`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -74,7 +75,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.log('Sending category data to API:', categoryData);
       
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('https://threatresponse.ndbbank.com/api/categories', {
+      const response = await fetch(`${CONFIG.apiEndpoint}/categories`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -110,7 +111,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`https://threatresponse.ndbbank.com/api/categories/${categoryId}`, {
+      const response = await fetch(`${CONFIG.apiEndpoint}/categories/${categoryId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -146,7 +147,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     
     try {
       const token = localStorage.getItem('auth_token');
-      const url = migrateTo ? `https://threatresponse.ndbbank.com/api/categories/${categoryId}?migrateTo=${migrateTo}` : `https://threatresponse.ndbbank.com/api/categories/${categoryId}`;
+      const url = migrateTo ? `${CONFIG.apiEndpoint}/categories/${categoryId}?migrateTo=${migrateTo}` : `${CONFIG.apiEndpoint}/categories/${categoryId}`;
       
       console.log('Making delete request to:', url);
       
