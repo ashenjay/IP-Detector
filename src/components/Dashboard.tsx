@@ -41,7 +41,7 @@ const Dashboard: React.FC = () => {
   const [extracting, setExtracting] = React.useState(false);
   const [lastRefresh, setLastRefresh] = React.useState(new Date());
   const [showPasswordAlert, setShowPasswordAlert] = React.useState(false);
-  const [dropdownOpen, setDropdownOpen] = React.useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = React.useState(false);
 
   // Check password expiration - show warning 15 days before expiration
   React.useEffect(() => {
@@ -67,25 +67,25 @@ const Dashboard: React.FC = () => {
     return () => clearInterval(interval);
   }, [refreshData]);
 
-  const toggleDropdown = (e: React.MouseEvent) => {
+  const toggleUserDropdown = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setDropdownOpen(!dropdownOpen);
+    setUserDropdownOpen(!userDropdownOpen);
   };
 
   // Close dropdown when clicking outside
   React.useEffect(() => {
     const handleClickOutside = () => {
-      setDropdownOpen(false);
+      setUserDropdownOpen(false);
     };
 
-    if (dropdownOpen) {
+    if (userDropdownOpen) {
       document.addEventListener('click', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('click', handleClickOutside);
     };
-  }, [dropdownOpen]);
+  }, [userDropdownOpen]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -255,11 +255,37 @@ const Dashboard: React.FC = () => {
             </div>
             
             <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-              <div className="text-xs sm:text-sm text-cyan-200 order-last sm:order-first w-full sm:w-auto text-center sm:text-left font-mono">
-                Welcome, <span className="font-medium text-cyan-300">{user?.username}</span>
-                <span className="ml-2 px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-xs border border-cyan-500/30">
-                  {user?.role}
-                </span>
+              <div className="relative order-last sm:order-first w-full sm:w-auto text-center sm:text-left">
+                <div className="text-xs sm:text-sm text-cyan-200 font-mono">
+                  Welcome, 
+                  <button
+                    onClick={toggleUserDropdown}
+                    className="font-medium text-cyan-300 hover:text-cyan-100 transition-colors ml-1 underline decoration-dotted"
+                  >
+                    {user?.username}
+                  </button>
+                  <span className="ml-2 px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-xs border border-cyan-500/30">
+                    {user?.role}
+                  </span>
+                </div>
+                
+                {/* User Dropdown Menu */}
+                {userDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-48 bg-black/90 backdrop-blur-xl border border-cyan-500/30 rounded-lg shadow-2xl z-50">
+                    <div className="py-2">
+                      <div
+                        onClick={() => {
+                          window.location.hash = '/change-password';
+                          setUserDropdownOpen(false);
+                        }}
+                        className="flex items-center space-x-2 px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/20 hover:text-cyan-100 cursor-pointer transition-colors"
+                      >
+                        <Lock className="h-4 w-4" />
+                        <span>Change Password</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="mt-1">
                   <button
                     onClick={() => window.location.hash = '/change-password'}
