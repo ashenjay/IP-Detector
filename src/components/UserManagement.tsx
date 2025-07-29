@@ -931,7 +931,6 @@ const UserManagement: React.FC = () => {
                               </span>
                             </>
                           )}
-                          </span>
                         </div>
                         {userItem.passwordExpiresAt && userItem.role !== 'superadmin' && (
                           <div className="text-xs text-gray-500 mt-1">
