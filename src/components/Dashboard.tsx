@@ -197,127 +197,142 @@ const Dashboard: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+          <div className="flex flex-wrap justify-between items-center min-h-16 py-2">
+            <div className="flex items-center space-x-2 sm:space-x-3 mb-2 sm:mb-0">
               <Shield className="h-8 w-8 text-blue-600" />
-              <h1 className="text-xl font-bold text-gray-900">Abuse IP Detector</h1>
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900 hidden sm:block">Abuse IP Detector</h1>
+              <h1 className="text-lg font-bold text-gray-900 sm:hidden">AID</h1>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-600">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+              <div className="text-xs sm:text-sm text-gray-600 order-last sm:order-first w-full sm:w-auto text-center sm:text-left">
                 Welcome, <span className="font-medium">{user?.username}</span>
                 <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
                   {user?.role}
                 </span>
               </div>
               
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 hidden lg:block">
                 Last refresh: {lastRefresh.toLocaleTimeString()}
               </div>
               
-              {(user?.role === 'superadmin' || user?.role === 'soc_admin') && (
+              {/* Action Buttons - Responsive Layout */}
+              <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                {(user?.role === 'superadmin' || user?.role === 'soc_admin') && (
+                  <>
+                    <button
+                      onClick={handleAbuseIPDBSync}
+                      disabled={syncing}
+                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors disabled:opacity-50"
+                      title="Sync with AbuseIPDB (80%+ confidence)"
+                    >
+                      <Download className={`h-3 w-3 sm:h-4 sm:w-4 ${syncing ? 'animate-bounce' : ''}`} />
+                      <span className="hidden sm:inline">{syncing ? 'Syncing...' : 'Sync AbuseIPDB'}</span>
+                      <span className="sm:hidden">ADB</span>
+                    </button>
+                    
+                    <button
+                      onClick={handleVirusTotalSync}
+                      disabled={syncingVT}
+                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
+                      title="Sync with VirusTotal (80%+ malicious)"
+                    >
+                      <Download className={`h-3 w-3 sm:h-4 sm:w-4 ${syncingVT ? 'animate-bounce' : ''}`} />
+                      <span className="hidden sm:inline">{syncingVT ? 'Syncing VT...' : 'Sync VirusTotal'}</span>
+                      <span className="sm:hidden">VT</span>
+                    </button>
+                    
+                    <button
+                      onClick={handleUpdateSources}
+                      disabled={updating}
+                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50"
+                      title="Update source IP intelligence"
+                    >
+                      <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 ${updating ? 'animate-spin' : ''}`} />
+                      <span className="hidden lg:inline">{updating ? 'Updating...' : 'Update Sources'}</span>
+                      <span className="lg:hidden">Update</span>
+                    </button>
+                    
+                    <button
+                      onClick={handleBulkExtract}
+                      disabled={extracting}
+                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50"
+                      title="Extract IPs from sources to categories"
+                    >
+                      <TrendingUp className={`h-3 w-3 sm:h-4 sm:w-4 ${extracting ? 'animate-bounce' : ''}`} />
+                      <span className="hidden lg:inline">{extracting ? 'Extracting...' : 'Extract Sources'}</span>
+                      <span className="lg:hidden">Extract</span>
+                    </button>
+                  </>
+                )}
+                
                 <button
-                  onClick={handleAbuseIPDBSync}
-                  disabled={syncing}
-                  className="flex items-center space-x-2 px-3 py-2 text-sm text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors disabled:opacity-50"
-                  title="Sync with AbuseIPDB (80%+ confidence)"
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="p-1 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Refresh data"
                 >
-                  <Download className={`h-4 w-4 ${syncing ? 'animate-bounce' : ''}`} />
-                  <span>{syncing ? 'Syncing...' : 'Sync AbuseIPDB'}</span>
+                  <RefreshCw className={`h-4 w-4 sm:h-5 sm:w-5 ${refreshing ? 'animate-spin' : ''}`} />
                 </button>
-              )}
-              
-              {(user?.role === 'superadmin' || user?.role === 'soc_admin') && (
-                <button
-                  onClick={handleVirusTotalSync}
-                  disabled={syncingVT}
-                  className="flex items-center space-x-2 px-3 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
-                  title="Sync with VirusTotal (80%+ malicious)"
-                >
-                  <Download className={`h-4 w-4 ${syncingVT ? 'animate-bounce' : ''}`} />
-                  <span>{syncingVT ? 'Syncing VT...' : 'Sync VirusTotal'}</span>
-                </button>
-              )}
-              
-              {(user?.role === 'superadmin' || user?.role === 'soc_admin') && (
-                <button
-                  onClick={handleUpdateSources}
-                  disabled={updating}
-                  className="flex items-center space-x-2 px-3 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50"
-                  title="Update source IP intelligence"
-                >
-                  <RefreshCw className={`h-4 w-4 ${updating ? 'animate-spin' : ''}`} />
-                  <span>{updating ? 'Updating...' : 'Update Sources'}</span>
-                </button>
-              )}
-              
-              {(user?.role === 'superadmin' || user?.role === 'soc_admin') && (
-                <button
-                  onClick={handleBulkExtract}
-                  disabled={extracting}
-                  className="flex items-center space-x-2 px-3 py-2 text-sm text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-50"
-                  title="Extract IPs from sources to categories"
-                >
-                  <TrendingUp className={`h-4 w-4 ${extracting ? 'animate-bounce' : ''}`} />
-                  <span>{extracting ? 'Extracting...' : 'Extract Sources'}</span>
-                </button>
-              )}
-              
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
-              </button>
-              
-              <button
-                onClick={logout}
-                className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Logout</span>
-              </button>
-              
-              <button
-                onClick={() => window.location.hash = '/change-password'}
-                className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Change Password"
-              >
-                <Lock className="h-4 w-4" />
-                <span>Password</span>
-              </button>
-              
-              {user?.role === 'superadmin' && (
-                <button
-                  onClick={() => window.open('#/users', '_self')}
-                  className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <User className="h-4 w-4" />
-                  <span>Users</span>
-                </button>
-              )}
-              
-              {user?.role === 'superadmin' && (
-                <button
-                  onClick={() => window.open('#/categories', '_self')}
-                  className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <Settings className="h-4 w-4" />
-                  <span>Categories</span>
-                </button>
-              )}
-              
-              {user?.role === 'superadmin' && (
-                <button
-                  onClick={() => window.open('#/expiration', '_self')}
-                  className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <Clock className="h-4 w-4" />
-                  <span>Expiration</span>
-                </button>
-              )}
+                
+                {/* Dropdown Menu for smaller screens */}
+                <div className="relative group">
+                  <button className="p-1 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                    <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </button>
+                  
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="py-1">
+                      <button
+                        onClick={() => window.location.hash = '/change-password'}
+                        className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                      >
+                        <Lock className="h-4 w-4" />
+                        <span>Change Password</span>
+                      </button>
+                      
+                      {user?.role === 'superadmin' && (
+                        <>
+                          <button
+                            onClick={() => window.open('#/users', '_self')}
+                            className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                          >
+                            <User className="h-4 w-4" />
+                            <span>User Management</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => window.open('#/categories', '_self')}
+                            className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                          >
+                            <Settings className="h-4 w-4" />
+                            <span>Category Management</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => window.open('#/expiration', '_self')}
+                            className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                          >
+                            <Clock className="h-4 w-4" />
+                            <span>Expiration Management</span>
+                          </button>
+                        </>
+                      )}
+                      
+                      <div className="border-t border-gray-200 my-1"></div>
+                      
+                      <button
+                        onClick={logout}
+                        className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -403,11 +418,11 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Categories Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-8">
           {activeCategories.map((category) => (
             <div
               key={category.id}
-              className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow ${
+              className={`bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow ${
                 !canAccessCategory(category.id) ? 'opacity-60' : ''
               }`}
             >
@@ -433,7 +448,7 @@ const Dashboard: React.FC = () => {
               <div className="flex space-x-2">
                 <button
                   onClick={() => window.location.hash = `/list/${category.id}`}
-                  className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-1"
+                  className="flex-1 px-2 sm:px-3 py-2 bg-blue-600 text-white text-xs sm:text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-1"
                   disabled={!canAccessCategory(category.id)}
                 >
                   <Eye className="h-4 w-4" />
@@ -442,7 +457,7 @@ const Dashboard: React.FC = () => {
                 
                 <button
                   onClick={() => window.location.hash = `/edl/${category.name}`}
-                  className="px-3 py-2 bg-green-100 text-green-700 text-sm rounded-lg hover:bg-green-200 transition-colors flex items-center justify-center"
+                  className="px-2 sm:px-3 py-2 bg-green-100 text-green-700 text-xs sm:text-sm rounded-lg hover:bg-green-200 transition-colors flex items-center justify-center"
                   title="View EDL Feed Link"
                 >
                   <span className="text-xs">EDL</span>
@@ -450,7 +465,7 @@ const Dashboard: React.FC = () => {
                 
                 <button
                   onClick={() => window.open(`https://threatresponse.ndbbank.com/api/edl/${category.name}`, '_blank')}
-                  className="px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
+                  className="px-2 sm:px-3 py-2 bg-gray-100 text-gray-700 text-xs sm:text-sm rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
                   title="Plain Text EDL"
                 >
                   <span className="text-xs">TXT</span>
@@ -494,11 +509,11 @@ const Dashboard: React.FC = () => {
         )}
 
         {/* Stats Overview */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Malicious Entries</p>
+                <p className="text-xs sm:text-sm text-gray-600">Total Malicious Entries</p>
                 <p className="text-2xl font-bold text-gray-900">{ipEntries.length}</p>
                 <p className="text-xs text-gray-500 mt-1">
                   IPs, Hostnames & FQDNs | Manual: {sourceStats.manual} | AbuseIPDB: {sourceStats.abuseipdb} | VT: {sourceStats.virustotal}
@@ -513,7 +528,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Whitelisted Entries</p>
+                <p className="text-xs sm:text-sm text-gray-600">Whitelisted Entries</p>
                 <p className="text-2xl font-bold text-gray-900">{whitelistEntries.length}</p>
                 <p className="text-xs text-gray-500 mt-1">IPs, Hostnames & FQDNs protected from all sources</p>
               </div>
@@ -526,7 +541,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Active Categories</p>
+                <p className="text-xs sm:text-sm text-gray-600">Active Categories</p>
                 <p className="text-2xl font-bold text-gray-900">{activeCategories.length}</p>
                 <p className="text-xs text-gray-500 mt-1">Threat classification categories</p>
               </div>
