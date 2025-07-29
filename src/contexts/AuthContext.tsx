@@ -20,10 +20,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user && user.role === 'superadmin') {
       fetchUsers();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   const fetchUsers = async () => {
     try {
