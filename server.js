@@ -58,15 +58,6 @@ app.use((req, res, next) => {
 app.set('trust proxy', true);
 
 // Basic health check route
-app.get('/', (req, res) => {
-  // Serve React app for root route
-  console.log('Serving React app for root route');
-  const indexPath = path.join(__dirname, 'dist', 'index.html');
-  console.log('📄 Serving index.html from:', indexPath);
-  res.sendFile(indexPath);
-});
-
-// API health check
 app.get('/api/health', (req, res) => {
   res.json({ 
     message: 'Abuse IP Detector Server',
