@@ -574,7 +574,7 @@ app.get('/api/users/my-password-status', authenticateToken, async (req, res) => 
     // Check if password policy view exists, if not return basic info
     const viewCheck = await pool.query(`
       SELECT EXISTS (
-        SELECT FROM information_schema.tables 
+        SELECT FROM information_schema.views 
         WHERE table_name = 'user_password_status'
       );
     `);
@@ -583,12 +583,12 @@ app.get('/api/users/my-password-status', authenticateToken, async (req, res) => 
       // Return basic status if password policy not implemented yet
       const userResult = await pool.query(`
         SELECT 
-          created_at as password_changed_at,
+          COALESCE(password_changed_at, created_at) as password_changed_at,
           NULL as password_expires_at,
           must_change_password,
           CASE 
             WHEN role = 'superadmin' THEN 'No Expiration'
-            ELSE 'Not Set'
+            ELSE 'Active'
           END as password_status,
           NULL as days_until_expiry
         FROM users
@@ -641,26 +641,8 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
       label: r.label, 
       ip_count: r.ip_count 
     })));
-    const usersResult = await pool.query(`
-      SELECT 
-        u.id, 
-        u.username, 
-        u.email, 
-        u.role, 
-        u.assigned_categories, 
-        u.is_active, 
-        u.must_change_password, 
-        u.created_by, 
-        u.created_at,
-        u.password_changed_at,
-        u.password_expires_at,
-        ups.password_status,
-        ups.days_until_expiry
-      FROM users u
-      LEFT JOIN user_password_status ups ON u.id = ups.id
-      ORDER BY u.created_at DESC
-    `);
-    res.json(usersResult.rows);
+    
+    res.json(result.rows);
   } catch (error) {
     console.error('Get categories error:', error);
     res.status(500).json({ error: 'Failed to get categories' });
