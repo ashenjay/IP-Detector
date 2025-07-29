@@ -11,7 +11,7 @@
     "build:demo": "vite build --mode demo",
     "deploy:aws": "./deploy-minimal.sh",
     "deploy:ec2": "./deploy-ec2.sh",
-    "start": "npm run build && node server.js",
+    "start": "VITE_LOCAL_API=true npm run build && node server.js",
     "start:backend": "node server.js",
     "start:frontend": "vite"
   },
