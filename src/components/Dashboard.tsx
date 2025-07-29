@@ -455,19 +455,11 @@ const Dashboard: React.FC = () => {
                 </button>
                 
                 <button
-                  onClick={() => window.location.hash = `/edl/${category.name}`}
-                  className="px-3 py-2 bg-green-500/20 text-green-400 text-sm rounded-lg hover:bg-green-500/30 transition-colors flex items-center justify-center border border-green-500/30"
-                  title="View EDL Feed Link"
-                >
-                  <span className="text-xs">EDL</span>
-                </button>
-                
-                <button
                   onClick={() => window.open(`https://threatresponse.ndbbank.com/api/edl/${category.name}`, '_blank')}
                   className="px-3 py-2 bg-gray-500/20 text-gray-400 text-sm rounded-lg hover:bg-gray-500/30 transition-colors flex items-center justify-center border border-gray-500/30"
-                  title="Plain Text EDL"
+                  title="External Dynamic List Feed"
                 >
-                  <span className="text-xs">TXT</span>
+                  <span className="text-xs">EDL</span>
                 </button>
               </div>
             </div>
