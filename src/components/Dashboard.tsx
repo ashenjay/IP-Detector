@@ -41,7 +41,8 @@ const Dashboard: React.FC = () => {
   const [extracting, setExtracting] = React.useState(false);
   const [lastRefresh, setLastRefresh] = React.useState(new Date());
   const [showPasswordAlert, setShowPasswordAlert] = React.useState(false);
-  const [userDropdownOpen, setUserDropdownOpen] = React.useState(false);
+
+  const toggleUserDropdown = () => setUserDropdownOpen(prev => !prev);
 
   // Check password expiration - show warning 15 days before expiration
   React.useEffect(() => {
