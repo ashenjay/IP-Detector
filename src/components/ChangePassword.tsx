@@ -274,16 +274,7 @@ const ChangePassword: React.FC = () => {
             {!isForceChange && (
               <button
                 type="button"
-                onClick={() => {
-                  // Clear form data
-                  setCurrentPassword('');
-                  setPassword('');
-                  setConfirm('');
-                  setError('');
-                  setSuccess('');
-                  // Navigate back using browser history
-                  window.history.back();
-                }}
+                onClick={() => window.location.hash = '#/'}
                 className="w-full bg-gray-500/20 text-gray-300 py-3 rounded-lg hover:bg-gray-500/30 transition-colors border border-gray-500/30 font-mono"
               >
                 CANCEL
