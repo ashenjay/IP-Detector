@@ -281,8 +281,8 @@ const ChangePassword: React.FC = () => {
                   setConfirm('');
                   setError('');
                   setSuccess('');
-                  // Navigate back to dashboard
-                  window.location.href = '#/';
+                  // Navigate back using browser history
+                  window.history.back();
                 }}
                 className="w-full bg-gray-500/20 text-gray-300 py-3 rounded-lg hover:bg-gray-500/30 transition-colors border border-gray-500/30 font-mono"
               >
