@@ -260,6 +260,14 @@ const Dashboard: React.FC = () => {
                 <span className="ml-2 px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-xs border border-cyan-500/30">
                   {user?.role}
                 </span>
+                <div className="mt-1">
+                  <button
+                    onClick={() => window.location.hash = '/change-password'}
+                    className="text-xs text-orange-400 hover:text-orange-300 underline transition-colors"
+                  >
+                    Change Password
+                  </button>
+                </div>
               </div>
               
               <div className="text-xs text-cyan-400 hidden lg:block font-mono">
@@ -268,15 +276,6 @@ const Dashboard: React.FC = () => {
               
               {/* Action Buttons - Responsive Layout */}
               <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                <button
-                  onClick={() => window.location.hash = '/change-password'}
-                  className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 rounded-lg transition-all duration-300 border border-orange-500/30"
-                >
-                  <Lock className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Change Password</span>
-                  <span className="sm:hidden">Pass</span>
-                </button>
-                
                 {user?.role === 'superadmin' && (
                   <>
                     <button
