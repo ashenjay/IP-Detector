@@ -6,7 +6,7 @@ export const CONFIG = {
   isDevelopment: import.meta.env.DEV,
   
   // API endpoints - Use local server in development, production server in production
-  apiEndpoint: import.meta.env.DEV ? 'http://localhost:3000/api' : 'https://threatresponse.ndbbank.com/api',
+  apiEndpoint: import.meta.env.DEV ? 'https://localhost:3000/api' : 'https://threatresponse.ndbbank.com/api',
     
   // Feature flags - Dynamic based on environment
   features: {
@@ -22,7 +22,7 @@ export const getEnvironmentMessage = () => {
     return {
       type: 'info',
       title: 'Development Mode',
-      message: 'Connected to local server: localhost:3000'
+      message: 'Connected to local server: https://localhost:3000'
     };
   } else {
     return {
