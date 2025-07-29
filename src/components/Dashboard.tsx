@@ -185,6 +185,9 @@ const Dashboard: React.FC = () => {
     return true; // viewers can view all
   };
 
+  // Filter categories based on user access
+  const visibleCategories = activeCategories.filter(category => canAccessCategory(category.id));
+
   const getSourceStats = () => {
     const manual = ipEntries.filter(entry => entry.source === 'manual').length;
     const abuseipdb = ipEntries.filter(entry => entry.source === 'abuseipdb').length;
@@ -409,12 +412,10 @@ const Dashboard: React.FC = () => {
 
         {/* Categories Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8 relative z-10">
-          {activeCategories.map((category) => (
+          {visibleCategories.map((category) => (
             <div
               key={category.id}
-              className={`bg-black/40 backdrop-blur-xl rounded-xl shadow-2xl border border-cyan-500/20 p-6 hover:shadow-cyan-500/20 hover:border-cyan-500/40 transition-all duration-300 ${
-                !canAccessCategory(category.id) ? 'opacity-60' : ''
-              }`}
+              className="bg-black/40 backdrop-blur-xl rounded-xl shadow-2xl border border-cyan-500/20 p-6 hover:shadow-cyan-500/20 hover:border-cyan-500/40 transition-all duration-300"
             >
               <div className="flex items-center justify-between mb-4">
                 <div className={`p-3 rounded-lg ${category.color} text-white`}>
@@ -439,7 +440,6 @@ const Dashboard: React.FC = () => {
                 <button
                   onClick={() => window.location.hash = `/list/${category.id}`}
                   className="flex-1 px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center space-x-1 border border-blue-500/30"
-                  disabled={!canAccessCategory(category.id)}
                 >
                   <Eye className="h-4 w-4" />
                   <span>View</span>
@@ -524,7 +524,7 @@ const Dashboard: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-cyan-300 font-mono">Active Categories</p>
-                <p className="text-2xl font-bold text-cyan-200 font-mono">{activeCategories.length}</p>
+                <p className="text-2xl font-bold text-cyan-200 font-mono">{visibleCategories.length}</p>
                 <p className="text-xs text-cyan-400 mt-1">Threat classification categories</p>
               </div>
               <div className="p-3 rounded-lg bg-purple-100 text-purple-600">
