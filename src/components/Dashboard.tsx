@@ -277,7 +277,7 @@ const Dashboard: React.FC = () => {
                   <>
                     <button
                       onClick={() => window.location.hash = '/users'}
-                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-300 border border-blue-500/30"
+                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-cyan-300 bg-black/40 backdrop-blur-xl hover:bg-cyan-500/20 hover:text-cyan-100 rounded-lg transition-all duration-300 border border-cyan-500/30"
                     >
                       <User className="h-3 w-3 sm:h-4 sm:w-4" />
                       <span className="hidden md:inline">Users</span>
@@ -286,7 +286,7 @@ const Dashboard: React.FC = () => {
                     
                     <button
                       onClick={() => window.location.hash = '/categories'}
-                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-lg transition-all duration-300 border border-purple-500/30"
+                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-cyan-300 bg-black/40 backdrop-blur-xl hover:bg-cyan-500/20 hover:text-cyan-100 rounded-lg transition-all duration-300 border border-cyan-500/30"
                     >
                       <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
                       <span className="hidden md:inline">Categories</span>
@@ -295,7 +295,7 @@ const Dashboard: React.FC = () => {
                     
                     <button
                       onClick={() => window.location.hash = '/expiration'}
-                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-lg transition-all duration-300 border border-green-500/30"
+                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-cyan-300 bg-black/40 backdrop-blur-xl hover:bg-cyan-500/20 hover:text-cyan-100 rounded-lg transition-all duration-300 border border-cyan-500/30"
                     >
                       <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
                       <span className="hidden md:inline">Expiration</span>
@@ -306,7 +306,7 @@ const Dashboard: React.FC = () => {
                 
                 <button
                   onClick={() => window.location.hash = '/change-password'}
-                  className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 rounded-lg transition-all duration-300 border border-orange-500/30"
+                  className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-cyan-300 bg-black/40 backdrop-blur-xl hover:bg-cyan-500/20 hover:text-cyan-100 rounded-lg transition-all duration-300 border border-cyan-500/30"
                 >
                   <Lock className="h-3 w-3 sm:h-4 sm:w-4" />
                   <span className="hidden md:inline">Change Password</span>
@@ -316,7 +316,7 @@ const Dashboard: React.FC = () => {
                 <button
                   onClick={handleRefresh}
                   disabled={refreshing}
-                  className="p-1 sm:p-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors border border-cyan-500/30"
+                  className="flex items-center justify-center px-2 sm:px-3 py-1 sm:py-2 text-cyan-300 bg-black/40 backdrop-blur-xl hover:bg-cyan-500/20 hover:text-cyan-100 rounded-lg transition-all duration-300 border border-cyan-500/30"
                   title="Refresh data"
                 >
                   <RefreshCw className={`h-4 w-4 sm:h-5 sm:w-5 ${refreshing ? 'animate-spin' : ''}`} />
@@ -324,7 +324,7 @@ const Dashboard: React.FC = () => {
                 
                 <button
                   onClick={logout}
-                  className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-lg transition-all duration-300 border border-red-500/30"
+                  className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-cyan-300 bg-black/40 backdrop-blur-xl hover:bg-cyan-500/20 hover:text-cyan-100 rounded-lg transition-all duration-300 border border-cyan-500/30"
                 >
                   <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
                   <span className="hidden md:inline">Logout</span>
