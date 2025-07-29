@@ -274,8 +274,13 @@ const ChangePassword: React.FC = () => {
             {!isForceChange && (
               <button
                 type="button"
-               onClick={() => window.location.href = '#/'}
-                <span>BACK</span>
+                onClick={() => window.location.href = '#/'}
+                className="bg-gray-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-black transition-all duration-300 transform hover:scale-105 active:scale-95 relative overflow-hidden group"
+              >
+                <div className="relative z-10 flex items-center justify-center font-mono">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  <span>BACK</span>
+                </div>
               </button>
             )}
           </div>
