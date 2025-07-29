@@ -39,6 +39,7 @@ const Dashboard: React.FC = () => {
   const [syncingVT, setSyncingVT] = React.useState(false);
   const [updating, setUpdating] = React.useState(false);
   const [extracting, setExtracting] = React.useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = React.useState(false);
   const [lastRefresh, setLastRefresh] = React.useState(new Date());
   const [showPasswordAlert, setShowPasswordAlert] = React.useState(false);
 
