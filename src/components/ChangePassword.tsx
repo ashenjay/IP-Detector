@@ -168,7 +168,7 @@ const ChangePassword: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute top-2.5 right-3 text-cyan-400 hover:text-cyan-300 transition-colors"
+                  className="w-full bg-gray-500/20 text-gray-300 py-3 rounded-lg hover:bg-gray-500/30 transition-colors border border-gray-500/30 font-mono"
                 >
                   {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
