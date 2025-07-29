@@ -614,7 +614,6 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
     
-    const { name, label, description, color, icon, expiresAt, autoCleanup } = req.body;
     const { name, label, description, color, icon } = req.body;
     
     if (!name || !label || !description) {
