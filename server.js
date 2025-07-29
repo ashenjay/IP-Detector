@@ -37,7 +37,13 @@ const pool = new Pool({
 // Test database connection
 pool.connect((err, client, release) => {
   if (err) {
-    console.error('❌ Error connecting to database:', err.stack);
+    console.error('❌ Error connecting to database:', err.message);
+    console.error('❌ Database connection details:');
+    console.error('   Host:', process.env.DB_HOST || 'localhost');
+    console.error('   Port:', process.env.DB_PORT || 5432);
+    console.error('   Database:', process.env.DB_NAME || 'threatresponse');
+    console.error('   User:', process.env.DB_USER || 'postgres');
+    console.error('❌ Please check your database credentials and ensure the database is running');
   } else {
     console.log('✅ Connected to PostgreSQL database');
     release();
@@ -214,10 +220,23 @@ app.post('/api/auth/login', async (req, res) => {
     
     console.log('Login attempt:', { username, password: '***' });
     
-    const result = await pool.query(
-      'SELECT * FROM users WHERE LOWER(username) = LOWER($1) AND is_active = true',
-      [username]
-    );
+    let result;
+    try {
+      result = await pool.query(
+        'SELECT * FROM users WHERE LOWER(username) = LOWER($1) AND is_active = true',
+        [username]
+      );
+    } catch (dbError) {
+      console.error('Database query error:', dbError.message);
+      if (dbError.code === '28P01') {
+        console.error('❌ Database authentication failed. Please check DB_PASSWORD environment variable.');
+      } else if (dbError.code === '3D000') {
+        console.error('❌ Database does not exist. Please check DB_NAME environment variable.');
+      } else if (dbError.code === 'ECONNREFUSED') {
+        console.error('❌ Cannot connect to database server. Please check if PostgreSQL is running.');
+      }
+      return res.status(500).json({ error: 'Database connection error. Please contact administrator.' });
+    }
     
     console.log('Database query result:', result.rows.length, 'users found');
     
@@ -271,8 +290,13 @@ app.post('/api/auth/login', async (req, res) => {
     console.log('Login successful for user:', username);
     res.json({ user: userResponse, token });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    console.error('Login error:', error.message);
+    if (error.code === '28P01') {
+      console.error('❌ Database authentication failed. Check your database password.');
+      res.status(500).json({ error: 'Database configuration error. Please contact administrator.' });
+    } else {
+      res.status(500).json({ error: 'Login failed. Please try again.' });
+    }
   }
 });
 
