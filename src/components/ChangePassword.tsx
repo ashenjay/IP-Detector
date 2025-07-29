@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Lock, AlertCircle, Shield, Eye, EyeOff, Calendar, Clock, ArrowLeft } from 'lucide-react';
 
-const ChangePassword: React.FC = () => {
+export default function ChangePassword() {
   const { updatePassword, logout, user } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
@@ -288,6 +288,3 @@ const ChangePassword: React.FC = () => {
       </div>
     </div>
   );
-};
-
-export default ChangePassword;
