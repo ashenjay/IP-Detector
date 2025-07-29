@@ -529,8 +529,8 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
     console.log('Available columns in categories table:', tableInfo.rows.map(r => r.column_name));
     
     const result = await pool.query(
-      'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-      [name.trim().toLowerCase(), label.trim(), description.trim(), color || 'bg-blue-500', icon || 'Shield', false, true, req.user.username]
+      'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by, expiration_hours, auto_cleanup) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+      [name.trim().toLowerCase(), label.trim(), description.trim(), color || 'bg-blue-500', icon || 'Shield', false, true, req.user.username, null, false]
     );
     
     console.log('Category created successfully:', result.rows[0].name);
