@@ -479,7 +479,14 @@ app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
 // Categories
 app.get('/api/categories', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM categories ORDER BY created_at');
+    const result = await pool.query(`
+      SELECT c.*, 
+             COUNT(ie.id) as ip_count
+      FROM categories c
+      LEFT JOIN ip_entries ie ON c.id = ie.category_id
+      GROUP BY c.id, c.name, c.label, c.description, c.color, c.icon, c.is_default, c.is_active, c.created_by, c.created_at
+      ORDER BY c.created_at
+    `);
     res.json(result.rows);
   } catch (error) {
     console.error('Get categories error:', error);
@@ -512,6 +519,15 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Category name already exists' });
     }
     
+    // First check what columns exist in the categories table
+    const tableInfo = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'categories' 
+      ORDER BY ordinal_position
+    `);
+    console.log('Available columns in categories table:', tableInfo.rows.map(r => r.column_name));
+    
     const result = await pool.query(
       'INSERT INTO categories (name, label, description, color, icon, is_default, is_active, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
       [name.trim().toLowerCase(), label.trim(), description.trim(), color || 'bg-blue-500', icon || 'Shield', false, true, req.user.username]
@@ -521,6 +537,8 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Create category error:', error);
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ error: 'Failed to create category' });
   }
 });
