@@ -609,7 +609,7 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
       label: r.label, 
       ip_count: r.ip_count 
     })));
-    const result = await pool.query(`
+    const usersResult = await pool.query(`
       SELECT 
         u.id, 
         u.username, 
@@ -628,7 +628,7 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
       LEFT JOIN user_password_status ups ON u.id = ups.id
       ORDER BY u.created_at DESC
     `);
-    res.json(result.rows);
+    res.json(usersResult.rows);
   } catch (error) {
     console.error('Get categories error:', error);
     res.status(500).json({ error: 'Failed to get categories' });
