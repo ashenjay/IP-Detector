@@ -240,23 +240,20 @@ const Dashboard: React.FC = () => {
       {/* Header */}
       <header className="bg-black/40 backdrop-blur-xl border-b border-cyan-500/20 shadow-2xl relative z-10">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
-          <div className="flex flex-wrap justify-between items-center min-h-16 py-2">
-            <div className="flex items-center space-x-2 sm:space-x-3 mb-2 sm:mb-0">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-3">
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full animate-pulse opacity-75"></div>
                 <Shield className="h-8 w-8 text-cyan-400 relative z-10" />
               </div>
-              <h1 className="text-lg sm:text-xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text hidden sm:block font-mono">
+              <h1 className="text-xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text font-mono">
                 THREAT RESPONSE
-              </h1>
-              <h1 className="text-lg font-bold text-transparent bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text sm:hidden font-mono">
-                TR
               </h1>
             </div>
             
-            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-              <div className="relative order-last sm:order-first w-full sm:w-auto text-center sm:text-left">
-                <div className="text-xs sm:text-sm text-cyan-200 font-mono">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="text-sm text-cyan-200 font-mono">
                   Welcome, 
                   <button
                     onClick={toggleUserDropdown}
@@ -271,7 +268,7 @@ const Dashboard: React.FC = () => {
                 
                 {/* User Dropdown Menu */}
                 {userDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-48 bg-black/90 backdrop-blur-xl border border-cyan-500/30 rounded-lg shadow-2xl z-50">
+                  <div className="absolute top-full right-0 mt-2 w-48 bg-black/90 backdrop-blur-xl border border-cyan-500/30 rounded-lg shadow-2xl z-50">
                     <div className="py-2">
                       <div
                         onClick={() => {
@@ -288,12 +285,12 @@ const Dashboard: React.FC = () => {
                 )}
               </div>
               
-              <div className="text-xs text-cyan-400 hidden lg:block font-mono">
+              <div className="text-xs text-cyan-400 font-mono hidden lg:block">
                 Last refresh: {lastRefresh.toLocaleTimeString()}
               </div>
               
               {/* Action Buttons - Responsive Layout */}
-              <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+              <div className="flex items-center gap-2">
                 {user?.role === 'superadmin' && (
                   <>
                     <button
@@ -301,8 +298,8 @@ const Dashboard: React.FC = () => {
                       className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-300 border border-blue-500/30"
                     >
                       <User className="h-3 w-3 sm:h-4 sm:w-4" />
-                      <span className="hidden sm:inline">Users</span>
-                      <span className="sm:hidden">Users</span>
+                      <span className="hidden md:inline">Users</span>
+                      <span className="md:hidden">U</span>
                     </button>
                     
                     <button
@@ -310,8 +307,8 @@ const Dashboard: React.FC = () => {
                       className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 rounded-lg transition-all duration-300 border border-purple-500/30"
                     >
                       <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
-                      <span className="hidden sm:inline">Categories</span>
-                      <span className="sm:hidden">Cat</span>
+                      <span className="hidden md:inline">Categories</span>
+                      <span className="md:hidden">C</span>
                     </button>
                     
                     <button
@@ -319,8 +316,8 @@ const Dashboard: React.FC = () => {
                       className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-lg transition-all duration-300 border border-green-500/30"
                     >
                       <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
-                      <span className="hidden sm:inline">Expiration</span>
-                      <span className="sm:hidden">Exp</span>
+                      <span className="hidden md:inline">Expiration</span>
+                      <span className="md:hidden">E</span>
                     </button>
                   </>
                 )}
@@ -330,8 +327,8 @@ const Dashboard: React.FC = () => {
                   className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 rounded-lg transition-all duration-300 border border-orange-500/30"
                 >
                   <Lock className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Change Password</span>
-                  <span className="sm:hidden">Pass</span>
+                  <span className="hidden md:inline">Change Password</span>
+                  <span className="md:hidden">P</span>
                 </button>
                 
                 <button
@@ -348,8 +345,8 @@ const Dashboard: React.FC = () => {
                   className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-lg transition-all duration-300 border border-red-500/30"
                 >
                   <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Logout</span>
-                  <span className="sm:hidden">Out</span>
+                  <span className="hidden md:inline">Logout</span>
+                  <span className="md:hidden">L</span>
                 </button>
               </div>
             </div>
@@ -438,11 +435,11 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Categories Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-8 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8 relative z-10">
           {activeCategories.map((category) => (
             <div
               key={category.id}
-              className={`bg-black/40 backdrop-blur-xl rounded-xl shadow-2xl border border-cyan-500/20 p-4 sm:p-6 hover:shadow-cyan-500/20 hover:border-cyan-500/40 transition-all duration-300 ${
+              className={`bg-black/40 backdrop-blur-xl rounded-xl shadow-2xl border border-cyan-500/20 p-6 hover:shadow-cyan-500/20 hover:border-cyan-500/40 transition-all duration-300 ${
                 !canAccessCategory(category.id) ? 'opacity-60' : ''
               }`}
             >
@@ -468,7 +465,7 @@ const Dashboard: React.FC = () => {
               <div className="flex space-x-2">
                 <button
                   onClick={() => window.location.hash = `/list/${category.id}`}
-                  className="flex-1 px-2 sm:px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs sm:text-sm rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center space-x-1 border border-blue-500/30"
+                  className="flex-1 px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center justify-center space-x-1 border border-blue-500/30"
                   disabled={!canAccessCategory(category.id)}
                 >
                   <Eye className="h-4 w-4" />
@@ -477,7 +474,7 @@ const Dashboard: React.FC = () => {
                 
                 <button
                   onClick={() => window.location.hash = `/edl/${category.name}`}
-                  className="px-2 sm:px-3 py-2 bg-green-500/20 text-green-400 text-xs sm:text-sm rounded-lg hover:bg-green-500/30 transition-colors flex items-center justify-center border border-green-500/30"
+                  className="px-3 py-2 bg-green-500/20 text-green-400 text-sm rounded-lg hover:bg-green-500/30 transition-colors flex items-center justify-center border border-green-500/30"
                   title="View EDL Feed Link"
                 >
                   <span className="text-xs">EDL</span>
@@ -485,7 +482,7 @@ const Dashboard: React.FC = () => {
                 
                 <button
                   onClick={() => window.open(`https://threatresponse.ndbbank.com/api/edl/${category.name}`, '_blank')}
-                  className="px-2 sm:px-3 py-2 bg-gray-500/20 text-gray-400 text-xs sm:text-sm rounded-lg hover:bg-gray-500/30 transition-colors flex items-center justify-center border border-gray-500/30"
+                  className="px-3 py-2 bg-gray-500/20 text-gray-400 text-sm rounded-lg hover:bg-gray-500/30 transition-colors flex items-center justify-center border border-gray-500/30"
                   title="Plain Text EDL"
                 >
                   <span className="text-xs">TXT</span>
@@ -529,11 +526,11 @@ const Dashboard: React.FC = () => {
         )}
 
         {/* Stats Overview */}
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 relative z-10">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
           <div className="bg-black/40 backdrop-blur-xl rounded-xl shadow-2xl border border-cyan-500/20 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-cyan-300 font-mono">Total Malicious Entries</p>
+                <p className="text-sm text-cyan-300 font-mono">Total Malicious Entries</p>
                 <p className="text-2xl font-bold text-cyan-200 font-mono">{ipEntries.length}</p>
                 <p className="text-xs text-cyan-400 mt-1">
                   IPs, Hostnames & FQDNs | Manual: {sourceStats.manual} | AbuseIPDB: {sourceStats.abuseipdb} | VT: {sourceStats.virustotal}
@@ -548,7 +545,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-black/40 backdrop-blur-xl rounded-xl shadow-2xl border border-cyan-500/20 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-cyan-300 font-mono">Whitelisted Entries</p>
+                <p className="text-sm text-cyan-300 font-mono">Whitelisted Entries</p>
                 <p className="text-2xl font-bold text-cyan-200 font-mono">{whitelistEntries.length}</p>
                 <p className="text-xs text-cyan-400 mt-1">IPs, Hostnames & FQDNs protected from all sources</p>
               </div>
@@ -561,7 +558,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-black/40 backdrop-blur-xl rounded-xl shadow-2xl border border-cyan-500/20 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-cyan-300 font-mono">Active Categories</p>
+                <p className="text-sm text-cyan-300 font-mono">Active Categories</p>
                 <p className="text-2xl font-bold text-cyan-200 font-mono">{activeCategories.length}</p>
                 <p className="text-xs text-cyan-400 mt-1">Threat classification categories</p>
               </div>

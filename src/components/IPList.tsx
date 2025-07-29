@@ -325,28 +325,35 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black relative overflow-hidden">
+      {/* Cybersecurity Background Pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,255,0.1),transparent_50%)]"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_24%,rgba(0,255,255,0.05)_25%,rgba(0,255,255,0.05)_26%,transparent_27%,transparent_74%,rgba(0,255,255,0.05)_75%,rgba(0,255,255,0.05)_76%,transparent_77%,transparent)] bg-[length:50px_50px]"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(0deg,transparent_24%,rgba(0,255,255,0.05)_25%,rgba(0,255,255,0.05)_26%,transparent_27%,transparent_74%,rgba(0,255,255,0.05)_75%,rgba(0,255,255,0.05)_76%,transparent_77%,transparent)] bg-[length:50px_50px]"></div>
+      </div>
+
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-black/40 backdrop-blur-xl border-b border-cyan-500/20 shadow-2xl relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => window.location.hash = '/'}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors border border-cyan-500/30"
               >
                 <ArrowLeft className="h-5 w-5" />
               </button>
-              <h1 className="text-xl font-bold text-gray-900">{title}</h1>
-              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+              <h1 className="text-xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text font-mono">{title}</h1>
+              <span className="px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-xs border border-cyan-500/30">
                 {filteredEntries.length} entries
               </span>
               {category === 'sources' && selectedEntries.size > 0 && (
-                <span className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs">
+                <span className="px-2 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs border border-emerald-500/30">
                   {selectedEntries.size} selected
                 </span>
               )}
-              <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
+              <span className="px-2 py-1 bg-gray-500/20 text-gray-300 rounded-full text-xs border border-gray-500/30">
                 Updated: {lastRefresh.toLocaleTimeString()}
               </span>
             </div>
@@ -355,7 +362,7 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
               {category === 'sources' && selectedEntries.size > 0 && (
                 <button
                   onClick={() => setShowExtractModal(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg hover:from-emerald-700 hover:to-emerald-800 transition-all duration-300 border border-emerald-500/30"
                 >
                   <TrendingUp className="h-4 w-4" />
                   <span>Extract Selected</span>
@@ -365,7 +372,7 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
               {canAdd && (
                 <button
                   onClick={() => setShowAddForm(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 border border-blue-500/30"
                 >
                   <Plus className="h-4 w-4" />
                   <span>Add</span>
@@ -377,7 +384,7 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Search and Filters */}
         <div className="mb-6">
           <div className="flex items-center space-x-4">
@@ -390,14 +397,14 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search IPs or descriptions..."
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="block w-full pl-10 pr-3 py-2 bg-black/50 border border-cyan-500/30 text-white placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-300"
               />
             </div>
             
             {category === 'sources' && filteredEntries.length > 0 && (
               <button
                 onClick={selectAll}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 bg-gray-500/20 text-gray-300 rounded-lg hover:bg-gray-500/30 transition-colors border border-gray-500/30"
               >
                 {selectedEntries.size === filteredEntries.length ? 'Deselect All' : 'Select All'}
               </button>
@@ -407,13 +414,13 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
 
         {/* Add IP Form */}
         {showAddForm && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-black/40 backdrop-blur-xl rounded-xl shadow-2xl border border-cyan-500/20 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-cyan-200 mb-4 font-mono">
               Add New {isWhitelist ? 'Whitelist' : ''} Entry
             </h3>
             <form onSubmit={handleAdd} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-cyan-300 mb-1 font-mono">
                   IP Address, Hostname, or FQDN
                 </label>
                 <input
@@ -421,15 +428,15 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
                   value={newIP}
                   onChange={(e) => setNewIP(e.target.value)}
                   placeholder="e.g., 192.168.1.1, malicious.com, or evil.domain.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-black/50 border border-cyan-500/30 text-white placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-300"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-cyan-400 mt-1">
                   Supports: IPv4/IPv6 addresses, CIDR blocks, hostnames, and FQDNs
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-cyan-300 mb-1 font-mono">
                   Description (Optional)
                 </label>
                 <input
@@ -437,21 +444,21 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
                   placeholder="Brief description of the threat, domain purpose, or reason for listing"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-black/50 border border-cyan-500/30 text-white placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-300"
                 />
               </div>
               <div className="flex space-x-3">
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 transition-all duration-300 border border-blue-500/30"
                 >
                   {loading ? 'Adding...' : 'Add Entry'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAddForm(false)}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 bg-gray-500/20 text-gray-300 rounded-lg hover:bg-gray-500/30 transition-colors border border-gray-500/30"
                 >
                   Cancel
                 </button>
@@ -461,34 +468,34 @@ const IPList: React.FC<IPListProps> = ({ category, isWhitelist = false }) => {
         )}
 
         {/* IP List */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-black/40 backdrop-blur-xl rounded-xl shadow-2xl border border-cyan-500/20 overflow-hidden">
           {filteredEntries.length === 0 ? (
             <div className="text-center py-12">
-              <Filter className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">No entries found</p>
-              <p className="text-gray-400 text-sm">
+              <Filter className="h-12 w-12 text-cyan-400 mx-auto mb-4" />
+              <p className="text-cyan-300 text-lg font-mono">No entries found</p>
+              <p className="text-cyan-400 text-sm">
                 {searchTerm ? 'Try adjusting your search terms' : 'No IP addresses have been added yet'}
               </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50">
+                <thead className="bg-black/60">
                   <tr>
                     {category === 'sources' && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-cyan-300 uppercase tracking-wider font-mono">
                         <input
                           type="checkbox"
                           checked={selectedEntries.size === filteredEntries.length && filteredEntries.length > 0}
                           onChange={selectAll}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="rounded border-cyan-500/30 text-cyan-600 focus:ring-cyan-500 bg-black/50"
                         />
                       </th>
                     )}
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-cyan-300 uppercase tracking-wider font-mono">
                       IP/Hostname/FQDN
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-cyan-300 uppercase tracking-wider font-mono">
                       Type
                     </th>
                     {!isWhitelist && (
