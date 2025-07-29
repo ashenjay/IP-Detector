@@ -41,6 +41,7 @@ const Dashboard: React.FC = () => {
   const [extracting, setExtracting] = React.useState(false);
   const [lastRefresh, setLastRefresh] = React.useState(new Date());
   const [showPasswordAlert, setShowPasswordAlert] = React.useState(false);
+  const [dropdownOpen, setDropdownOpen] = React.useState(false);
 
   // Check password expiration - show warning 15 days before expiration
   React.useEffect(() => {
@@ -72,6 +73,26 @@ const Dashboard: React.FC = () => {
     setLastRefresh(new Date());
     setRefreshing(false);
   };
+
+  const toggleDropdown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDropdownOpen(!dropdownOpen);
+  };
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = () => {
+      setDropdownOpen(false);
+    };
+
+    if (dropdownOpen) {
+      document.addEventListener('click', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [dropdownOpen]);
 
   const handleAbuseIPDBSync = async () => {
     setSyncing(true);
@@ -306,11 +327,18 @@ const Dashboard: React.FC = () => {
                 
                 {/* Dropdown Menu for smaller screens */}
                 <div className="relative">
-                  <button className="p-1 sm:p-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors border border-cyan-500/30">
+                  <button 
+                    onClick={toggleDropdown}
+                    className="p-1 sm:p-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors border border-cyan-500/30"
+                  >
                     <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
                   </button>
                   
-                  <div className="absolute right-0 mt-2 w-48 bg-black/90 backdrop-blur-xl rounded-lg shadow-2xl border border-cyan-500/30 opacity-0 invisible transition-all duration-200 z-50" id="dropdown-menu">
+                  {dropdownOpen && (
+                    <div 
+                      className="absolute right-0 mt-2 w-48 bg-black/90 backdrop-blur-xl rounded-lg shadow-2xl border border-cyan-500/30 transition-all duration-200 z-50"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                     <div className="py-1">
                       <button 
                         onClick={() => window.location.hash = '/change-password'}
@@ -358,7 +386,8 @@ const Dashboard: React.FC = () => {
                         <span>Logout</span>
                       </button>
                     </div>
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -366,38 +395,6 @@ const Dashboard: React.FC = () => {
         </div>
       </header>
 
-      {/* JavaScript for dropdown menu */}
-      <script dangerouslySetInnerHTML={{
-        __html: `
-          document.addEventListener('DOMContentLoaded', function() {
-            const dropdownButton = document.querySelector('.relative button');
-            const dropdownMenu = document.getElementById('dropdown-menu');
-            let isOpen = false;
-            
-            if (dropdownButton && dropdownMenu) {
-              dropdownButton.addEventListener('click', function(e) {
-                e.stopPropagation();
-                isOpen = !isOpen;
-                if (isOpen) {
-                  dropdownMenu.classList.remove('opacity-0', 'invisible');
-                  dropdownMenu.classList.add('opacity-100', 'visible');
-                } else {
-                  dropdownMenu.classList.add('opacity-0', 'invisible');
-                  dropdownMenu.classList.remove('opacity-100', 'visible');
-                }
-              });
-              
-              document.addEventListener('click', function(e) {
-                if (!dropdownButton.contains(e.target) && !dropdownMenu.contains(e.target)) {
-                  isOpen = false;
-                  dropdownMenu.classList.add('opacity-0', 'invisible');
-                  dropdownMenu.classList.remove('opacity-100', 'visible');
-                }
-              });
-            }
-          });
-        `
-      }} />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 relative z-10">
