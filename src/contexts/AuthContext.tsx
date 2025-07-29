@@ -35,6 +35,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
       
+      if (response.status === 403) {
+        console.log('Authentication token invalid or expired, logging out');
+        logout();
+        return;
+      }
+      
       if (response.ok) {
         const usersData = await response.json();
         console.log('🔍 Raw users data from API:', usersData.slice(0, 2));
