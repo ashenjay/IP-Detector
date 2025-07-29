@@ -274,25 +274,7 @@ const ChangePassword: React.FC = () => {
             {!isForceChange && (
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log('Back button clicked');
-                  try {
-                    // Try multiple navigation methods
-                    if (window.history.length > 1) {
-                      window.history.back();
-                    } else {
-                      // Fallback to dashboard
-                      window.location.hash = '#/';
-                      window.location.reload();
-                    }
-                  } catch (error) {
-                    console.error('Navigation error:', error);
-                    // Final fallback
-                    window.location.href = window.location.origin + '/#/';
-                  }
-                }}
+               onClick={() => window.location.hash = '#/'}
                 className="w-full bg-gray-500/20 text-gray-300 py-3 rounded-lg hover:bg-gray-500/30 transition-colors border border-gray-500/30 font-mono flex items-center justify-center space-x-2"
               >
                 <ArrowLeft className="h-4 w-4" />
