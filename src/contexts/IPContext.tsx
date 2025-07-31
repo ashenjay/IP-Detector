@@ -62,8 +62,8 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         const data = await response.json();
         const formattedEntries = data.map((entry: any) => ({
           ...entry,
-          dateAdded: entry.date_added ? new Date(entry.date_added) : new Date(),
-          addedBy: entry.added_by
+          dateAdded: entry.dateAdded ? new Date(entry.dateAdded) : new Date(),
+          addedBy: entry.addedBy || 'Unknown'
         }));
         setWhitelistEntries(formattedEntries);
       }

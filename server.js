@@ -8,6 +8,7 @@ import https from 'https';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import nodemailer from 'nodemailer';
 
 dotenv.config();
 
@@ -43,6 +44,51 @@ pool.connect((err, client, release) => {
     release();
   }
 });
+
+// Email configuration
+const emailTransporter = nodemailer.createTransporter({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: process.env.SMTP_PORT || 587,
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  }
+});
+
+// Function to send email notification
+const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
+  if (!process.env.SMTP_USER || !process.env.NOTIFICATION_EMAIL) {
+    console.log('Email not configured, skipping notification');
+    return;
+  }
+
+  try {
+    const subject = `New ${recordType} Record Added - Threat Response System`;
+    const html = `
+      <h2>New ${recordType} Record Added</h2>
+      <p><strong>Added by:</strong> ${addedBy}</p>
+      <p><strong>IP/Hostname:</strong> ${recordData.ip}</p>
+      <p><strong>Type:</strong> ${recordData.type}</p>
+      ${recordData.category ? `<p><strong>Category:</strong> ${recordData.category}</p>` : ''}
+      <p><strong>Description:</strong> ${recordData.description || 'No description'}</p>
+      <p><strong>Date Added:</strong> ${new Date().toLocaleString()}</p>
+      <hr>
+      <p><small>This is an automated notification from the Threat Response System.</small></p>
+    `;
+
+    await emailTransporter.sendMail({
+      from: process.env.SMTP_USER,
+      to: process.env.NOTIFICATION_EMAIL,
+      subject: subject,
+      html: html
+    });
+
+    console.log('✅ Email notification sent for new', recordType, 'record');
+  } catch (error) {
+    console.error('❌ Failed to send email notification:', error);
+  }
+};
 
 // Middleware
 app.use(cors());
@@ -729,12 +775,24 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
       [ip, detectType(ip), categoryId, description || '', addedBy, 'manual']
     );
     
+    // Get category name for email notification
+    const categoryResult = await pool.query('SELECT name, label FROM categories WHERE id = $1', [categoryId]);
+    const categoryName = categoryResult.rows[0]?.label || 'Unknown Category';
+    
     console.log('✅ IP entry created successfully:', {
       id: result.rows[0].id,
       ip: result.rows[0].ip,
-      added_by: result.rows[0].added_by, // This should show the username
+      added_by: result.rows[0].added_by,
       date_added: result.rows[0].date_added
     });
+    
+    // Send email notification
+    await sendRecordAddedEmail('IP Entry', {
+      ip: ip,
+      type: detectType(ip),
+      category: categoryName,
+      description: description || ''
+    }, addedBy);
     
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -785,6 +843,13 @@ app.post('/api/whitelist', authenticateToken, async (req, res) => {
       'INSERT INTO whitelist (ip, type, description, added_by) VALUES ($1, $2, $3, $4) RETURNING *',
       [ip, detectType(ip), description || '', addedBy]
     );
+    
+    // Send email notification
+    await sendRecordAddedEmail('Whitelist Entry', {
+      ip: ip,
+      type: detectType(ip),
+      description: description || ''
+    }, addedBy);
     
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -894,7 +959,7 @@ app.get('/api/whitelist', authenticateToken, async (req, res) => {
       ip: row.ip,
       type: row.type,
       description: row.description,
-      addedBy: row.added_by || 'admin', // Use actual database value or default to 'admin'
+      addedBy: row.added_by || 'Unknown',
       dateAdded: row.date_added
     }));
     
