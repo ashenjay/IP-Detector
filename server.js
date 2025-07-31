@@ -762,13 +762,57 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
     
     // Detect entry type
     const detectType = (entry) => {
-      // IPv4 regex - matches standard IPv4 and CIDR notation
-      const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\/(?:[0-9]|[1-2][0-9]|3[0-2]))?$/;
+      // Helper function to check if it's an IPv4 address
+      const isIPv4 = (str) => {
+        const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\/(?:[0-9]|[1-2][0-9]|3[0-2]))?$/;
+        return ipv4Regex.test(str);
+      };
       
-      // Comprehensive IPv6 regex - matches all IPv6 formats including CIDR
-      const ipv6Regex = /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))(?:\/(?:1[0-2][0-8]|[1-9][0-9]|[0-9]))?$/;
+      // Helper function to check if it's an IPv6 address
+      const isIPv6 = (str) => {
+        // Remove CIDR notation for validation
+        const [ipPart] = str.split('/');
+        
+        // Check for various IPv6 formats
+        const ipv6Patterns = [
+          // Full IPv6 (8 groups of 4 hex digits)
+          /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/,
+          // IPv6 with :: compression
+          /^([0-9a-fA-F]{1,4}:)*::([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4}$/,
+          // IPv6 starting with ::
+          /^::([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4}$/,
+          // IPv6 ending with ::
+          /^([0-9a-fA-F]{1,4}:)+::$/,
+          // Just ::
+          /^::$/,
+          // IPv6 loopback
+          /^::1$/,
+          // IPv6 with embedded IPv4
+          /^([0-9a-fA-F]{1,4}:)*::([0-9a-fA-F]{1,4}:)*((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
+          // Link-local with zone ID
+          /^fe80:([0-9a-fA-F]{0,4}:){0,4}[0-9a-fA-F]{0,4}%[0-9a-zA-Z]+$/
+        ];
+        
+        // Test against all patterns
+        for (const pattern of ipv6Patterns) {
+          if (pattern.test(ipPart)) {
+            return true;
+          }
+        }
+        
+        // Additional check for compressed IPv6 with CIDR
+        if (str.includes('/')) {
+          const cidrRegex = /^([0-9a-fA-F]*:+[0-9a-fA-F]*)+\/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$/;
+          if (cidrRegex.test(str)) {
+            return true;
+          }
+        }
+        
+        return false;
+      };
       
-      if (ipv4Regex.test(entry) || ipv6Regex.test(entry)) return 'ip';
+      // Check if it's an IP address (IPv4 or IPv6)
+      if (isIPv4(entry) || isIPv6(entry)) return 'ip';
       if (entry.includes('.') && entry.split('.').length >= 2) return 'fqdn';
       return 'hostname';
     };
@@ -834,13 +878,57 @@ app.post('/api/whitelist', authenticateToken, async (req, res) => {
     
     // Detect entry type
     const detectType = (entry) => {
-      // IPv4 regex - matches standard IPv4 and CIDR notation
-      const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\/(?:[0-9]|[1-2][0-9]|3[0-2]))?$/;
+      // Helper function to check if it's an IPv4 address
+      const isIPv4 = (str) => {
+        const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?:\/(?:[0-9]|[1-2][0-9]|3[0-2]))?$/;
+        return ipv4Regex.test(str);
+      };
       
-      // Comprehensive IPv6 regex - matches all IPv6 formats including CIDR
-      const ipv6Regex = /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))(?:\/(?:1[0-2][0-8]|[1-9][0-9]|[0-9]))?$/;
+      // Helper function to check if it's an IPv6 address
+      const isIPv6 = (str) => {
+        // Remove CIDR notation for validation
+        const [ipPart] = str.split('/');
+        
+        // Check for various IPv6 formats
+        const ipv6Patterns = [
+          // Full IPv6 (8 groups of 4 hex digits)
+          /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/,
+          // IPv6 with :: compression
+          /^([0-9a-fA-F]{1,4}:)*::([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4}$/,
+          // IPv6 starting with ::
+          /^::([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4}$/,
+          // IPv6 ending with ::
+          /^([0-9a-fA-F]{1,4}:)+::$/,
+          // Just ::
+          /^::$/,
+          // IPv6 loopback
+          /^::1$/,
+          // IPv6 with embedded IPv4
+          /^([0-9a-fA-F]{1,4}:)*::([0-9a-fA-F]{1,4}:)*((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
+          // Link-local with zone ID
+          /^fe80:([0-9a-fA-F]{0,4}:){0,4}[0-9a-fA-F]{0,4}%[0-9a-zA-Z]+$/
+        ];
+        
+        // Test against all patterns
+        for (const pattern of ipv6Patterns) {
+          if (pattern.test(ipPart)) {
+            return true;
+          }
+        }
+        
+        // Additional check for compressed IPv6 with CIDR
+        if (str.includes('/')) {
+          const cidrRegex = /^([0-9a-fA-F]*:+[0-9a-fA-F]*)+\/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$/;
+          if (cidrRegex.test(str)) {
+            return true;
+          }
+        }
+        
+        return false;
+      };
       
-      if (ipv4Regex.test(entry) || ipv6Regex.test(entry)) return 'ip';
+      // Check if it's an IP address (IPv4 or IPv6)
+      if (isIPv4(entry) || isIPv6(entry)) return 'ip';
       if (entry.includes('.') && entry.split('.').length >= 2) return 'fqdn';
       return 'hostname';
     };
