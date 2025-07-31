@@ -45,48 +45,111 @@ pool.connect((err, client, release) => {
   }
 });
 
-// Email configuration
-const emailTransporter = nodemailer.createTransporter({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: process.env.SMTP_PORT || 587,
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  }
-});
+// Email configuration - Support both AWS SES and regular SMTP
+let emailTransporter;
+
+if (process.env.AWS_SES_REGION && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+  // AWS SES Configuration
+  console.log('📧 Configuring AWS SES for email notifications...');
+  emailTransporter = nodemailer.createTransporter({
+    SES: {
+      aws: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: process.env.AWS_SES_REGION
+      }
+    }
+  });
+  console.log('✅ AWS SES configured successfully');
+} else if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+  // Regular SMTP Configuration (Gmail, etc.)
+  console.log('📧 Configuring SMTP for email notifications...');
+  emailTransporter = nodemailer.createTransporter({
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT || 587,
+    secure: process.env.SMTP_PORT == 465, // true for 465, false for other ports
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
+    }
+  });
+  console.log('✅ SMTP configured successfully');
+} else {
+  console.log('⚠️ No email configuration found. Email notifications will be disabled.');
+  emailTransporter = null;
+}
 
 // Function to send email notification
 const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
-  if (!process.env.SMTP_USER || !process.env.NOTIFICATION_EMAIL) {
-    console.log('Email not configured, skipping notification');
+  if (!emailTransporter || !process.env.NOTIFICATION_EMAIL || !process.env.FROM_EMAIL) {
+    console.log('📧 Email not configured or missing required variables, skipping notification');
     return;
   }
 
   try {
-    const subject = `New ${recordType} Record Added - Threat Response System`;
+    const subject = `🚨 New ${recordType} Added - Threat Response System`;
     const html = `
-      <h2>New ${recordType} Record Added</h2>
-      <p><strong>Added by:</strong> ${addedBy}</p>
-      <p><strong>IP/Hostname:</strong> ${recordData.ip}</p>
-      <p><strong>Type:</strong> ${recordData.type}</p>
-      ${recordData.category ? `<p><strong>Category:</strong> ${recordData.category}</p>` : ''}
-      <p><strong>Description:</strong> ${recordData.description || 'No description'}</p>
-      <p><strong>Date Added:</strong> ${new Date().toLocaleString()}</p>
-      <hr>
-      <p><small>This is an automated notification from the Threat Response System.</small></p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
+        <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <h2 style="color: #dc3545; margin-bottom: 20px; border-bottom: 2px solid #dc3545; padding-bottom: 10px;">
+            🚨 New ${recordType} Added
+          </h2>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr style="border-bottom: 1px solid #dee2e6;">
+                <td style="padding: 8px 0; font-weight: bold; color: #495057;">Added by:</td>
+                <td style="padding: 8px 0; color: #6c757d;">${addedBy}</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #dee2e6;">
+                <td style="padding: 8px 0; font-weight: bold; color: #495057;">IP/Hostname:</td>
+                <td style="padding: 8px 0; color: #6c757d; font-family: monospace; background-color: #e9ecef; padding: 4px 8px; border-radius: 3px;">${recordData.ip}</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #dee2e6;">
+                <td style="padding: 8px 0; font-weight: bold; color: #495057;">Type:</td>
+                <td style="padding: 8px 0; color: #6c757d;">${recordData.type.toUpperCase()}</td>
+              </tr>
+              ${recordData.category ? `
+              <tr style="border-bottom: 1px solid #dee2e6;">
+                <td style="padding: 8px 0; font-weight: bold; color: #495057;">Category:</td>
+                <td style="padding: 8px 0; color: #6c757d;">${recordData.category}</td>
+              </tr>
+              ` : ''}
+              <tr style="border-bottom: 1px solid #dee2e6;">
+                <td style="padding: 8px 0; font-weight: bold; color: #495057;">Description:</td>
+                <td style="padding: 8px 0; color: #6c757d;">${recordData.description || 'No description provided'}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #495057;">Date Added:</td>
+                <td style="padding: 8px 0; color: #6c757d;">${new Date().toLocaleString()}</td>
+              </tr>
+            </table>
+          </div>
+          
+          <div style="background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; padding: 15px; border-radius: 5px; margin-top: 20px;">
+            <strong>⚠️ Security Alert:</strong> This is an automated notification from the Threat Response System. 
+            Please review this addition and take appropriate action if necessary.
+          </div>
+          
+          <hr style="margin: 20px 0; border: none; border-top: 1px solid #dee2e6;">
+          <p style="font-size: 12px; color: #6c757d; text-align: center; margin: 0;">
+            This is an automated message from the Threat Response System.<br>
+            Generated on ${new Date().toISOString()}
+          </p>
+        </div>
+      </div>
     `;
 
     await emailTransporter.sendMail({
-      from: process.env.SMTP_USER,
+      from: process.env.FROM_EMAIL,
       to: process.env.NOTIFICATION_EMAIL,
       subject: subject,
       html: html
     });
 
-    console.log('✅ Email notification sent for new', recordType, 'record');
+    console.log('✅ Email notification sent successfully for new', recordType, 'record');
   } catch (error) {
-    console.error('❌ Failed to send email notification:', error);
+    console.error('❌ Failed to send email notification:', error.message);
   }
 };
 
