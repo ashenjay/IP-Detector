@@ -104,7 +104,7 @@ try {
   
   // Also configure SMTP as fallback
   emailTransporter = createTransport({
-    host: 'email-smtp.ap-southeast-1.amazonaws.com',
+    host: `email-smtp.${config.aws.region}.amazonaws.com`,
     port: 587,
     secure: false,
     auth: {
@@ -120,7 +120,7 @@ try {
   
   if (config.aws.accessKeyId && config.aws.secretAccessKey) {
     emailTransporter = createTransport({
-      host: 'email-smtp.ap-southeast-1.amazonaws.com',
+      host: `email-smtp.${config.aws.region}.amazonaws.com`,
       port: 587,
       secure: false,
       auth: {
