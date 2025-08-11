@@ -10,6 +10,9 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import nodemailer from 'nodemailer';
 import fs from 'fs';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
 
 dotenv.config();
 
