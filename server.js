@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { createTransport } from 'nodemailer';
 import fs from 'fs';
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 
 // Load environment variables first
 dotenv.config();
@@ -29,6 +30,7 @@ const config = {
   },
   aws: {
     region: process.env.AWS_SES_REGION,
+    endpoint: process.env.AWS_SES_ENDPOINT,
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
   },
@@ -56,6 +58,7 @@ console.log('📧 Email Configuration:');
 console.log('   FROM_EMAIL:', config.email.fromEmail);
 console.log('   NOTIFICATION_EMAIL:', config.email.notificationEmail);
 console.log('   AWS_REGION:', config.aws.region);
+console.log('   AWS_ENDPOINT:', config.aws.endpoint);
 console.log('   AWS_ACCESS_KEY_ID:', !!config.aws.accessKeyId);
 console.log('   AWS_SECRET_ACCESS_KEY:', !!config.aws.secretAccessKey);
 
@@ -90,24 +93,20 @@ if (config.nodeEnv === 'production') {
 // Email configuration
 let emailTransporter;
 
-// AWS SES Configuration
-let sesClient;
+// AWS SES Client Configuration
+const sesClient = new SESClient({
+  region: config.aws.region,
+  endpoint: config.aws.endpoint,
+  credentials: {
+    accessKeyId: config.aws.accessKeyId,
+    secretAccessKey: config.aws.secretAccessKey
+  }
+});
 
-try {
-  // Try to import AWS SES SDK
-  const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
-  
-  sesClient = new SESClient({
-    region: config.aws.region,
-    credentials: {
-      accessKeyId: config.aws.accessKeyId,
-      secretAccessKey: config.aws.secretAccessKey
-    }
-  });
-  
-  console.log('✅ AWS SES SDK configured');
-  
-  // Also configure SMTP as fallback
+console.log('✅ AWS SES SDK configured with custom endpoint');
+
+// SMTP fallback configuration
+if (config.aws.accessKeyId && config.aws.secretAccessKey) {
   emailTransporter = createTransport({
     host: `email-smtp.${config.aws.region}.amazonaws.com`,
     port: 587,
@@ -117,27 +116,10 @@ try {
       pass: config.aws.secretAccessKey
     }
   });
-  
   console.log('✅ SMTP fallback configured');
-  
-} catch (error) {
-  console.log('⚠️ AWS SES SDK not available, using SMTP only');
-  
-  if (config.aws.accessKeyId && config.aws.secretAccessKey) {
-    emailTransporter = createTransport({
-      host: `email-smtp.${config.aws.region}.amazonaws.com`,
-      port: 587,
-      secure: false,
-      auth: {
-        user: config.aws.accessKeyId,
-        pass: config.aws.secretAccessKey
-      }
-    });
-    console.log('✅ SMTP email transporter configured');
-  } else {
-    console.log('❌ Email configuration incomplete');
-    emailTransporter = null;
-  }
+} else {
+  console.log('❌ Email configuration incomplete');
+  emailTransporter = null;
 }
 
 // Function to send email notification
@@ -148,62 +130,11 @@ const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
   }
 
   try {
-    // Try AWS SES SDK first
-    if (sesClient) {
-      console.log('📧 Sending email via AWS SES SDK...');
-      const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
-      
-      const subject = `🚨 New ${recordType} Added - NDB Bank Threat Response System`;
-      const htmlBody = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #1e40af;">🚨 New ${recordType} Added</h2>
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr><td style="padding: 8px; font-weight: bold;">Added by:</td><td style="padding: 8px;">${addedBy}</td></tr>
-            <tr><td style="padding: 8px; font-weight: bold;">IP/Hostname:</td><td style="padding: 8px; font-family: monospace;">${recordData.ip}</td></tr>
-            <tr><td style="padding: 8px; font-weight: bold;">Type:</td><td style="padding: 8px;">${recordData.type.toUpperCase()}</td></tr>
-            ${recordData.category ? `<tr><td style="padding: 8px; font-weight: bold;">Category:</td><td style="padding: 8px;">${recordData.category}</td></tr>` : ''}
-            <tr><td style="padding: 8px; font-weight: bold;">Description:</td><td style="padding: 8px;">${recordData.description || 'No description provided'}</td></tr>
-            <tr><td style="padding: 8px; font-weight: bold;">Date Added:</td><td style="padding: 8px;">${new Date().toLocaleString()}</td></tr>
-          </table>
-          <p style="font-size: 12px; color: #666; text-align: center; margin-top: 20px;">
-            Automated message from NDB Bank Threat Response System
-          </p>
-        </div>
-      `;
-
-      const command = new SendEmailCommand({
-        Source: config.email.fromEmail,
-        Destination: {
-          ToAddresses: [config.email.notificationEmail]
-        },
-        Message: {
-          Subject: {
-            Data: subject,
-            Charset: 'UTF-8'
-          },
-          Body: {
-            Html: {
-              Data: htmlBody,
-              Charset: 'UTF-8'
-            }
-          }
-        }
-      });
-
-      const result = await sesClient.send(command);
-      console.log('✅ Email sent via AWS SES SDK:', result.MessageId);
-      return result;
-    }
+    // AWS SES SDK
+    console.log('📧 Sending email via AWS SES SDK...');
     
-    // Fallback to SMTP
-    if (!emailTransporter) {
-      console.log('❌ No email transporter available - emailTransporter:', !!emailTransporter, 'sesClient:', !!sesClient);
-      return;
-    }
-    
-    console.log('📧 Sending email via SMTP...');
     const subject = `🚨 New ${recordType} Added - NDB Bank Threat Response System`;
-    const html = `
+    const htmlBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h2 style="color: #1e40af;">🚨 New ${recordType} Added</h2>
         <table style="width: 100%; border-collapse: collapse;">
@@ -220,19 +151,72 @@ const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
       </div>
     `;
 
-    const result = await emailTransporter.sendMail({
-      from: config.email.fromEmail,
-      to: config.email.notificationEmail,
-      subject: subject,
-      html: html
+    const command = new SendEmailCommand({
+      Source: config.email.fromEmail,
+      Destination: {
+        ToAddresses: [config.email.notificationEmail]
+      },
+      Message: {
+        Subject: {
+          Data: subject,
+          Charset: 'UTF-8'
+        },
+        Body: {
+          Html: {
+            Data: htmlBody,
+            Charset: 'UTF-8'
+          }
+        }
+      }
     });
-    
-    console.log('✅ Email sent via SMTP:', result.messageId);
-    return result;
 
+    const result = await sesClient.send(command);
+    console.log('✅ Email sent via AWS SES SDK:', result.MessageId);
+    return result;
+    
   } catch (error) {
-    console.error('❌ Failed to send email:', error.message);
-    throw error;
+    console.error('❌ AWS SES failed, trying SMTP fallback:', error.message);
+    
+    // Fallback to SMTP
+    if (!emailTransporter) {
+      console.log('❌ No SMTP fallback available');
+      throw error;
+    }
+    
+    try {
+      console.log('📧 Sending email via SMTP fallback...');
+      const subject = `🚨 New ${recordType} Added - NDB Bank Threat Response System`;
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #1e40af;">🚨 New ${recordType} Added</h2>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr><td style="padding: 8px; font-weight: bold;">Added by:</td><td style="padding: 8px;">${addedBy}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">IP/Hostname:</td><td style="padding: 8px; font-family: monospace;">${recordData.ip}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">Type:</td><td style="padding: 8px;">${recordData.type.toUpperCase()}</td></tr>
+            ${recordData.category ? `<tr><td style="padding: 8px; font-weight: bold;">Category:</td><td style="padding: 8px;">${recordData.category}</td></tr>` : ''}
+            <tr><td style="padding: 8px; font-weight: bold;">Description:</td><td style="padding: 8px;">${recordData.description || 'No description provided'}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">Date Added:</td><td style="padding: 8px;">${new Date().toLocaleString()}</td></tr>
+          </table>
+          <p style="font-size: 12px; color: #666; text-align: center; margin-top: 20px;">
+            Automated message from NDB Bank Threat Response System
+          </p>
+        </div>
+      `;
+
+      const result = await emailTransporter.sendMail({
+        from: config.email.fromEmail,
+        to: config.email.notificationEmail,
+        subject: subject,
+        html: html
+      });
+      
+      console.log('✅ Email sent via SMTP fallback:', result.messageId);
+      return result;
+      
+    } catch (smtpError) {
+      console.error('❌ SMTP fallback also failed:', smtpError.message);
+      throw smtpError;
+    }
   }
 };
 
@@ -266,7 +250,7 @@ app.get('/api/health', (req, res) => {
     status: 'running',
     environment: config.nodeEnv,
     timestamp: new Date().toISOString(),
-    email: !!emailTransporter || !!sesClient,
+    email: !!sesClient || !!emailTransporter,
     database: config.database.host
   });
 });
@@ -274,7 +258,7 @@ app.get('/api/health', (req, res) => {
 // Test email endpoint
 app.post('/api/test-email', authenticateToken, async (req, res) => {
   try {
-    if (!emailTransporter && !sesClient) {
+    if (!sesClient && !emailTransporter) {
       return res.status(400).json({ 
         success: false,
         error: 'Email not configured'
