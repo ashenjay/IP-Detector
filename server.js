@@ -58,8 +58,7 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
   console.log('📧 Notification Email:', process.env.NOTIFICATION_EMAIL);
   
   emailTransporter = nodemailer.createTransporter({
-  }
-  )
+  });
   emailTransporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: process.env.SMTP_PORT || 587,
@@ -99,9 +98,7 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
 
 // Function to send email notification
 const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
-  console.log('📧 s
-  )
-}endRecordAddedEmail called with:', { recordType, recordData, addedBy });
+  console.log('📧 sendRecordAddedEmail called with:', { recordType, recordData, addedBy });
   
   if (!emailTransporter || !process.env.NOTIFICATION_EMAIL || !process.env.FROM_EMAIL) {
     console.log('❌ Email not configured or missing required variables:');
@@ -987,18 +984,6 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to add IP entry' });
   }
 });
-      ip: ip,
-      type: detectType(ip),
-      category: categoryName,
-      description: description || ''
-    }, addedBy);
-    
-    res.status(201).json(result.rows[0]);
-  } catch (error) {
-    console.error('Add IP entry error:', error);
-    res.status(500).json({ error: 'Failed to add IP entry' });
-  }
-});
 
 app.delete('/api/ip-entries/:id', authenticateToken, async (req, res) => {
   try {
@@ -1090,19 +1075,12 @@ app.post('/api/whitelist', authenticateToken, async (req, res) => {
       [ip, detectType(ip), description || '', addedBy]
     );
     
-    console.log('📧 About to send whitelist email notification...');
     // Send email notification
-    try {
-      await sendRecordAddedEmail('Whitelist Entry', {
-        ip: ip,
-        type: detectType(ip),
-        description: description || ''
-      }, addedBy);
-      console.log('✅ Whitelist email notification process completed');
-    } catch (emailError) {
-      console.error('❌ Whitelist email notification failed:', emailError);
-      // Don't fail the API request if email fails
-    }
+    await sendRecordAddedEmail('Whitelist Entry', {
+      ip: ip,
+      type: detectType(ip),
+      description: description || ''
+    }, addedBy);
     
     res.status(201).json(result.rows[0]);
   } catch (error) {
