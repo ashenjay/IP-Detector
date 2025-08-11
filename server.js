@@ -1265,11 +1265,20 @@ app.get('/api/whitelist', authenticateToken, async (req, res) => {
 
 // Serve static files from dist directory
 console.log('📁 Serving static files from:', path.join(__dirname, 'dist'));
-app.use(express.static(path.join(__dirname, 'dist')));
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, 'dist')));
+} else {
+  // In development, let Vite handle static files
+  console.log('🔧 Running in development mode - static files served by Vite');
+}
 
 // Serve React app for all other routes
 app.get('*', (req, res) => {
-  console.log('Serving React app for route:', req.path);
+  if (process.env.NODE_ENV === 'production') {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  } else {
+    res.json({ message: 'API server running - use Vite dev server for frontend' });
+  }
   const indexPath = path.join(__dirname, 'dist', 'index.html');
   console.log('📄 Serving index.html from:', indexPath);
   
