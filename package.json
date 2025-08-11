@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "start": "node server-full.js",
+    "start": "node server-full.cjs",
     "start:prod": "npm run build && node simple-server.js"
   },
   "dependencies": {
