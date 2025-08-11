@@ -45,25 +45,12 @@ pool.connect((err, client, release) => {
   }
 });
 
-// Email configuration - Support both AWS SES and regular SMTP
+// Email configuration - AWS SES SMTP
 let emailTransporter;
 
-if (process.env.AWS_SES_REGION && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
-  // AWS SES Configuration
-  console.log('📧 Configuring AWS SES for email notifications...');
-  emailTransporter = nodemailer.createTransporter({
-    SES: {
-      aws: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        region: process.env.AWS_SES_REGION
-      }
-    }
-  });
-  console.log('✅ AWS SES configured successfully');
-} else if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-  // Regular SMTP Configuration (Gmail, etc.)
-  console.log('📧 Configuring SMTP for email notifications...');
+if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+  // AWS SES SMTP Configuration
+  console.log('📧 Configuring AWS SES SMTP for email notifications...');
   emailTransporter = nodemailer.createTransporter({
     host: process.env.SMTP_HOST,
     port: process.env.SMTP_PORT || 587,
@@ -73,7 +60,7 @@ if (process.env.AWS_SES_REGION && process.env.AWS_ACCESS_KEY_ID && process.env.A
       pass: process.env.SMTP_PASS
     }
   });
-  console.log('✅ SMTP configured successfully');
+  console.log('✅ AWS SES SMTP configured successfully');
 } else {
   console.log('⚠️ No email configuration found. Email notifications will be disabled.');
   emailTransporter = null;
@@ -87,10 +74,15 @@ const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
   }
 
   try {
-    const subject = `🚨 New ${recordType} Added - Threat Response System`;
+    const subject = `🚨 New ${recordType} Added - NDB Bank Threat Response System`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
         <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="color: #1e40af; margin: 0; font-size: 24px;">NDB Bank</h1>
+            <p style="color: #6b7280; margin: 5px 0 0 0; font-size: 14px;">Threat Response System</p>
+          </div>
+          
           <h2 style="color: #dc3545; margin-bottom: 20px; border-bottom: 2px solid #dc3545; padding-bottom: 10px;">
             🚨 New ${recordType} Added
           </h2>
