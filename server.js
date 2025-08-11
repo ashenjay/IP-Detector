@@ -77,6 +77,12 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
   emailTransporter.verify((error, success) => {
     if (error) {
       console.error('❌ SMTP connection test failed:', error);
+      console.error('❌ Error details:', {
+        code: error.code,
+        command: error.command,
+        response: error.response,
+        responseCode: error.responseCode
+      });
     } else {
       console.log('✅ SMTP connection test successful');
     }
@@ -105,6 +111,12 @@ const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
 
   try {
     console.log('📧 Preparing email notification...');
+    
+    // Test SMTP connection before sending
+    console.log('📧 Testing SMTP connection before sending...');
+    await emailTransporter.verify();
+    console.log('✅ SMTP connection verified successfully');
+    
     const subject = `🚨 New ${recordType} Added - NDB Bank Threat Response System`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
@@ -167,20 +179,45 @@ const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
     console.log('📧 Sending email to:', process.env.NOTIFICATION_EMAIL);
     console.log('📧 Email subject:', subject);
     
-    await emailTransporter.sendMail({
+    const mailOptions = {
       from: process.env.FROM_EMAIL,
       to: process.env.NOTIFICATION_EMAIL,
       subject: subject,
       html: html
+    };
+    
+    console.log('📧 Mail options:', {
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+      htmlLength: mailOptions.html.length
+    });
+    
+    const result = await emailTransporter.sendMail(mailOptions);
+    console.log('✅ Email sent successfully! Result:', {
+      messageId: result.messageId,
+      response: result.response,
+      accepted: result.accepted,
+      rejected: result.rejected
     });
 
-    console.log('✅ Email notification sent successfully for new', recordType, 'record');
   } catch (error) {
     console.error('❌ Failed to send email notification:');
     console.error('   Error message:', error.message);
     console.error('   Error code:', error.code);
+    console.error('   Error command:', error.command);
     console.error('   Error response:', error.response);
+    console.error('   Error responseCode:', error.responseCode);
     console.error('   Full error:', error);
+    
+    // Try to get more specific error information
+    if (error.code === 'EAUTH') {
+      console.error('❌ Authentication failed - check SMTP credentials');
+    } else if (error.code === 'ECONNECTION') {
+      console.error('❌ Connection failed - check SMTP host and port');
+    } else if (error.code === 'EMESSAGE') {
+      console.error('❌ Message rejected - check email addresses');
+    }
   }
 };
 
@@ -927,8 +964,27 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
       date_added: result.rows[0].date_added
     });
     
+    console.log('📧 About to send email notification...');
     // Send email notification
-    await sendRecordAddedEmail('IP Entry', {
+    try {
+      await sendRecordAddedEmail('IP Entry', {
+        ip: ip,
+        type: detectType(ip),
+        category: categoryName,
+        description: description || ''
+      }, addedBy);
+      console.log('✅ Email notification process completed');
+    } catch (emailError) {
+      console.error('❌ Email notification failed:', emailError);
+      // Don't fail the API request if email fails
+    }
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Add IP entry error:', error);
+    res.status(500).json({ error: 'Failed to add IP entry' });
+  }
+});
       ip: ip,
       type: detectType(ip),
       category: categoryName,
@@ -1032,12 +1088,19 @@ app.post('/api/whitelist', authenticateToken, async (req, res) => {
       [ip, detectType(ip), description || '', addedBy]
     );
     
+    console.log('📧 About to send whitelist email notification...');
     // Send email notification
-    await sendRecordAddedEmail('Whitelist Entry', {
-      ip: ip,
-      type: detectType(ip),
-      description: description || ''
-    }, addedBy);
+    try {
+      await sendRecordAddedEmail('Whitelist Entry', {
+        ip: ip,
+        type: detectType(ip),
+        description: description || ''
+      }, addedBy);
+      console.log('✅ Whitelist email notification process completed');
+    } catch (emailError) {
+      console.error('❌ Whitelist email notification failed:', emailError);
+      // Don't fail the API request if email fails
+    }
     
     res.status(201).json(result.rows[0]);
   } catch (error) {
