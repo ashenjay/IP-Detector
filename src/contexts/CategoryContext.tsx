@@ -36,7 +36,15 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
 
       if (response.ok) {
-        const categoriesData = await response.json();
+        const responseText = await response.text();
+        
+        // Check if response is HTML instead of JSON
+        if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<!doctype')) {
+          console.error('Received HTML response instead of JSON. Backend server may not be running.');
+          return;
+        }
+        
+        const categoriesData = JSON.parse(responseText);
 
         const formattedCategories = categoriesData.map((c: any) => ({
           id: c.id,
