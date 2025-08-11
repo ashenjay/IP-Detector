@@ -403,17 +403,17 @@ const Dashboard: React.FC = () => {
                     
                     return (
                       <>
-                  <h3 className="text-sm font-semibold text-yellow-800">
-                        {daysUntilExpiry < 0 ? 'Password Expired' : 'Password Expiring Soon'}
-                  </h3>
-                  <p className="text-sm text-yellow-700">
-                        {daysUntilExpiry < 0 
-                          ? `Your password expired ${Math.abs(daysUntilExpiry)} days ago. Please change it immediately.`
-                          : daysUntilExpiry === 0
-                      ? 'Your password expires today. Please change it now.'
-                            : `Your password will expire in ${daysUntilExpiry} days.`
-                    }
-                  </p>
+                        <h3 className="text-sm font-semibold text-yellow-800">
+                          {daysUntilExpiry < 0 ? 'Password Expired' : 'Password Expiring Soon'}
+                        </h3>
+                        <p className="text-sm text-yellow-700">
+                          {daysUntilExpiry < 0 
+                            ? `Your password expired ${Math.abs(daysUntilExpiry)} days ago. Please change it immediately.`
+                            : daysUntilExpiry === 0
+                              ? 'Your password expires today. Please change it now.'
+                              : `Your password will expire in ${daysUntilExpiry} days.`
+                          }
+                        </p>
                       </>
                     );
                   })()}
@@ -431,10 +431,39 @@ const Dashboard: React.FC = () => {
                   className="p-2 text-yellow-600 hover:text-yellow-800 transition-colors"
                 >
                   <X className="h-4 w-4" />
-                    emailTestResult.includes('✅') 
-                      ? 'text-green-600' 
-                      : 'text-red-600'
-                  }`} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Email Test Result Alert */}
+        {emailTestResult && (
+          <div className={`mb-6 border rounded-xl p-4 ${
+            emailTestResult.includes('✅') 
+              ? 'bg-green-50 border-green-200' 
+              : 'bg-red-50 border-red-200'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-lg ${
+                  emailTestResult.includes('✅') 
+                    ? 'bg-green-100' 
+                    : 'bg-red-100'
+                }`}>
+                  {emailTestResult.includes('✅') ? (
+                    <CheckCircle className={`h-5 w-5 ${
+                      emailTestResult.includes('✅') 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`} />
+                  ) : (
+                    <AlertCircleIcon className={`h-5 w-5 ${
+                      emailTestResult.includes('✅') 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`} />
+                  )}
                 </div>
                 <div>
                   <h3 className={`text-sm font-semibold ${
@@ -452,16 +481,17 @@ const Dashboard: React.FC = () => {
                     {emailTestResult}
                   </p>
                 </div>
-               <button
-                 onClick={() => setEmailTestResult(null)}
-                 className={`p-2 transition-colors ${
-                   emailTestResult.includes('✅') 
-                     ? 'text-green-600 hover:text-green-800' 
-                     : 'text-red-600 hover:text-red-800'
-                 }`}
-               >
-                 <X className="h-4 w-4" />
-               </button>
+              </div>
+              <button
+                onClick={() => setEmailTestResult(null)}
+                className={`p-2 transition-colors ${
+                  emailTestResult.includes('✅') 
+                    ? 'text-green-600 hover:text-green-800' 
+                    : 'text-red-600 hover:text-red-800'
+                }`}
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
           </div>
         )}
