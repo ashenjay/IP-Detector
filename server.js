@@ -9,6 +9,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import nodemailer from 'nodemailer';
+import fs from 'fs';
 
 dotenv.config();
 
@@ -1270,7 +1271,6 @@ app.get('*', (req, res) => {
   console.log('📄 Serving index.html from:', indexPath);
   
   // Check if index.html exists before serving
-  const fs = require('fs');
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
