@@ -7,23 +7,32 @@ const fs = require('fs');
 // Load environment variables first
 require('dotenv').config();
 
-console.log('🔍 Environment Variables Check:');
+console.log('🚀 Starting Threat Response Server...');
+console.log('🔍 Environment Check:');
 console.log('   AWS_ACCESS_KEY_ID:', !!process.env.AWS_ACCESS_KEY_ID);
 console.log('   AWS_SECRET_ACCESS_KEY:', !!process.env.AWS_SECRET_ACCESS_KEY);
 console.log('   FROM_EMAIL:', process.env.FROM_EMAIL);
 console.log('   NOTIFICATION_EMAIL:', process.env.NOTIFICATION_EMAIL);
-console.log('   AWS_SES_REGION:', process.env.AWS_SES_REGION);
+console.log('   AWS_SES_REGION:', process.env.AWS_SES_REGION || 'ap-southeast-1');
 console.log('   SMTP_HOST:', process.env.SMTP_HOST);
 console.log('   SMTP_PORT:', process.env.SMTP_PORT);
+console.log('   NODE_ENV:', process.env.NODE_ENV);
+console.log('   PORT:', process.env.PORT);
+
+// Detect if we're in Bolt environment
+const isBoltEnvironment = process.env.BOLT_ENV || process.cwd().includes('/home/project') || process.env.HOSTNAME?.includes('bolt');
+console.log('🌐 Environment Detection:');
+console.log('   Is Bolt Environment:', isBoltEnvironment);
+console.log('   Current Working Directory:', process.cwd());
+console.log('   Hostname:', process.env.HOSTNAME);
 
 const app = express();
 const port = process.env.PORT || 3001;
 
-console.log('🚀 Starting full server with email support...');
-
 // Email configuration - AWS SES SMTP
 let emailTransporter;
 let sesClient = null;
+let emailConfigured = false;
 
 // Try to load AWS SES SDK
 let SESClient, SendEmailCommand;
@@ -31,6 +40,7 @@ try {
   const awsSdk = require('@aws-sdk/client-ses');
   SESClient = awsSdk.SESClient;
   SendEmailCommand = awsSdk.SendEmailCommand;
+  console.log('✅ AWS SES SDK loaded successfully');
   console.log('✅ AWS SES SDK loaded successfully');
 } catch (error) {
   console.log('⚠️ AWS SES SDK not available:', error.message);
@@ -40,11 +50,7 @@ try {
 
 // Configure AWS SES if credentials are available
 if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.FROM_EMAIL && process.env.NOTIFICATION_EMAIL) {
-  console.log('📧 Configuring AWS SES SMTP for email notifications...');
-  console.log('📧 AWS Region:', process.env.AWS_SES_REGION || 'ap-southeast-1');
-  console.log('📧 From Email:', process.env.FROM_EMAIL);
-  console.log('📧 Notification Email:', process.env.NOTIFICATION_EMAIL);
-  
+  console.log('📧 Configuring email services...');
   // Configure AWS SES Client if SDK is available
   if (SESClient && SendEmailCommand) {
     try {
@@ -56,6 +62,7 @@ if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && proces
         }
       });
       console.log('✅ AWS SES SDK client configured successfully');
+      emailConfigured = true;
     } catch (error) {
       console.error('❌ Failed to configure AWS SES SDK client:', error.message);
       sesClient = null;
@@ -65,7 +72,7 @@ if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && proces
   // Also configure Nodemailer as backup
   try {
     emailTransporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'email-smtp.ap-southeast-1.amazonaws.com',
+      host: process.env.SMTP_HOST || 'email-smtp.us-east-1.amazonaws.com',
       port: parseInt(process.env.SMTP_PORT) || 587,
       secure: false,
       connectionTimeout: 30000, // 30 seconds
@@ -80,6 +87,7 @@ if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && proces
       }
     });
     console.log('✅ Nodemailer SMTP transporter configured successfully');
+    emailConfigured = true;
   } catch (error) {
     console.error('❌ Failed to configure Nodemailer transporter:', error.message);
     emailTransporter = null;
@@ -88,13 +96,6 @@ if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && proces
   console.log('📧 Email configuration summary:');
   console.log('   SES SDK Client:', !!sesClient);
   console.log('   SMTP Transporter:', !!emailTransporter);
-} else {
-  console.log('⚠️ Email configuration incomplete:');
-  console.log('   AWS_ACCESS_KEY_ID:', !!process.env.AWS_ACCESS_KEY_ID);
-  console.log('   AWS_SECRET_ACCESS_KEY:', !!process.env.AWS_SECRET_ACCESS_KEY);
-  console.log('   FROM_EMAIL:', !!process.env.FROM_EMAIL);
-  console.log('   NOTIFICATION_EMAIL:', !!process.env.NOTIFICATION_EMAIL);
-  console.log('   SES SDK Available:', !!SESClient);
   emailTransporter = null;
   sesClient = null;
 }
@@ -171,6 +172,12 @@ const sendTestEmail = async () => {
   return result;
 };
 
+// Simple function to check if we can send emails
+const canSendEmail = () => {
+  if (isBoltEnvironment) return false;
+  return emailConfigured && (sesClient || emailTransporter);
+};
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -179,6 +186,18 @@ app.use(express.json());
 app.post('/api/test-email', async (req, res) => {
   try {
     console.log('🧪 Testing email configuration...');
+    
+    // Check if we're in Bolt environment first
+    if (isBoltEnvironment) {
+      console.log('⚠️ Detected Bolt environment - email functionality limited');
+      return res.status(400).json({
+        success: false,
+        error: 'Email functionality not available in Bolt environment',
+        details: 'Bolt sandbox blocks outbound SMTP connections for security. Email will work when deployed to production server.',
+        environment: 'bolt',
+        canSendEmail: false
+      });
+    }
     
     // Log current configuration state
     console.log('🔍 Configuration Check:');
@@ -190,11 +209,11 @@ app.post('/api/test-email', async (req, res) => {
     console.log('   AWS_ACCESS_KEY_ID:', !!process.env.AWS_ACCESS_KEY_ID);
     console.log('   AWS_SECRET_ACCESS_KEY:', !!process.env.AWS_SECRET_ACCESS_KEY);
     
-    if (!sesClient && !emailTransporter) {
+    if (!canSendEmail()) {
       return res.status(400).json({ 
         success: false,
-        error: 'Email not configured',
-        details: 'Neither AWS SES SDK nor SMTP transporter is available.',
+        error: 'Email not configured or not available',
+        details: 'Email configuration incomplete or running in restricted environment.',
         debug: {
           sesClient: !!sesClient,
           emailTransporter: !!emailTransporter,
@@ -203,7 +222,8 @@ app.post('/api/test-email', async (req, res) => {
           awsAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
           awsSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
           sesSDKAvailable: !!SESClient,
-          sendEmailCommandAvailable: !!SendEmailCommand
+          sendEmailCommandAvailable: !!SendEmailCommand,
+          isBoltEnvironment: isBoltEnvironment
         }
       });
     }
@@ -248,7 +268,7 @@ app.post('/api/test-email', async (req, res) => {
     } else {
       return res.status(400).json({
         success: false,
-        error: 'No email method available',
+        error: 'No email service available',
         details: 'Both AWS SES SDK and SMTP transporter failed to initialize'
       });
     }
@@ -256,7 +276,7 @@ app.post('/api/test-email', async (req, res) => {
   } catch (error) {
     console.error('❌ Test email failed:', error);
     
-    let errorMessage = error.message;
+    let errorMessage = error.message || 'Unknown error';
     let troubleshooting = [];
     
     if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
@@ -289,6 +309,11 @@ app.post('/api/test-email', async (req, res) => {
       ];
     }
     
+    // Add environment-specific troubleshooting
+    if (isBoltEnvironment) {
+      troubleshooting.unshift('You are in Bolt environment - email will work in production');
+    }
+    
     return res.status(500).json({
       success: false,
       error: errorMessage,
@@ -304,8 +329,10 @@ app.get('/api/health', (req, res) => {
     message: 'Threat Response Server',
     status: 'running',
     timestamp: new Date().toISOString(),
-    email: !!emailTransporter,
-    awsSes: !!sesClient
+    email: canSendEmail(),
+    awsSes: !!sesClient,
+    environment: isBoltEnvironment ? 'bolt' : 'production',
+    canSendEmail: canSendEmail()
   });
 });
 
@@ -329,6 +356,7 @@ if (fs.existsSync(path.join(__dirname, 'dist'))) {
 // Start server
 app.listen(port, () => {
   console.log(`🚀 Server running on port ${port}`);
-  console.log(`📧 Email configured: ${!!emailTransporter}`);
+  console.log(`📧 Email available: ${canSendEmail()}`);
+  console.log(`🌐 Environment: ${isBoltEnvironment ? 'Bolt (Limited)' : 'Production'}`);
   console.log(`🌐 API: http://localhost:${port}/api`);
 });
