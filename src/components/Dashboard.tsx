@@ -42,6 +42,8 @@ const Dashboard: React.FC = () => {
   const [userDropdownOpen, setUserDropdownOpen] = React.useState(false);
   const [lastRefresh, setLastRefresh] = React.useState(new Date());
   const [showPasswordAlert, setShowPasswordAlert] = React.useState(false);
+  const [testingEmail, setTestingEmail] = React.useState(false);
+  const [emailTestResult, setEmailTestResult] = React.useState<string | null>(null);
 
   const toggleUserDropdown = () => setUserDropdownOpen(prev => !prev);
 
@@ -121,6 +123,34 @@ const Dashboard: React.FC = () => {
       alert('Failed to extract IPs from sources. Please try again.');
     } finally {
       setExtracting(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    setTestingEmail(true);
+    setEmailTestResult(null);
+    
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/test-email', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setEmailTestResult('✅ Test email sent successfully! Check your inbox.');
+      } else {
+        setEmailTestResult(`❌ Email test failed: ${result.error}`);
+      }
+    } catch (error) {
+      setEmailTestResult(`❌ Email test error: ${error.message}`);
+    } finally {
+      setTestingEmail(false);
     }
   };
   
@@ -298,6 +328,19 @@ const Dashboard: React.FC = () => {
                   <span className="md:hidden">P</span>
                 </button>
                 
+                {user?.role === 'superadmin' && (
+                  <button
+                    onClick={handleTestEmail}
+                    disabled={testingEmail}
+                    className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-cyan-300 bg-black/40 backdrop-blur-xl hover:bg-cyan-500/20 hover:text-cyan-100 rounded-lg transition-all duration-300 border border-cyan-500/30 disabled:opacity-50"
+                    title="Test email configuration"
+                  >
+                    <Mail className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden md:inline">{testingEmail ? 'Testing...' : 'Test Email'}</span>
+                    <span className="md:hidden">E</span>
+                  </button>
+                )}
+                
                 <button
                   onClick={handleRefresh}
                   disabled={refreshing}
@@ -374,6 +417,58 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Email Test Result Alert */}
+        {emailTestResult && (
+          <div className={`mb-6 rounded-xl p-4 ${
+            emailTestResult.includes('✅') 
+              ? 'bg-green-50 border border-green-200' 
+              : 'bg-red-50 border border-red-200'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-lg ${
+                  emailTestResult.includes('✅') 
+                    ? 'bg-green-100' 
+                    : 'bg-red-100'
+                }`}>
+                  <Mail className={`h-5 w-5 ${
+                    emailTestResult.includes('✅') 
+                      ? 'text-green-600' 
+                      : 'text-red-600'
+                  }`} />
+                </div>
+                <div>
+                  <h3 className={`text-sm font-semibold ${
+                    emailTestResult.includes('✅') 
+                      ? 'text-green-800' 
+                      : 'text-red-800'
+                  }`}>
+                    Email Test Result
+                  </h3>
+                  <p className={`text-sm ${
+                    emailTestResult.includes('✅') 
+                      ? 'text-green-700' 
+                      : 'text-red-700'
+                  }`}>
+                    {emailTestResult}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEmailTestResult(null)}
+                className={`p-2 transition-colors ${
+                  emailTestResult.includes('✅') 
+                    ? 'text-green-600 hover:text-green-800' 
+                    : 'text-red-600 hover:text-red-800'
+                }`}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text mb-2 font-mono">IP Category Management</h2>
           <p className="text-cyan-200">
