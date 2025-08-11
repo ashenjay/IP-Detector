@@ -140,7 +140,17 @@ const Dashboard: React.FC = () => {
         }
       });
       
-      const result = await response.json();
+      let result;
+      try {
+        const text = await response.text();
+        if (text.trim()) {
+          result = JSON.parse(text);
+        } else {
+          result = { success: false, error: 'Empty response from server' };
+        }
+      } catch (parseError) {
+        result = { success: false, error: `Invalid JSON response: ${parseError.message}` };
+      }
       
       if (result.success) {
         setEmailTestResult('✅ Test email sent successfully! Check your inbox.');

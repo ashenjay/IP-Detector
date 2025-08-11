@@ -294,7 +294,7 @@ app.post('/api/test-email', authenticateToken, async (req, res) => {
       description: 'This is a test email from the system'
     }, req.user.username);
     
-    res.json({
+    return res.json({
       success: true,
       message: 'Test email sent successfully',
       smtpVerified: true,
@@ -303,7 +303,7 @@ app.post('/api/test-email', authenticateToken, async (req, res) => {
     
   } catch (error) {
     console.error('❌ Test email failed:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: error.message,
       code: error.code,
