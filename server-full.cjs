@@ -11,6 +11,12 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 console.log('🚀 Starting full server with email support...');
+console.log('🔍 Environment variables check:');
+console.log('   AWS_ACCESS_KEY_ID:', !!process.env.AWS_ACCESS_KEY_ID);
+console.log('   AWS_SECRET_ACCESS_KEY:', !!process.env.AWS_SECRET_ACCESS_KEY);
+console.log('   AWS_SES_REGION:', process.env.AWS_SES_REGION);
+console.log('   FROM_EMAIL:', process.env.FROM_EMAIL);
+console.log('   NOTIFICATION_EMAIL:', process.env.NOTIFICATION_EMAIL);
 
 // Email configuration - AWS SES SMTP
 let emailTransporter;
@@ -29,47 +35,63 @@ try {
   SendEmailCommand = null;
 }
 
-if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && SESClient) {
+// Configure AWS SES if credentials are available
+if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.FROM_EMAIL && process.env.NOTIFICATION_EMAIL) {
   console.log('📧 Configuring AWS SES SMTP for email notifications...');
   console.log('📧 AWS Region:', process.env.AWS_SES_REGION || 'us-east-1');
   console.log('📧 From Email:', process.env.FROM_EMAIL);
   console.log('📧 Notification Email:', process.env.NOTIFICATION_EMAIL);
   
-  // Configure AWS SES Client
-  sesClient = new SESClient({
-    region: process.env.AWS_SES_REGION || 'us-east-1',
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  // Configure AWS SES Client if SDK is available
+  if (SESClient && SendEmailCommand) {
+    try {
+      sesClient = new SESClient({
+        region: process.env.AWS_SES_REGION || 'us-east-1',
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+        }
+      });
+      console.log('✅ AWS SES SDK client configured successfully');
+    } catch (error) {
+      console.error('❌ Failed to configure AWS SES SDK client:', error.message);
+      sesClient = null;
     }
-  });
+  }
   
   // Also configure Nodemailer as backup
-  emailTransporter = nodemailer.createTransporter({
-    host: 'email-smtp.us-east-1.amazonaws.com',
-    port: 587,
-    secure: false,
-    connectionTimeout: 30000, // 30 seconds
-    greetingTimeout: 30000, // 30 seconds
-    socketTimeout: 30000, // 30 seconds
-    auth: {
-      user: process.env.AWS_ACCESS_KEY_ID,
-      pass: process.env.AWS_SECRET_ACCESS_KEY
-    },
-    tls: {
-      rejectUnauthorized: false
-    }
-  });
+  try {
+    emailTransporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'email-smtp.us-east-1.amazonaws.com',
+      port: parseInt(process.env.SMTP_PORT) || 587,
+      secure: false,
+      connectionTimeout: 30000, // 30 seconds
+      greetingTimeout: 30000, // 30 seconds
+      socketTimeout: 30000, // 30 seconds
+      auth: {
+        user: process.env.AWS_ACCESS_KEY_ID,
+        pass: process.env.AWS_SECRET_ACCESS_KEY
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
+    console.log('✅ Nodemailer SMTP transporter configured successfully');
+  } catch (error) {
+    console.error('❌ Failed to configure Nodemailer transporter:', error.message);
+    emailTransporter = null;
+  }
   
-  console.log('✅ AWS SES SMTP configured successfully');
-  console.log('✅ AWS SES SDK configured successfully');
+  console.log('📧 Email configuration summary:');
+  console.log('   SES SDK Client:', !!sesClient);
+  console.log('   SMTP Transporter:', !!emailTransporter);
 } else {
   console.log('⚠️ Email configuration incomplete:');
   console.log('   AWS_ACCESS_KEY_ID:', !!process.env.AWS_ACCESS_KEY_ID);
   console.log('   AWS_SECRET_ACCESS_KEY:', !!process.env.AWS_SECRET_ACCESS_KEY);
-  console.log('   SES SDK Available:', !!SESClient);
   console.log('   FROM_EMAIL:', !!process.env.FROM_EMAIL);
   console.log('   NOTIFICATION_EMAIL:', !!process.env.NOTIFICATION_EMAIL);
+  console.log('   SES SDK Available:', !!SESClient);
   emailTransporter = null;
   sesClient = null;
 }
@@ -119,7 +141,7 @@ const sendTestEmailWithSES = async () => {
 };
 
 const sendTestEmail = async () => {
-  if (!sesClient || !process.env.NOTIFICATION_EMAIL || !process.env.FROM_EMAIL) {
+  if (!emailTransporter || !process.env.NOTIFICATION_EMAIL || !process.env.FROM_EMAIL) {
     throw new Error('Email not configured - missing SMTP settings or email addresses');
   }
 
@@ -157,12 +179,22 @@ app.post('/api/test-email', async (req, res) => {
     console.log('🔍 SES Client available:', !!sesClient);
     console.log('🔍 SendEmailCommand available:', !!SendEmailCommand);
     console.log('🔍 Email transporter available:', !!emailTransporter);
+    console.log('🔍 FROM_EMAIL:', process.env.FROM_EMAIL);
+    console.log('🔍 NOTIFICATION_EMAIL:', process.env.NOTIFICATION_EMAIL);
     
     if (!sesClient && !emailTransporter) {
       return res.status(400).json({ 
         success: false,
         error: 'Email not configured',
-        details: 'Neither AWS SES SDK nor SMTP transporter is available. Check configuration and dependencies.'
+        details: 'Neither AWS SES SDK nor SMTP transporter is available. Check configuration and dependencies.',
+        debug: {
+          sesClient: !!sesClient,
+          emailTransporter: !!emailTransporter,
+          fromEmail: !!process.env.FROM_EMAIL,
+          notificationEmail: !!process.env.NOTIFICATION_EMAIL,
+          awsAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
+          awsSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY
+        }
       });
     }
     
@@ -189,16 +221,16 @@ app.post('/api/test-email', async (req, res) => {
     
     // Try SMTP fallback
     if (emailTransporter) {
-      console.log('📧 Sending test email via AWS SES SDK...');
-      const result = await sendTestEmailWithSES();
+      console.log('📧 Sending test email via SMTP...');
+      const result = await sendTestEmail();
       
-      console.log('✅ Test email sent successfully via AWS SES SDK:', result.MessageId);
+      console.log('✅ Test email sent successfully via SMTP:', result.messageId);
       
       return res.json({
         success: true,
-        message: 'Test email sent successfully via AWS SES SDK',
-        messageId: result.MessageId,
-        method: 'AWS SES SDK',
+        message: 'Test email sent successfully via SMTP',
+        messageId: result.messageId,
+        method: 'SMTP',
         timestamp: new Date().toISOString()
       });
     } else {
@@ -232,8 +264,9 @@ app.post('/api/test-email', async (req, res) => {
     } else if (error.code === 'MessageRejected') {
       errorMessage = 'Email rejected by AWS SES';
       troubleshooting = [
-        'Verify SMTP username and password are correct',
-        'Check if 2FA or app-specific passwords are required'
+        'Verify the FROM_EMAIL is verified in AWS SES',
+        'Check if the email is in sandbox mode and NOTIFICATION_EMAIL is verified',
+        'Ensure AWS SES has sending permissions'
       ];
     }
     
