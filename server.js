@@ -114,6 +114,14 @@ const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
     await emailTransporter.verify();
     console.log('✅ SMTP connection verified successfully');
     
+    // Log email configuration being used
+    console.log('📧 Email configuration:');
+    console.log('   SMTP Host:', process.env.SMTP_HOST);
+    console.log('   SMTP Port:', process.env.SMTP_PORT);
+    console.log('   SMTP User:', process.env.SMTP_USER);
+    console.log('   From Email:', process.env.FROM_EMAIL);
+    console.log('   To Email:', process.env.NOTIFICATION_EMAIL);
+    
     const subject = `🚨 New ${recordType} Added - NDB Bank Threat Response System`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
@@ -190,6 +198,7 @@ const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
       htmlLength: mailOptions.html.length
     });
     
+    console.log('📧 Attempting to send email...');
     const result = await emailTransporter.sendMail(mailOptions);
     console.log('✅ Email sent successfully! Result:', {
       messageId: result.messageId,
@@ -197,6 +206,8 @@ const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
       accepted: result.accepted,
       rejected: result.rejected
     });
+    
+    return result;
 
   } catch (error) {
     console.error('❌ Failed to send email notification:');
@@ -215,6 +226,8 @@ const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
     } else if (error.code === 'EMESSAGE') {
       console.error('❌ Message rejected - check email addresses');
     }
+    
+    throw error; // Re-throw to be caught by caller
   }
 };
 
@@ -249,6 +262,51 @@ app.get('/api/health', (req, res) => {
     port: port,
     proxy: 'nginx'
   });
+});
+
+// Test email endpoint
+app.post('/api/test-email', authenticateToken, async (req, res) => {
+  try {
+    console.log('🧪 Testing email configuration...');
+    
+    if (!emailTransporter) {
+      return res.status(400).json({ 
+        error: 'Email not configured',
+        details: 'SMTP transporter not initialized'
+      });
+    }
+    
+    // Test SMTP connection
+    console.log('🔌 Testing SMTP connection...');
+    await emailTransporter.verify();
+    console.log('✅ SMTP connection verified');
+    
+    // Send test email
+    console.log('📧 Sending test email...');
+    const testResult = await sendRecordAddedEmail('Test Entry', {
+      ip: '192.168.1.100',
+      type: 'ip',
+      category: 'Test Category',
+      description: 'This is a test email from the system'
+    }, req.user.username);
+    
+    res.json({
+      success: true,
+      message: 'Test email sent successfully',
+      smtpVerified: true,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Test email failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      code: error.code,
+      command: error.command,
+      response: error.response
+    });
+  }
 });
 
 // ✅ PUBLIC EDL ENDPOINTS - NO AUTHENTICATION REQUIRED
