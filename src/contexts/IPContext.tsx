@@ -28,7 +28,15 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
       });
       
       if (response.ok) {
-        const data = await response.json();
+        const responseText = await response.text();
+        
+        // Check if response is HTML instead of JSON
+        if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<!doctype')) {
+          console.error('Received HTML response instead of JSON. Backend server may not be running.');
+          return;
+        }
+        
+        const data = JSON.parse(responseText);
         console.log('📥 Raw API response:', data.slice(0, 2)); // Debug log
         const formattedEntries = data.map((entry: any) => ({
           ...entry,
@@ -59,7 +67,15 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
       });
       
       if (response.ok) {
-        const data = await response.json();
+        const responseText = await response.text();
+        
+        // Check if response is HTML instead of JSON
+        if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<!doctype')) {
+          console.error('Received HTML response instead of JSON. Backend server may not be running.');
+          return;
+        }
+        
+        const data = JSON.parse(responseText);
         const formattedEntries = data.map((entry: any) => ({
           ...entry,
           dateAdded: entry.dateAdded ? new Date(entry.dateAdded) : new Date(),
