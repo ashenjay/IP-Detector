@@ -248,6 +248,22 @@ app.use((req, res, next) => {
 // Trust proxy (important for Nginx reverse proxy)
 app.set('trust proxy', true);
 
+// JWT middleware - MOVED HERE BEFORE FIRST USAGE
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.sendStatus(401);
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret', (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+};
+
 // Basic health check route
 app.get('/', (req, res) => {
   // Serve React app for root route
@@ -405,22 +421,6 @@ app.get('/api/debug', async (req, res) => {
     });
   }
 });
-
-// JWT middleware
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.sendStatus(401);
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret', (err, user) => {
-    if (err) return res.sendStatus(403);
-    req.user = user;
-    next();
-  });
-};
 
 // Authentication
 app.post('/api/auth/login', async (req, res) => {
