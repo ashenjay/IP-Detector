@@ -5,8 +5,8 @@ export const CONFIG = {
   isProduction: !import.meta.env.DEV,
   isDevelopment: import.meta.env.DEV,
   
-  // API endpoints - Always use production server
-  apiEndpoint: 'https://threatresponse.ndbbank.com/api',
+  // API endpoints - Use local in development, production in production
+  apiEndpoint: import.meta.env.DEV ? 'http://localhost:3000/api' : 'https://threatresponse.ndbbank.com/api',
     
   // Feature flags - Dynamic based on environment
   features: {
