@@ -7,7 +7,7 @@ import https from 'https';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import nodemailer from 'nodemailer';
+import { createTransport } from 'nodemailer';
 import fs from 'fs';
 
 // Load environment variables first
@@ -103,7 +103,7 @@ try {
   console.log('✅ AWS SES SDK configured');
   
   // Also configure SMTP as fallback
-  emailTransporter = nodemailer.createTransporter({
+  emailTransporter = createTransport({
     host: 'email-smtp.ap-southeast-1.amazonaws.com',
     port: 587,
     secure: false,
@@ -119,7 +119,7 @@ try {
   console.log('⚠️ AWS SES SDK not available, using SMTP only');
   
   if (config.aws.accessKeyId && config.aws.secretAccessKey) {
-    emailTransporter = nodemailer.createTransporter({
+    emailTransporter = createTransport({
       host: 'email-smtp.ap-southeast-1.amazonaws.com',
       port: 587,
       secure: false,
