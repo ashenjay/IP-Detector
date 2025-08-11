@@ -138,13 +138,14 @@ try {
 // Function to send email notification
 const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
   if (!config.email.notificationEmail || !config.email.fromEmail) {
-    console.log('❌ Email addresses not configured');
+    console.log('❌ Email addresses not configured - FROM_EMAIL:', config.email.fromEmail, 'NOTIFICATION_EMAIL:', config.email.notificationEmail);
     return;
   }
 
   try {
     // Try AWS SES SDK first
     if (sesClient) {
+      console.log('📧 Sending email via AWS SES SDK...');
       const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
       
       const subject = `🚨 New ${recordType} Added - NDB Bank Threat Response System`;
@@ -191,10 +192,11 @@ const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
     
     // Fallback to SMTP
     if (!emailTransporter) {
-      console.log('❌ No email transporter available');
+      console.log('❌ No email transporter available - emailTransporter:', !!emailTransporter, 'sesClient:', !!sesClient);
       return;
     }
     
+    console.log('📧 Sending email via SMTP...');
     const subject = `🚨 New ${recordType} Added - NDB Bank Threat Response System`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -657,6 +659,7 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
         category: categoryName,
         description: description || ''
       }, addedBy);
+      console.log('✅ Email notification sent successfully');
     } catch (emailError) {
       console.error('❌ Email notification failed:', emailError);
     }
