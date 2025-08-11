@@ -68,19 +68,24 @@ const pool = new Pool({
   password: config.database.password,
   ssl: config.nodeEnv === 'production' ? { require: true, rejectUnauthorized: false } : false,
   max: 20,
-  idleTimeoutMillis: 300000,
+  idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 120000,
 });
 
 // Test database connection
-pool.connect((err, client, release) => {
-  if (err) {
-    console.error('❌ Error connecting to database:', err.stack);
-  } else {
-    console.log('✅ Connected to PostgreSQL database');
-    release();
-  }
-});
+// Skip database connection test in development to avoid blocking server startup
+if (config.nodeEnv === 'production') {
+  pool.connect((err, client, release) => {
+    if (err) {
+      console.error('❌ Error connecting to database:', err.stack);
+    } else {
+      console.log('✅ Connected to PostgreSQL database');
+      release();
+    }
+  });
+} else {
+  console.log('⚠️ Skipping database connection test in development mode');
+}
 
 // Email configuration
 let emailTransporter;
