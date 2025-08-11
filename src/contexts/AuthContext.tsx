@@ -35,6 +35,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
       
+      // Check if response is HTML instead of JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        throw new Error('Received HTML response instead of JSON. Backend server may not be running.');
+      }
+      
       if (response.status === 403) {
         console.log('Authentication token invalid or expired, logging out');
         logout();
