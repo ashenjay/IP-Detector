@@ -13,28 +13,60 @@ import fs from 'fs';
 // Load environment variables first
 dotenv.config();
 
+// Environment Configuration
+const config = {
+  nodeEnv: process.env.NODE_ENV || 'development',
+  port: process.env.PORT || 3000,
+  database: {
+    host: process.env.DB_HOST || 'threat-intel-prod-db.c584igmgglks.ap-southeast-1.rds.amazonaws.com',
+    port: process.env.DB_PORT || 5432,
+    name: process.env.DB_NAME || 'postgres',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'ndbbank123'
+  },
+  jwt: {
+    secret: process.env.JWT_SECRET || 'Mkb5Gx44Wkc='
+  },
+  aws: {
+    region: process.env.AWS_SES_REGION || 'ap-southeast-1',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'AKIAQ3EGPYTEFZYYXKV6',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || 'BEZ9zrjGzAvLRvb65kmhfUr9OO6TMfzCjjK2J/bIN+49'
+  },
+  email: {
+    fromEmail: process.env.FROM_EMAIL || 'secure360-uat@ndbbank.com',
+    notificationEmail: process.env.NOTIFICATION_EMAIL || 'ashen.vitharana@ndbbank.com'
+  },
+  apis: {
+    abuseipdb: process.env.ABUSEIPDB_API_KEY,
+    virustotal: process.env.VIRUSTOTAL_API_KEY
+  }
+};
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = config.port;
 
 console.log('🚀 Starting Threat Response Server...');
+console.log('🌍 Environment:', config.nodeEnv);
+console.log('🔌 Port:', port);
+console.log('🗄️ Database Host:', config.database.host);
 console.log('📧 Email Configuration:');
-console.log('   FROM_EMAIL:', process.env.FROM_EMAIL);
-console.log('   NOTIFICATION_EMAIL:', process.env.NOTIFICATION_EMAIL);
-console.log('   SMTP_HOST:', process.env.SMTP_HOST);
-console.log('   AWS_ACCESS_KEY_ID:', !!process.env.AWS_ACCESS_KEY_ID);
-console.log('   AWS_SECRET_ACCESS_KEY:', !!process.env.AWS_SECRET_ACCESS_KEY);
+console.log('   FROM_EMAIL:', config.email.fromEmail);
+console.log('   NOTIFICATION_EMAIL:', config.email.notificationEmail);
+console.log('   AWS_REGION:', config.aws.region);
+console.log('   AWS_ACCESS_KEY_ID:', !!config.aws.accessKeyId);
+console.log('   AWS_SECRET_ACCESS_KEY:', !!config.aws.secretAccessKey);
 
 // Database connection
 const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'postgres',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  host: config.database.host,
+  port: config.database.port,
+  database: config.database.name,
+  user: config.database.user,
+  password: config.database.password,
+  ssl: config.nodeEnv === 'production' ? { rejectUnauthorized: false } : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 60000,
@@ -53,33 +85,116 @@ pool.connect((err, client, release) => {
 // Email configuration
 let emailTransporter;
 
-if (process.env.SMTP_HOST && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
-  console.log('📧 Configuring AWS SES SMTP...');
+// AWS SES Configuration
+let sesClient;
+
+try {
+  // Try to import AWS SES SDK
+  const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
   
-  emailTransporter = nodemailer.createTransporter({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT || 587,
-    secure: false,
-    auth: {
-      user: process.env.AWS_ACCESS_KEY_ID,
-      pass: process.env.AWS_SECRET_ACCESS_KEY
+  sesClient = new SESClient({
+    region: config.aws.region,
+    credentials: {
+      accessKeyId: config.aws.accessKeyId,
+      secretAccessKey: config.aws.secretAccessKey
     }
   });
   
-  console.log('✅ Email transporter configured');
-} else {
-  console.log('⚠️ Email configuration incomplete');
-  emailTransporter = null;
+  console.log('✅ AWS SES SDK configured');
+  
+  // Also configure SMTP as fallback
+  emailTransporter = nodemailer.createTransporter({
+    host: 'email-smtp.ap-southeast-1.amazonaws.com',
+    port: 587,
+    secure: false,
+    auth: {
+      user: config.aws.accessKeyId,
+      pass: config.aws.secretAccessKey
+    }
+  });
+  
+  console.log('✅ SMTP fallback configured');
+  
+} catch (error) {
+  console.log('⚠️ AWS SES SDK not available, using SMTP only');
+  
+  if (config.aws.accessKeyId && config.aws.secretAccessKey) {
+    emailTransporter = nodemailer.createTransporter({
+      host: 'email-smtp.ap-southeast-1.amazonaws.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: config.aws.accessKeyId,
+        pass: config.aws.secretAccessKey
+      }
+    });
+    console.log('✅ SMTP email transporter configured');
+  } else {
+    console.log('❌ Email configuration incomplete');
+    emailTransporter = null;
+  }
 }
 
 // Function to send email notification
 const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
-  if (!emailTransporter || !process.env.NOTIFICATION_EMAIL || !process.env.FROM_EMAIL) {
-    console.log('❌ Email not configured');
+  if (!config.email.notificationEmail || !config.email.fromEmail) {
+    console.log('❌ Email addresses not configured');
     return;
   }
 
   try {
+    // Try AWS SES SDK first
+    if (sesClient) {
+      const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
+      
+      const subject = `🚨 New ${recordType} Added - NDB Bank Threat Response System`;
+      const htmlBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #1e40af;">🚨 New ${recordType} Added</h2>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr><td style="padding: 8px; font-weight: bold;">Added by:</td><td style="padding: 8px;">${addedBy}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">IP/Hostname:</td><td style="padding: 8px; font-family: monospace;">${recordData.ip}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">Type:</td><td style="padding: 8px;">${recordData.type.toUpperCase()}</td></tr>
+            ${recordData.category ? `<tr><td style="padding: 8px; font-weight: bold;">Category:</td><td style="padding: 8px;">${recordData.category}</td></tr>` : ''}
+            <tr><td style="padding: 8px; font-weight: bold;">Description:</td><td style="padding: 8px;">${recordData.description || 'No description provided'}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">Date Added:</td><td style="padding: 8px;">${new Date().toLocaleString()}</td></tr>
+          </table>
+          <p style="font-size: 12px; color: #666; text-align: center; margin-top: 20px;">
+            Automated message from NDB Bank Threat Response System
+          </p>
+        </div>
+      `;
+
+      const command = new SendEmailCommand({
+        Source: config.email.fromEmail,
+        Destination: {
+          ToAddresses: [config.email.notificationEmail]
+        },
+        Message: {
+          Subject: {
+            Data: subject,
+            Charset: 'UTF-8'
+          },
+          Body: {
+            Html: {
+              Data: htmlBody,
+              Charset: 'UTF-8'
+            }
+          }
+        }
+      });
+
+      const result = await sesClient.send(command);
+      console.log('✅ Email sent via AWS SES SDK:', result.MessageId);
+      return result;
+    }
+    
+    // Fallback to SMTP
+    if (!emailTransporter) {
+      console.log('❌ No email transporter available');
+      return;
+    }
+    
     const subject = `🚨 New ${recordType} Added - NDB Bank Threat Response System`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -99,13 +214,13 @@ const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
     `;
 
     const result = await emailTransporter.sendMail({
-      from: process.env.FROM_EMAIL,
-      to: process.env.NOTIFICATION_EMAIL,
+      from: config.email.fromEmail,
+      to: config.email.notificationEmail,
       subject: subject,
       html: html
     });
     
-    console.log('✅ Email sent successfully:', result.messageId);
+    console.log('✅ Email sent via SMTP:', result.messageId);
     return result;
 
   } catch (error) {
@@ -130,7 +245,7 @@ const authenticateToken = (req, res, next) => {
     return res.sendStatus(401);
   }
 
-  jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret', (err, user) => {
+  jwt.verify(token, config.jwt.secret, (err, user) => {
     if (err) return res.sendStatus(403);
     req.user = user;
     next();
@@ -142,19 +257,20 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     message: 'NDB Bank Threat Response Server',
     status: 'running',
+    environment: config.nodeEnv,
     timestamp: new Date().toISOString(),
-    email: !!emailTransporter
+    email: !!emailTransporter || !!sesClient,
+    database: config.database.host
   });
 });
 
 // Test email endpoint
 app.post('/api/test-email', authenticateToken, async (req, res) => {
   try {
-    if (!emailTransporter) {
+    if (!emailTransporter && !sesClient) {
       return res.status(400).json({ 
         success: false,
-        error: 'Email not configured',
-        details: 'SMTP transporter not initialized'
+        error: 'Email not configured'
       });
     }
     
@@ -238,7 +354,7 @@ app.post('/api/auth/login', async (req, res) => {
         role: user.role,
         assignedCategories: user.assigned_categories 
       },
-      process.env.JWT_SECRET || 'fallback-secret',
+      config.jwt.secret,
       { expiresIn: '24h' }
     );
     
@@ -664,7 +780,7 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(port, () => {
   console.log(`🚀 Server running on port ${port}`);
-  console.log(`📧 Email configured: ${!!emailTransporter}`);
+  console.log(`📧 Email configured: ${!!emailTransporter || !!sesClient}`);
   console.log(`🌐 API: http://localhost:${port}/api`);
   console.log(`🌐 PUBLIC EDL endpoints: /api/edl/{category}`);
 });
