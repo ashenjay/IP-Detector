@@ -326,6 +326,15 @@ const Dashboard: React.FC = () => {
                       <span className="hidden md:inline">Categories</span>
                       <span className="md:hidden">C</span>
                     </button>
+                    
+                    <button
+                      onClick={() => window.location.hash = '/reports'}
+                      className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-cyan-300 bg-black/40 backdrop-blur-xl hover:bg-cyan-500/20 hover:text-cyan-100 rounded-lg transition-all duration-300 border border-cyan-500/30"
+                    >
+                      <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="hidden md:inline">Reports</span>
+                      <span className="md:hidden">R</span>
+                    </button>
                   </>
                 )}
                 
@@ -422,27 +431,6 @@ const Dashboard: React.FC = () => {
                   className="p-2 text-yellow-600 hover:text-yellow-800 transition-colors"
                 >
                   <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Email Test Result Alert */}
-        {emailTestResult && (
-          <div className={`mb-6 rounded-xl p-4 ${
-            emailTestResult.includes('✅') 
-              ? 'bg-green-50 border border-green-200' 
-              : 'bg-red-50 border border-red-200'
-          }`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-lg ${
-                  emailTestResult.includes('✅') 
-                    ? 'bg-green-100' 
-                    : 'bg-red-100'
-                }`}>
-                  <Mail className={`h-5 w-5 ${
                     emailTestResult.includes('✅') 
                       ? 'text-green-600' 
                       : 'text-red-600'
