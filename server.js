@@ -65,29 +65,39 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     host: process.env.SMTP_HOST,
     port: process.env.SMTP_PORT || 587,
     secure: process.env.SMTP_PORT == 465, // true for 465, false for other ports
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000, // 10 seconds
+    socketTimeout: 10000, // 10 seconds
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS
-    },
-    debug: true, // Enable debug logging
-    logger: true // Enable logging
+    }
   });
   console.log('✅ AWS SES SMTP configured successfully');
   
   // Test the connection
-  emailTransporter.verify((error, success) => {
-    if (error) {
-      console.error('❌ SMTP connection test failed:', error);
-      console.error('❌ Error details:', {
-        code: error.code,
-        command: error.command,
-        response: error.response,
-        responseCode: error.responseCode
-      });
-    } else {
+  emailTransporter.verify()
+    .then(() => {
       console.log('✅ SMTP connection test successful');
-    }
-  });
+    })
+    .catch((error) => {
+      console.error('❌ SMTP connection test failed:', error.message);
+      console.error('❌ Error code:', error.code);
+      
+      if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+        console.error('❌ Network connectivity issue detected:');
+        console.error('   - Check if SMTP host is reachable');
+        console.error('   - Verify firewall/security group settings');
+        console.error('   - Confirm SMTP port is correct');
+        console.error('   - Test with: telnet', process.env.SMTP_HOST, process.env.SMTP_PORT || 587);
+      } else if (error.code === 'EAUTH') {
+        console.error('❌ Authentication issue - check SMTP credentials');
+      }
+      
+      // Don't fail the server startup, just disable email
+      console.log('⚠️ Email functionality disabled due to SMTP connection failure');
+      emailTransporter = null;
+    });
 } else {
   console.log('⚠️ Missing email configuration:');
   console.log('   SMTP_HOST:', !!process.env.SMTP_HOST);
@@ -298,7 +308,12 @@ app.post('/api/test-email', authenticateToken, async (req, res) => {
     
     // Test SMTP connection
     console.log('🔌 Testing SMTP connection...');
-    await emailTransporter.verify();
+    const verifyPromise = emailTransporter.verify();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Connection timeout after 15 seconds')), 15000)
+    );
+    
+    await Promise.race([verifyPromise, timeoutPromise]);
     console.log('✅ SMTP connection verified');
     
     // Send test email
@@ -319,12 +334,31 @@ app.post('/api/test-email', authenticateToken, async (req, res) => {
     
   } catch (error) {
     console.error('❌ Test email failed:', error);
+    
+    let errorMessage = error.message;
+    let troubleshooting = [];
+    
+    if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
+      errorMessage = 'Connection timeout - cannot reach SMTP server';
+      troubleshooting = [
+        'Check if SMTP host is correct and reachable',
+        'Verify firewall/security group allows outbound connections',
+        'Confirm SMTP port is correct (usually 587 or 465)',
+        'Test connectivity: telnet ' + process.env.SMTP_HOST + ' ' + (process.env.SMTP_PORT || 587)
+      ];
+    } else if (error.code === 'EAUTH') {
+      errorMessage = 'Authentication failed - check SMTP credentials';
+      troubleshooting = [
+        'Verify SMTP username and password are correct',
+        'Check if 2FA or app-specific passwords are required'
+      ];
+    }
+    
     return res.status(500).json({
       success: false,
-      error: error.message,
+      error: errorMessage,
       code: error.code,
-      command: error.command,
-      response: error.response
+      troubleshooting: troubleshooting
     });
   }
 });
