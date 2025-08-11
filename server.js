@@ -1166,7 +1166,23 @@ app.get('*', (req, res) => {
   console.log('Serving React app for route:', req.path);
   const indexPath = path.join(__dirname, 'dist', 'index.html');
   console.log('📄 Serving index.html from:', indexPath);
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  
+  // Check if index.html exists before serving
+  const fs = require('fs');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    console.error('❌ index.html not found at:', indexPath);
+    res.status(404).send(`
+      <html>
+        <body>
+          <h1>Build Error</h1>
+          <p>The application has not been built yet.</p>
+          <p>Please run: <code>npm run build</code></p>
+        </body>
+      </html>
+    `);
+  }
 });
 
 // Error handling middleware
