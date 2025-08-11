@@ -99,7 +99,9 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
 
 // Function to send email notification
 const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
-  console.log('📧 sendRecordAddedEmail called with:', { recordType, recordData, addedBy });
+  console.log('📧 s
+  )
+}endRecordAddedEmail called with:', { recordType, recordData, addedBy });
   
   if (!emailTransporter || !process.env.NOTIFICATION_EMAIL || !process.env.FROM_EMAIL) {
     console.log('❌ Email not configured or missing required variables:');
