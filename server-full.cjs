@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
+const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
 const fs = require('fs');
 
 // Load environment variables
@@ -14,20 +15,34 @@ console.log('🚀 Starting full server with email support...');
 
 // Email configuration - AWS SES SMTP
 let emailTransporter;
+let sesClient;
 
-if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
   console.log('📧 Configuring AWS SES SMTP for email notifications...');
+  console.log('📧 AWS Region:', process.env.AWS_SES_REGION || 'us-east-1');
+  console.log('📧 From Email:', process.env.FROM_EMAIL);
+  console.log('📧 Notification Email:', process.env.NOTIFICATION_EMAIL);
   
+  // Configure AWS SES Client
+  sesClient = new SESClient({
+    region: process.env.AWS_SES_REGION || 'us-east-1',
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    }
+  });
+  
+  // Also configure Nodemailer as backup
   emailTransporter = nodemailer.createTransporter({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT || 587,
-    secure: false, // true for 465, false for other ports
+    host: 'email-smtp.us-east-1.amazonaws.com',
+    port: 587,
+    secure: false,
     connectionTimeout: 30000, // 30 seconds
     greetingTimeout: 30000, // 30 seconds
     socketTimeout: 30000, // 30 seconds
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
+      user: process.env.AWS_ACCESS_KEY_ID,
+      pass: process.env.AWS_SECRET_ACCESS_KEY
     },
     tls: {
       rejectUnauthorized: false
@@ -35,14 +50,58 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
   });
   
   console.log('✅ AWS SES SMTP configured successfully');
+  console.log('✅ AWS SES SDK configured successfully');
 } else {
   console.log('⚠️ Email configuration missing - email functionality disabled');
   emailTransporter = null;
 }
 
 // Function to send test email
+const sendTestEmailWithSES = async () => {
+  if (!sesClient || !process.env.NOTIFICATION_EMAIL || !process.env.FROM_EMAIL) {
+    throw new Error('AWS SES not configured - missing credentials or email addresses');
+  }
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #1e40af;">🧪 Email Test Successful!</h2>
+      <p>This is a test email from the NDB Bank Threat Response System.</p>
+      <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
+      <p><strong>Status:</strong> ✅ AWS SES configuration is working correctly</p>
+      <p><strong>Region:</strong> ${process.env.AWS_SES_REGION || 'us-east-1'}</p>
+      <hr>
+      <p style="font-size: 12px; color: #666;">
+        This is an automated test message from the NDB Bank Threat Response System.
+      </p>
+    </div>
+  `;
+
+  const params = {
+    Source: process.env.FROM_EMAIL,
+    Destination: {
+      ToAddresses: [process.env.NOTIFICATION_EMAIL]
+    },
+    Message: {
+      Subject: {
+        Data: '🧪 Test Email - NDB Bank Threat Response System',
+        Charset: 'UTF-8'
+      },
+      Body: {
+        Html: {
+          Data: htmlContent,
+          Charset: 'UTF-8'
+        }
+      }
+    }
+  };
+
+  const command = new SendEmailCommand(params);
+  const result = await sesClient.send(command);
+  return result;
+};
+
 const sendTestEmail = async () => {
-  if (!emailTransporter || !process.env.NOTIFICATION_EMAIL || !process.env.FROM_EMAIL) {
+  if (!sesClient || !process.env.NOTIFICATION_EMAIL || !process.env.FROM_EMAIL) {
     throw new Error('Email not configured - missing SMTP settings or email addresses');
   }
 
@@ -50,6 +109,7 @@ const sendTestEmail = async () => {
     from: process.env.FROM_EMAIL,
     to: process.env.NOTIFICATION_EMAIL,
     subject: '🧪 Test Email - NDB Bank Threat Response System',
+    text: 'This is a test email from the NDB Bank Threat Response System.',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h2 style="color: #1e40af;">🧪 Email Test Successful!</h2>
@@ -77,18 +137,31 @@ app.post('/api/test-email', async (req, res) => {
   try {
     console.log('🧪 Testing email configuration...');
     
-    if (!emailTransporter) {
+    if (!sesClient) {
       return res.status(400).json({ 
         success: false,
-        error: 'Email not configured',
-        details: 'SMTP transporter not initialized. Check environment variables.'
+        error: 'AWS SES not configured',
+        details: 'AWS SES client not initialized. Check AWS credentials.'
       });
     }
     
-    // Test SMTP connection first
-    console.log('🔌 Testing SMTP connection...');
-    await emailTransporter.verify();
-    console.log('✅ SMTP connection verified');
+    // Try AWS SES SDK first
+    try {
+      console.log('📧 Sending test email via AWS SES SDK...');
+      const result = await sendTestEmailWithSES();
+      
+      console.log('✅ Test email sent successfully via AWS SES SDK:', result.MessageId);
+      
+      return res.json({
+        success: true,
+        message: 'Test email sent successfully via AWS SES SDK',
+        messageId: result.MessageId,
+        method: 'AWS SES SDK',
+        timestamp: new Date().toISOString()
+      });
+    } catch (sesError) {
+      console.log('⚠️ AWS SES SDK failed, trying SMTP fallback:', sesError.message);
+    }
     
     // Send test email
     console.log('📧 Sending test email...');
@@ -99,6 +172,7 @@ app.post('/api/test-email', async (req, res) => {
     return res.json({
       success: true,
       message: 'Test email sent successfully',
+      method: 'SMTP',
       messageId: result.messageId,
       timestamp: new Date().toISOString()
     });
@@ -118,6 +192,13 @@ app.post('/api/test-email', async (req, res) => {
       ];
     } else if (error.code === 'EAUTH') {
       errorMessage = 'Authentication failed - check SMTP credentials';
+      troubleshooting = [
+        'Verify AWS Access Key ID and Secret Access Key are correct',
+        'Check if AWS SES is enabled in your region',
+        'Verify the FROM_EMAIL is verified in AWS SES'
+      ];
+    } else if (error.code === 'MessageRejected') {
+      errorMessage = 'Email rejected by AWS SES';
       troubleshooting = [
         'Verify SMTP username and password are correct',
         'Check if 2FA or app-specific passwords are required'
@@ -139,7 +220,8 @@ app.get('/api/health', (req, res) => {
     message: 'Threat Response Server',
     status: 'running',
     timestamp: new Date().toISOString(),
-    email: !!emailTransporter
+    email: !!emailTransporter,
+    awsSes: !!sesClient
   });
 });
 
