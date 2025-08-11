@@ -22,9 +22,9 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     host: process.env.SMTP_HOST,
     port: process.env.SMTP_PORT || 587,
     secure: false, // true for 465, false for other ports
-    requireTLS: true,
-    auth: {
-      user: process.env.SMTP_USER,
+    connectionTimeout: 30000, // 30 seconds
+    greetingTimeout: 30000, // 30 seconds
+    socketTimeout: 30000, // 30 seconds
       pass: process.env.SMTP_PASS
     },
     tls: {
