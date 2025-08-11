@@ -66,7 +66,7 @@ const pool = new Pool({
   database: config.database.name,
   user: config.database.user,
   password: config.database.password,
-  ssl: config.nodeEnv === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: config.nodeEnv === 'production' ? { require: true, rejectUnauthorized: false } : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 60000,
