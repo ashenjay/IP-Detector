@@ -18,23 +18,23 @@ const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: process.env.PORT || 3000,
   database: {
-    host: process.env.DB_HOST || 'threat-intel-prod-db.c584igmgglks.ap-southeast-1.rds.amazonaws.com',
+    host: process.env.DB_HOST,
     port: process.env.DB_PORT || 5432,
-    name: process.env.DB_NAME || 'postgres',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'ndbbank123'
+    name: process.env.DB_NAME,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD
   },
   jwt: {
-    secret: process.env.JWT_SECRET || 'Mkb5Gx44Wkc='
+    secret: process.env.JWT_SECRET
   },
   aws: {
-    region: process.env.AWS_SES_REGION || 'ap-southeast-1',
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || 'AKIAQ3EGPYTEFZYYXKV6',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || 'BEZ9zrjGzAvLRvb65kmhfUr9OO6TMfzCjjK2J/bIN+49'
+    region: process.env.AWS_SES_REGION,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
   },
   email: {
-    fromEmail: process.env.FROM_EMAIL || 'secure360-uat@ndbbank.com',
-    notificationEmail: process.env.NOTIFICATION_EMAIL || 'ashen.vitharana@ndbbank.com'
+    fromEmail: process.env.FROM_EMAIL,
+    notificationEmail: process.env.NOTIFICATION_EMAIL
   },
   apis: {
     abuseipdb: process.env.ABUSEIPDB_API_KEY,
