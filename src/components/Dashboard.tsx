@@ -464,6 +464,17 @@ const Dashboard: React.FC = () => {
                     {emailTestResult}
                   </p>
                 </div>
+              
+              {user?.role === 'superadmin' && (
+                <button
+                  onClick={() => window.location.hash = '/reports'}
+                  className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm text-cyan-300 bg-black/40 backdrop-blur-xl hover:bg-cyan-500/20 hover:text-cyan-100 rounded-lg transition-all duration-300 border border-cyan-500/30"
+                >
+                  <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden md:inline">Reports</span>
+                  <span className="md:hidden">R</span>
+                </button>
+              )}
               </div>
               <button
                 onClick={() => setEmailTestResult(null)}

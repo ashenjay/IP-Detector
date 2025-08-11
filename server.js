@@ -11,6 +11,195 @@ import { createTransport } from 'nodemailer';
 import fs from 'fs';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 
+// Monthly Report Generation Function
+const generateMonthlyReport = async (year, month, userId = null) => {
+  try {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59);
+    
+    let userFilter = '';
+    let params = [startDate, endDate];
+    
+    if (userId) {
+      userFilter = ' AND u.id = $3';
+      params.push(userId);
+    }
+    
+    // Get user activity summary
+    const userActivityQuery = `
+      SELECT 
+        u.id,
+        u.username,
+        u.email,
+        u.role,
+        COUNT(DISTINCT ie.id) as ip_entries_added,
+        COUNT(DISTINCT w.id) as whitelist_entries_added,
+        COUNT(DISTINCT ie.id) + COUNT(DISTINCT w.id) as total_entries_added,
+        MIN(COALESCE(ie.date_added, w.date_added)) as first_activity,
+        MAX(COALESCE(ie.date_added, w.date_added)) as last_activity
+      FROM users u
+      LEFT JOIN ip_entries ie ON u.username = ie.added_by 
+        AND ie.date_added >= $1 AND ie.date_added <= $2
+      LEFT JOIN whitelist w ON u.username = w.added_by 
+        AND w.date_added >= $1 AND w.date_added <= $2
+      WHERE u.is_active = true ${userFilter}
+      GROUP BY u.id, u.username, u.email, u.role
+      ORDER BY total_entries_added DESC, u.username
+    `;
+    
+    const userActivity = await pool.query(userActivityQuery, params);
+    
+    // Get category breakdown
+    const categoryBreakdownQuery = `
+      SELECT 
+        u.username,
+        c.label as category_name,
+        COUNT(ie.id) as entries_count
+      FROM users u
+      LEFT JOIN ip_entries ie ON u.username = ie.added_by 
+        AND ie.date_added >= $1 AND ie.date_added <= $2
+      LEFT JOIN categories c ON ie.category_id = c.id
+      WHERE u.is_active = true ${userFilter}
+        AND c.label IS NOT NULL
+      GROUP BY u.username, c.label
+      ORDER BY u.username, entries_count DESC
+    `;
+    
+    const categoryBreakdown = await pool.query(categoryBreakdownQuery, params);
+    
+    // Get daily activity
+    const dailyActivityQuery = `
+      SELECT 
+        DATE(COALESCE(ie.date_added, w.date_added)) as activity_date,
+        u.username,
+        COUNT(DISTINCT ie.id) as ip_entries,
+        COUNT(DISTINCT w.id) as whitelist_entries,
+        COUNT(DISTINCT ie.id) + COUNT(DISTINCT w.id) as total_entries
+      FROM users u
+      LEFT JOIN ip_entries ie ON u.username = ie.added_by 
+        AND ie.date_added >= $1 AND ie.date_added <= $2
+      LEFT JOIN whitelist w ON u.username = w.added_by 
+        AND w.date_added >= $1 AND w.date_added <= $2
+      WHERE u.is_active = true ${userFilter}
+        AND (ie.date_added IS NOT NULL OR w.date_added IS NOT NULL)
+      GROUP BY activity_date, u.username
+      ORDER BY activity_date DESC, u.username
+    `;
+    
+    const dailyActivity = await pool.query(dailyActivityQuery, params);
+    
+    return {
+      period: {
+        year,
+        month,
+        monthName: new Date(year, month - 1).toLocaleString('default', { month: 'long' }),
+        startDate,
+        endDate
+      },
+      userActivity: userActivity.rows,
+      categoryBreakdown: categoryBreakdown.rows,
+      dailyActivity: dailyActivity.rows,
+      summary: {
+        totalUsers: userActivity.rows.length,
+        activeUsers: userActivity.rows.filter(u => u.total_entries_added > 0).length,
+        totalEntries: userActivity.rows.reduce((sum, u) => sum + parseInt(u.total_entries_added), 0),
+        totalIpEntries: userActivity.rows.reduce((sum, u) => sum + parseInt(u.ip_entries_added), 0),
+        totalWhitelistEntries: userActivity.rows.reduce((sum, u) => sum + parseInt(u.whitelist_entries_added), 0)
+      }
+    };
+  } catch (error) {
+    console.error('Generate monthly report error:', error);
+    throw error;
+  }
+};
+
+// Send Monthly Report Email
+const sendMonthlyReportEmail = async (reportData, recipientEmail) => {
+  try {
+    const { period, userActivity, summary } = reportData;
+    
+    const subject = `📊 Monthly Activity Report - ${period.monthName} ${period.year} - NDB Bank Threat Response`;
+    
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #1e40af; text-align: center;">📊 Monthly Activity Report</h1>
+        <h2 style="color: #374151; text-align: center;">${period.monthName} ${period.year}</h2>
+        
+        <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #1f2937; margin-top: 0;">📈 Summary</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr><td style="padding: 8px; font-weight: bold;">Total Users:</td><td style="padding: 8px;">${summary.totalUsers}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">Active Users:</td><td style="padding: 8px;">${summary.activeUsers}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">Total Entries Added:</td><td style="padding: 8px;">${summary.totalEntries}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">IP Entries:</td><td style="padding: 8px;">${summary.totalIpEntries}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">Whitelist Entries:</td><td style="padding: 8px;">${summary.totalWhitelistEntries}</td></tr>
+          </table>
+        </div>
+        
+        <div style="margin: 20px 0;">
+          <h3 style="color: #1f2937;">👥 User Activity Details</h3>
+          <table style="width: 100%; border-collapse: collapse; border: 1px solid #d1d5db;">
+            <thead style="background: #f9fafb;">
+              <tr>
+                <th style="padding: 12px; text-align: left; border: 1px solid #d1d5db;">User</th>
+                <th style="padding: 12px; text-align: left; border: 1px solid #d1d5db;">Role</th>
+                <th style="padding: 12px; text-align: center; border: 1px solid #d1d5db;">IP Entries</th>
+                <th style="padding: 12px; text-align: center; border: 1px solid #d1d5db;">Whitelist</th>
+                <th style="padding: 12px; text-align: center; border: 1px solid #d1d5db;">Total</th>
+                <th style="padding: 12px; text-align: left; border: 1px solid #d1d5db;">Last Activity</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${userActivity.map(user => `
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #d1d5db;">${user.username}</td>
+                  <td style="padding: 8px; border: 1px solid #d1d5db;">${user.role}</td>
+                  <td style="padding: 8px; text-align: center; border: 1px solid #d1d5db;">${user.ip_entries_added}</td>
+                  <td style="padding: 8px; text-align: center; border: 1px solid #d1d5db;">${user.whitelist_entries_added}</td>
+                  <td style="padding: 8px; text-align: center; border: 1px solid #d1d5db; font-weight: bold;">${user.total_entries_added}</td>
+                  <td style="padding: 8px; border: 1px solid #d1d5db;">${user.last_activity ? new Date(user.last_activity).toLocaleDateString() : 'No activity'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        
+        <p style="font-size: 12px; color: #666; text-align: center; margin-top: 30px;">
+          Generated on ${new Date().toLocaleString()}<br>
+          NDB Bank Threat Response System - Monthly Activity Report
+        </p>
+      </div>
+    `;
+
+    const command = new SendEmailCommand({
+      Source: config.email.fromEmail,
+      Destination: {
+        ToAddresses: [recipientEmail]
+      },
+      Message: {
+        Subject: {
+          Data: subject,
+          Charset: 'UTF-8'
+        },
+        Body: {
+          Html: {
+            Data: htmlBody,
+            Charset: 'UTF-8'
+          }
+        }
+      }
+    });
+
+    const result = await sesClient.send(command);
+    console.log('✅ Monthly report email sent:', result.MessageId);
+    return result;
+    
+  } catch (error) {
+    console.error('❌ Failed to send monthly report email:', error);
+    throw error;
+  }
+};
+
 // Load environment variables first
 dotenv.config();
 
@@ -744,6 +933,87 @@ app.delete('/api/whitelist/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Remove from whitelist error:', error);
     res.status(500).json({ error: 'Failed to remove from whitelist' });
+  }
+});
+
+// Monthly Reports endpoints
+app.get('/api/reports/monthly', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const { year, month, userId } = req.query;
+    const currentDate = new Date();
+    const reportYear = year ? parseInt(year) : currentDate.getFullYear();
+    const reportMonth = month ? parseInt(month) : currentDate.getMonth() + 1;
+    
+    const report = await generateMonthlyReport(reportYear, reportMonth, userId);
+    res.json(report);
+  } catch (error) {
+    console.error('Get monthly report error:', error);
+    res.status(500).json({ error: 'Failed to generate monthly report' });
+  }
+});
+
+app.post('/api/reports/monthly/send', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const { year, month, userId, email } = req.body;
+    const currentDate = new Date();
+    const reportYear = year || currentDate.getFullYear();
+    const reportMonth = month || currentDate.getMonth() + 1;
+    const recipientEmail = email || config.email.notificationEmail;
+    
+    if (!recipientEmail) {
+      return res.status(400).json({ error: 'Recipient email is required' });
+    }
+    
+    const report = await generateMonthlyReport(reportYear, reportMonth, userId);
+    await sendMonthlyReportEmail(report, recipientEmail);
+    
+    res.json({ 
+      message: 'Monthly report sent successfully',
+      period: report.period,
+      sentTo: recipientEmail
+    });
+  } catch (error) {
+    console.error('Send monthly report error:', error);
+    res.status(500).json({ error: 'Failed to send monthly report' });
+  }
+});
+
+// Auto-generate monthly reports (can be called via cron job)
+app.post('/api/reports/monthly/auto-generate', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const lastMonth = new Date();
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    const year = lastMonth.getFullYear();
+    const month = lastMonth.getMonth() + 1;
+    
+    // Generate report for all users
+    const report = await generateMonthlyReport(year, month);
+    
+    // Send to notification email
+    if (config.email.notificationEmail) {
+      await sendMonthlyReportEmail(report, config.email.notificationEmail);
+    }
+    
+    res.json({
+      message: 'Auto-generated monthly report sent successfully',
+      period: report.period,
+      summary: report.summary
+    });
+  } catch (error) {
+    console.error('Auto-generate monthly report error:', error);
+    res.status(500).json({ error: 'Failed to auto-generate monthly report' });
   }
 });
 
