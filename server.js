@@ -51,6 +51,12 @@ let emailTransporter;
 if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
   // AWS SES SMTP Configuration
   console.log('📧 Configuring AWS SES SMTP for email notifications...');
+  console.log('📧 SMTP Host:', process.env.SMTP_HOST);
+  console.log('📧 SMTP Port:', process.env.SMTP_PORT || 587);
+  console.log('📧 SMTP User:', process.env.SMTP_USER);
+  console.log('📧 From Email:', process.env.FROM_EMAIL);
+  console.log('📧 Notification Email:', process.env.NOTIFICATION_EMAIL);
+  
   emailTransporter = nodemailer.createTransporter({
     host: process.env.SMTP_HOST,
     port: process.env.SMTP_PORT || 587,
@@ -58,22 +64,44 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS
-    }
+    },
+    debug: true, // Enable debug logging
+    logger: true // Enable logging
   });
   console.log('✅ AWS SES SMTP configured successfully');
+  
+  // Test the connection
+  emailTransporter.verify((error, success) => {
+    if (error) {
+      console.error('❌ SMTP connection test failed:', error);
+    } else {
+      console.log('✅ SMTP connection test successful');
+    }
+  });
 } else {
-  console.log('⚠️ No email configuration found. Email notifications will be disabled.');
+  console.log('⚠️ Missing email configuration:');
+  console.log('   SMTP_HOST:', !!process.env.SMTP_HOST);
+  console.log('   SMTP_USER:', !!process.env.SMTP_USER);
+  console.log('   SMTP_PASS:', !!process.env.SMTP_PASS);
+  console.log('   FROM_EMAIL:', !!process.env.FROM_EMAIL);
+  console.log('   NOTIFICATION_EMAIL:', !!process.env.NOTIFICATION_EMAIL);
   emailTransporter = null;
 }
 
 // Function to send email notification
 const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
+  console.log('📧 sendRecordAddedEmail called with:', { recordType, recordData, addedBy });
+  
   if (!emailTransporter || !process.env.NOTIFICATION_EMAIL || !process.env.FROM_EMAIL) {
-    console.log('📧 Email not configured or missing required variables, skipping notification');
+    console.log('❌ Email not configured or missing required variables:');
+    console.log('   emailTransporter:', !!emailTransporter);
+    console.log('   NOTIFICATION_EMAIL:', !!process.env.NOTIFICATION_EMAIL);
+    console.log('   FROM_EMAIL:', !!process.env.FROM_EMAIL);
     return;
   }
 
   try {
+    console.log('📧 Preparing email notification...');
     const subject = `🚨 New ${recordType} Added - NDB Bank Threat Response System`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
@@ -132,6 +160,10 @@ const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
       </div>
     `;
 
+    console.log('📧 Sending email from:', process.env.FROM_EMAIL);
+    console.log('📧 Sending email to:', process.env.NOTIFICATION_EMAIL);
+    console.log('📧 Email subject:', subject);
+    
     await emailTransporter.sendMail({
       from: process.env.FROM_EMAIL,
       to: process.env.NOTIFICATION_EMAIL,
@@ -141,7 +173,11 @@ const sendRecordAddedEmail = async (recordType, recordData, addedBy) => {
 
     console.log('✅ Email notification sent successfully for new', recordType, 'record');
   } catch (error) {
-    console.error('❌ Failed to send email notification:', error.message);
+    console.error('❌ Failed to send email notification:');
+    console.error('   Error message:', error.message);
+    console.error('   Error code:', error.code);
+    console.error('   Error response:', error.response);
+    console.error('   Full error:', error);
   }
 };
 
