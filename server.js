@@ -1061,83 +1061,39 @@ app.post('/api/reports/monthly/auto-generate', async (req, res) => {
 
 // Serve static files
 if (fs.existsSync(path.join(__dirname, 'dist'))) {
-  // Check if index.html exists in dist directory
-  const indexPath = path.join(__dirname, 'dist', 'index.html');
-  if (fs.existsSync(indexPath)) {
-    app.use(express.static(path.join(__dirname, 'dist')));
-    
-    // Handle frontend routes (non-API routes)
-    app.get('*', (req, res) => {
-      // Only serve React app for non-API routes
-      if (!req.originalUrl.startsWith('/api')) {
-        res.sendFile(indexPath);
-      } else {
-        // API routes that don't exist should return 404 JSON
-        res.status(404).json({ 
-          error: 'API endpoint not found',
-          message: `The API endpoint ${req.originalUrl} does not exist`,
-          availableEndpoints: [
-            'GET /api/health',
-            'POST /api/auth/login',
-            'GET /api/edl/{category}',
-            'GET /api/users (authenticated)',
-            'GET /api/categories (authenticated)',
-            'GET /api/ip-entries (authenticated)',
-            'GET /api/whitelist (authenticated)'
-          ]
-        });
-      }
+  app.use(express.static(path.join(__dirname, 'dist')));
+}
+
+// Handle frontend routes - serve index.html for non-API routes
+app.get('*', (req, res) => {
+  if (req.originalUrl.startsWith('/api')) {
+    // API routes that don't exist should return 404 JSON
+    res.status(404).json({ 
+      error: 'API endpoint not found',
+      message: `The API endpoint ${req.originalUrl} does not exist`,
+      availableEndpoints: [
+        'GET /api/health',
+        'POST /api/auth/login',
+        'GET /api/edl/{category}',
+        'GET /api/users (authenticated)',
+        'GET /api/categories (authenticated)',
+        'GET /api/ip-entries (authenticated)',
+        'GET /api/whitelist (authenticated)'
+      ]
     });
   } else {
-    // No built files available
-    app.get('*', (req, res) => {
-      if (!req.originalUrl.startsWith('/api')) {
-        res.json({ 
-          message: 'Server running - build the app with: npm run build',
-          timestamp: new Date().toISOString()
-        });
-      } else {
-        res.status(404).json({ 
-          error: 'API endpoint not found',
-          message: `The API endpoint ${req.originalUrl} does not exist`,
-          availableEndpoints: [
-            'GET /api/health',
-            'POST /api/auth/login',
-            'GET /api/edl/{category}',
-            'GET /api/users (authenticated)',
-            'GET /api/categories (authenticated)',
-            'GET /api/ip-entries (authenticated)',
-            'GET /api/whitelist (authenticated)'
-          ]
-        });
-      }
-    });
-  }
-} else {
-  // No dist directory
-  app.get('*', (req, res) => {
-    if (!req.originalUrl.startsWith('/api')) {
+    // Serve React app for frontend routes
+    const indexPath = path.join(__dirname, 'dist', 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
       res.json({ 
         message: 'Server running - build the app with: npm run build',
         timestamp: new Date().toISOString()
       });
-    } else {
-      res.status(404).json({ 
-        error: 'API endpoint not found',
-        message: `The API endpoint ${req.originalUrl} does not exist`,
-        availableEndpoints: [
-          'GET /api/health',
-          'POST /api/auth/login',
-          'GET /api/edl/{category}',
-          'GET /api/users (authenticated)',
-          'GET /api/categories (authenticated)',
-          'GET /api/ip-entries (authenticated)',
-          'GET /api/whitelist (authenticated)'
-        ]
-      });
     }
-  });
-}
+  }
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
