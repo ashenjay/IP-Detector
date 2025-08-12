@@ -1071,7 +1071,7 @@ if (fs.existsSync(path.join(__dirname, 'dist'))) {
 
 // Handle frontend routes - serve index.html for non-API routes
 app.get('*', (req, res) => {
-  if (req.originalUrl.startsWith('/api')) {
+  if (req.originalUrl.startsWith('/api/') || req.originalUrl === '/api') {
     // API routes that don't exist should return 404 JSON
     res.status(404).json({ 
       error: 'API endpoint not found',
