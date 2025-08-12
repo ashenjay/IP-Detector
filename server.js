@@ -266,7 +266,7 @@ const pool = new Pool({
 
 // Test database connection
 // Skip database connection test in development to avoid blocking server startup
-if (config.nodeEnv === 'production') {
+if (config.nodeEnv === 'production' && config.database.host) {
   pool.connect((err, client, release) => {
     if (err) {
       console.error('❌ Error connecting to database:', err.stack);
@@ -276,7 +276,11 @@ if (config.nodeEnv === 'production') {
     }
   });
 } else {
-  console.log('⚠️ Skipping database connection test in development mode');
+  if (!config.database.host) {
+    console.log('⚠️ No database host configured - running without database');
+  } else {
+    console.log('⚠️ Skipping database connection test in development mode');
+  }
 }
 
 // Email configuration
