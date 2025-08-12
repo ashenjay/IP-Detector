@@ -1019,15 +1019,30 @@ app.post('/api/reports/monthly/auto-generate', authenticateToken, async (req, re
 
 // Serve static files
 if (fs.existsSync(path.join(__dirname, 'dist'))) {
-  app.use(express.static(path.join(__dirname, 'dist')));
-  
-  app.get('*', (req, res) => {
-    // Don't serve index.html for API routes
-    if (req.path.startsWith('/api')) {
-      return res.status(404).json({ error: 'API endpoint not found' });
-    }
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-  });
+  // Check if index.html exists in dist directory
+  const indexPath = path.join(__dirname, 'dist', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    app.use(express.static(path.join(__dirname, 'dist')));
+    
+    app.get('*', (req, res) => {
+      // Don't serve index.html for API routes
+      if (req.path.startsWith('/api')) {
+        return res.status(404).json({ error: 'API endpoint not found' });
+      }
+      res.sendFile(indexPath);
+    });
+  } else {
+    app.get('*', (req, res) => {
+      // Don't serve fallback message for API routes
+      if (req.path.startsWith('/api')) {
+        return res.status(404).json({ error: 'API endpoint not found' });
+      }
+      res.json({ 
+        message: 'Server running - build the app with: npm run build',
+        timestamp: new Date().toISOString()
+      });
+    });
+  }
 } else {
   app.get('*', (req, res) => {
     // Don't serve fallback message for API routes
