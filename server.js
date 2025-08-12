@@ -1026,7 +1026,7 @@ if (fs.existsSync(path.join(__dirname, 'dist'))) {
     
     app.get('*', (req, res) => {
       // Don't serve index.html for API routes
-      if (req.path.startsWith('/api')) {
+      if (req.originalUrl.startsWith('/api')) {
         return res.status(404).json({ error: 'API endpoint not found' });
       }
       res.sendFile(indexPath);
@@ -1034,7 +1034,7 @@ if (fs.existsSync(path.join(__dirname, 'dist'))) {
   } else {
     app.get('*', (req, res) => {
       // Don't serve fallback message for API routes
-      if (req.path.startsWith('/api')) {
+      if (req.originalUrl.startsWith('/api')) {
         return res.status(404).json({ error: 'API endpoint not found' });
       }
       res.json({ 
@@ -1046,7 +1046,7 @@ if (fs.existsSync(path.join(__dirname, 'dist'))) {
 } else {
   app.get('*', (req, res) => {
     // Don't serve fallback message for API routes
-    if (req.path.startsWith('/api')) {
+    if (req.originalUrl.startsWith('/api')) {
       return res.status(404).json({ error: 'API endpoint not found' });
     }
     res.json({ 
