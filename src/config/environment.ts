@@ -1,17 +1,10 @@
-const isDevelopment = import.meta.env.DEV;
-const isProduction = import.meta.env.PROD;
-
-// Base URL configuration - use relative URLs to avoid localhost
-const getBaseUrl = () => {
-  // Always use relative URLs to work with any domain
-  return '';
-};
+const isProduction = true;
+const isDevelopment = false;
 
 export const config = {
-  apiBaseUrl: getBaseUrl(),
-  isDevelopment,
-  isProduction,
-  // Use relative URLs for API endpoints
+  apiBaseUrl: '',
+  isDevelopment: false,
+  isProduction: true,
   apiUrl: '/api',
   apiEndpoint: '/api',
   isNetlify: import.meta.env.VITE_NETLIFY === 'true'
