@@ -1069,37 +1069,37 @@ if (fs.existsSync(path.join(__dirname, 'dist'))) {
   app.use(express.static(path.join(__dirname, 'dist')));
 }
 
+// Catch-all for API routes that don't exist - must come before the general catch-all
+app.get('/api/*', (req, res) => {
+  res.status(404).json({ 
+    error: 'API endpoint not found',
+    message: `The API endpoint ${req.originalUrl} does not exist`,
+    availableEndpoints: [
+      'GET /api/health',
+      'POST /api/auth/login',
+      'GET /api/edl/{category}',
+      'GET /api/users (authenticated)',
+      'GET /api/categories (authenticated)',
+      'GET /api/ip-entries (authenticated)',
+      'GET /api/whitelist (authenticated)',
+      'GET /api/reports/monthly (authenticated)',
+      'POST /api/reports/monthly/send (authenticated)',
+      'POST /api/reports/monthly/auto-generate (authenticated)'
+    ]
+  });
+});
+
 // Handle frontend routes - serve index.html for non-API routes
 app.get('*', (req, res) => {
-  if (req.originalUrl.startsWith('/api/') || req.originalUrl === '/api') {
-    // API routes that don't exist should return 404 JSON
-    res.status(404).json({ 
-      error: 'API endpoint not found',
-      message: `The API endpoint ${req.originalUrl} does not exist`,
-      availableEndpoints: [
-        'GET /api/health',
-        'POST /api/auth/login',
-        'GET /api/edl/{category}',
-        'GET /api/users (authenticated)',
-        'GET /api/categories (authenticated)',
-        'GET /api/ip-entries (authenticated)',
-        'GET /api/whitelist (authenticated)',
-        'GET /api/reports/monthly (authenticated)',
-        'POST /api/reports/monthly/send (authenticated)',
-        'POST /api/reports/monthly/auto-generate (authenticated)'
-      ]
-    });
+  // Serve React app for frontend routes
+  const indexPath = path.join(__dirname, 'dist', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
   } else {
-    // Serve React app for frontend routes
-    const indexPath = path.join(__dirname, 'dist', 'index.html');
-    if (fs.existsSync(indexPath)) {
-      res.sendFile(indexPath);
-    } else {
-      res.json({ 
-        message: 'Server running - build the app with: npm run build',
-        timestamp: new Date().toISOString()
-      });
-    }
+    res.json({ 
+      message: 'Server running - build the app with: npm run build',
+      timestamp: new Date().toISOString()
+    });
   }
 });
 
