@@ -1068,6 +1068,11 @@ apiRouter.post('/reports/monthly/auto-generate', async (req, res) => {
 // Mount API router
 app.use('/api', apiRouter);
 
+// Handle unmatched API routes with JSON 404
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' });
+});
+
 // Serve static files
 if (fs.existsSync(path.join(__dirname, 'dist'))) {
   app.use(express.static(path.join(__dirname, 'dist')));
