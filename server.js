@@ -1083,7 +1083,10 @@ app.get('*', (req, res) => {
         'GET /api/users (authenticated)',
         'GET /api/categories (authenticated)',
         'GET /api/ip-entries (authenticated)',
-        'GET /api/whitelist (authenticated)'
+        'GET /api/whitelist (authenticated)',
+        'GET /api/reports/monthly (authenticated)',
+        'POST /api/reports/monthly/send (authenticated)',
+        'POST /api/reports/monthly/auto-generate (authenticated)'
       ]
     });
   } else {
