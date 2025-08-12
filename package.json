@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "start": "ps aux | grep 'node server.js' | grep -v grep | awk '{print $2}' | xargs kill || true && node server.js",
+    "start": "ps -ef | grep 'node server.js' | grep -v grep | awk '{print $2}' | xargs kill || true && node server.js",
     "start:prod": "npm run build && node server.js"
   },
   "dependencies": {
