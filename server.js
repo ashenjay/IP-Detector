@@ -444,8 +444,46 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Middleware to protect all API routes except public ones
+app.use('/api', (req, res, next) => {
+  // Public routes that don't require authentication
+  const publicRoutes = [
+    '/api/health',
+    '/api/auth/login',
+    '/api/edl/'
+  ];
+  
+  // Check if the route is public
+  const isPublicRoute = publicRoutes.some(route => {
+    if (route.endsWith('/')) {
+      return req.path.startsWith(route);
+    }
+    return req.path === route;
+  });
+  
+  if (isPublicRoute) {
+    return next();
+  }
+  
+  // For all other API routes, require authentication
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  jwt.verify(token, config.jwt.secret, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: 'Invalid or expired token' });
+    }
+    req.user = user;
+    next();
+  });
+});
+
 // Test email endpoint
-app.post('/api/test-email', authenticateToken, async (req, res) => {
+app.post('/api/test-email', async (req, res) => {
   try {
     if (!sesClient && !emailTransporter) {
       return res.status(400).json({ 
@@ -556,7 +594,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // Users endpoints
-app.get('/api/users', authenticateToken, async (req, res) => {
+app.get('/api/users', async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -570,7 +608,7 @@ app.get('/api/users', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/users', authenticateToken, async (req, res) => {
+app.post('/api/users', async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -604,7 +642,7 @@ app.post('/api/users', authenticateToken, async (req, res) => {
   }
 });
 
-app.put('/api/users/:id', authenticateToken, async (req, res) => {
+app.put('/api/users/:id', async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -642,7 +680,7 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
   }
 });
 
-app.delete('/api/users/:id', authenticateToken, async (req, res) => {
+app.delete('/api/users/:id', async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -667,7 +705,7 @@ app.delete('/api/users/:id', authenticateToken, async (req, res) => {
   }
 });
 
-app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
+app.put('/api/users/:id/password', async (req, res) => {
   try {
     const { id } = req.params;
     const { newPassword } = req.body;
@@ -697,7 +735,7 @@ app.put('/api/users/:id/password', authenticateToken, async (req, res) => {
 });
 
 // Categories endpoints
-app.get('/api/categories', authenticateToken, async (req, res) => {
+app.get('/api/categories', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT c.*, 
@@ -714,7 +752,7 @@ app.get('/api/categories', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/categories', authenticateToken, async (req, res) => {
+app.post('/api/categories', async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -739,7 +777,7 @@ app.post('/api/categories', authenticateToken, async (req, res) => {
 });
 
 // IP Entries endpoints
-app.get('/api/ip-entries', authenticateToken, async (req, res) => {
+app.get('/api/ip-entries', async (req, res) => {
   try {
     const { category } = req.query;
     
@@ -781,7 +819,7 @@ app.get('/api/ip-entries', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/ip-entries', authenticateToken, async (req, res) => {
+app.post('/api/ip-entries', async (req, res) => {
   try {
     const { ip, category, description } = req.body;
     const addedBy = req.user.username;
@@ -849,7 +887,7 @@ app.post('/api/ip-entries', authenticateToken, async (req, res) => {
   }
 });
 
-app.delete('/api/ip-entries/:id', authenticateToken, async (req, res) => {
+app.delete('/api/ip-entries/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -862,7 +900,7 @@ app.delete('/api/ip-entries/:id', authenticateToken, async (req, res) => {
 });
 
 // Whitelist endpoints
-app.get('/api/whitelist', authenticateToken, async (req, res) => {
+app.get('/api/whitelist', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM whitelist ORDER BY date_added DESC');
     
@@ -882,7 +920,7 @@ app.get('/api/whitelist', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/whitelist', authenticateToken, async (req, res) => {
+app.post('/api/whitelist', async (req, res) => {
   try {
     const { ip, description } = req.body;
     const addedBy = req.user.username;
@@ -924,7 +962,7 @@ app.post('/api/whitelist', authenticateToken, async (req, res) => {
   }
 });
 
-app.delete('/api/whitelist/:id', authenticateToken, async (req, res) => {
+app.delete('/api/whitelist/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -937,7 +975,7 @@ app.delete('/api/whitelist/:id', authenticateToken, async (req, res) => {
 });
 
 // Monthly Reports endpoints
-app.get('/api/reports/monthly', authenticateToken, async (req, res) => {
+app.get('/api/reports/monthly', async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -956,7 +994,7 @@ app.get('/api/reports/monthly', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/reports/monthly/send', authenticateToken, async (req, res) => {
+app.post('/api/reports/monthly/send', async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -987,7 +1025,7 @@ app.post('/api/reports/monthly/send', authenticateToken, async (req, res) => {
 });
 
 // Auto-generate monthly reports (can be called via cron job)
-app.post('/api/reports/monthly/auto-generate', authenticateToken, async (req, res) => {
+app.post('/api/reports/monthly/auto-generate', async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied' });
