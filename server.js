@@ -261,7 +261,7 @@ const pool = new Pool({
   ssl: config.nodeEnv === 'production' ? { require: true, rejectUnauthorized: false } : false,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 120000,
+  connectionTimeoutMillis: 300000,
 });
 
 // Test database connection
