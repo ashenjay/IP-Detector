@@ -1069,7 +1069,19 @@ if (fs.existsSync(path.join(__dirname, 'dist'))) {
     app.get('*', (req, res) => {
       // Don't serve index.html for API routes
       if (req.originalUrl.startsWith('/api')) {
-        return res.status(404).json({ error: 'API endpoint not found' });
+        return res.status(404).json({ 
+          error: 'API endpoint not found',
+          message: `The API endpoint ${req.originalUrl} does not exist`,
+          availableEndpoints: [
+            'GET /api/health',
+            'POST /api/auth/login',
+            'GET /api/edl/{category}',
+            'GET /api/users (authenticated)',
+            'GET /api/categories (authenticated)',
+            'GET /api/ip-entries (authenticated)',
+            'GET /api/whitelist (authenticated)'
+          ]
+        });
       }
       res.sendFile(indexPath);
     });
@@ -1077,7 +1089,19 @@ if (fs.existsSync(path.join(__dirname, 'dist'))) {
     app.get('*', (req, res) => {
       // Don't serve fallback message for API routes
       if (req.originalUrl.startsWith('/api')) {
-        return res.status(404).json({ error: 'API endpoint not found' });
+        return res.status(404).json({ 
+          error: 'API endpoint not found',
+          message: `The API endpoint ${req.originalUrl} does not exist`,
+          availableEndpoints: [
+            'GET /api/health',
+            'POST /api/auth/login',
+            'GET /api/edl/{category}',
+            'GET /api/users (authenticated)',
+            'GET /api/categories (authenticated)',
+            'GET /api/ip-entries (authenticated)',
+            'GET /api/whitelist (authenticated)'
+          ]
+        });
       }
       res.json({ 
         message: 'Server running - build the app with: npm run build',
@@ -1089,7 +1113,19 @@ if (fs.existsSync(path.join(__dirname, 'dist'))) {
   app.get('*', (req, res) => {
     // Don't serve fallback message for API routes
     if (req.originalUrl.startsWith('/api')) {
-      return res.status(404).json({ error: 'API endpoint not found' });
+      return res.status(404).json({ 
+        error: 'API endpoint not found',
+        message: `The API endpoint ${req.originalUrl} does not exist`,
+        availableEndpoints: [
+          'GET /api/health',
+          'POST /api/auth/login',
+          'GET /api/edl/{category}',
+          'GET /api/users (authenticated)',
+          'GET /api/categories (authenticated)',
+          'GET /api/ip-entries (authenticated)',
+          'GET /api/whitelist (authenticated)'
+        ]
+      });
     }
     res.json({ 
       message: 'Server running - build the app with: npm run build',
