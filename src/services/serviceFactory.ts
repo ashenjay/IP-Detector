@@ -1,6 +1,6 @@
 // Service Factory for Threat Intelligence APIs
 // Provides services for checking IP reputation and threat intelligence
-import { CONFIG } from '../config/environment';
+import { config } from '../config/environment';
 
 export interface VirusTotalStats {
   harmless: number;
@@ -27,7 +27,7 @@ class VirusTotalService {
     try {
       // Make API call to backend which will proxy to VirusTotal
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/ip-entries/check/${ip}`, {
+      const response = await fetch(`${config.apiEndpoint}/ip-entries/check/${ip}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

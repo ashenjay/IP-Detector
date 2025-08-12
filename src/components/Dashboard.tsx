@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCategory } from '../contexts/CategoryContext';
 import { useIP } from '../contexts/IPContext';
-import { CONFIG, getEnvironmentMessage } from '../config/environment';
+import { config, getEnvironmentMessage } from '../config/environment';
 import { 
   Shield, 
   Bug, 
@@ -499,7 +499,7 @@ const Dashboard: React.FC = () => {
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-transparent bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text mb-2 font-mono">IP Category Management</h2>
           <p className="text-cyan-200">
-            Manage malicious IP addresses from multiple sources and generate EDL feeds for Palo Alto firewalls{CONFIG.isNetlify ? ' (Demo Mode)' : ''}
+            Manage malicious IP addresses from multiple sources and generate EDL feeds for Palo Alto firewalls{config.isNetlify ? ' (Demo Mode)' : ''}
           </p>
           <div className="mt-2 flex items-center space-x-4 text-sm text-cyan-300 font-mono">
             <div className="flex items-center space-x-1">
@@ -508,13 +508,13 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="flex items-center space-x-1">
               <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-              <span>AbuseIPDB: {sourceStats.abuseipdb}{CONFIG.isNetlify ? ' (Demo)' : ''}</span>
+              <span>AbuseIPDB: {sourceStats.abuseipdb}{config.isNetlify ? ' (Demo)' : ''}</span>
             </div>
             <div className="flex items-center space-x-1">
               <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span>VirusTotal: {sourceStats.virustotal}{CONFIG.isNetlify ? ' (Demo)' : ''}</span>
+              <span>VirusTotal: {sourceStats.virustotal}{config.isNetlify ? ' (Demo)' : ''}</span>
             </div>
-            {CONFIG.isNetlify && (
+            {config.isNetlify && (
               <div className="flex items-center space-x-1">
                 <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
                 <span>Demo Environment</span>

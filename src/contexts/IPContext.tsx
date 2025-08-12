@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { IPEntry, WhitelistEntry, IPContextType } from '../types';
 import { useAuth } from './AuthContext';
-import { CONFIG } from '../config/environment';
+import { config } from '../config/environment';
 
 const IPContext = createContext<IPContextType | undefined>(undefined);
 
@@ -20,7 +20,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
   const fetchIPEntries = async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/ip-entries`, {
+      const response = await fetch(`${config.apiEndpoint}/ip-entries`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -59,7 +59,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
   const fetchWhitelistEntries = async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/whitelist`, {
+      const response = await fetch(`${config.apiEndpoint}/whitelist`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -99,7 +99,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/ip-entries`, {
+      const response = await fetch(`${config.apiEndpoint}/ip-entries`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -141,7 +141,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/ip-entries/${id}`, {
+      const response = await fetch(`${config.apiEndpoint}/ip-entries/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -172,7 +172,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/whitelist`, {
+      const response = await fetch(`${config.apiEndpoint}/whitelist`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -204,7 +204,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/whitelist/${id}`, {
+      const response = await fetch(`${config.apiEndpoint}/whitelist/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -225,7 +225,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
   const getEDLList = async (category: string): Promise<string[]> => {
     try {
-      const response = await fetch(`${CONFIG.apiEndpoint}/edl/${category}`);
+      const response = await fetch(`${config.apiEndpoint}/edl/${category}`);
       if (response.ok) {
         const text = await response.text();
         return text.split('\n').filter(ip => ip.trim());
@@ -241,7 +241,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/sync/abuseipdb`, {
+      const response = await fetch(`${config.apiEndpoint}/sync/abuseipdb`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -263,7 +263,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/sync/virustotal`, {
+      const response = await fetch(`${config.apiEndpoint}/sync/virustotal`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -288,7 +288,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
   const checkIPReputation = async (ip: string): Promise<any> => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/ip-entries/check/${ip}`, {
+      const response = await fetch(`${config.apiEndpoint}/ip-entries/check/${ip}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -315,7 +315,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/ip-entries/extract`, {
+      const response = await fetch(`${config.apiEndpoint}/ip-entries/extract`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -343,7 +343,7 @@ export const IPProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/ip-entries/bulk-extract`, {
+      const response = await fetch(`${config.apiEndpoint}/ip-entries/bulk-extract`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

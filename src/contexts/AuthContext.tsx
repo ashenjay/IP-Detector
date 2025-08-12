@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthContextType } from '../types';
-import { CONFIG } from '../config/environment';
+import { config } from '../config/environment';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -28,7 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/users`, {
+      const response = await fetch(`${config.apiEndpoint}/users`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -79,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Attempting database login for:', username);
       
-      const response = await fetch(`${CONFIG.apiEndpoint}/auth/login`, {
+      const response = await fetch(`${config.apiEndpoint}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -134,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/users`, {
+      const response = await fetch(`${config.apiEndpoint}/users`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -165,7 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/users/${userId}`, {
+      const response = await fetch(`${config.apiEndpoint}/users/${userId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -206,7 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Updating password for user:', user.id);
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/users/${user.id}/password`, {
+      const response = await fetch(`${config.apiEndpoint}/users/${user.id}/password`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -254,7 +254,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const token = localStorage.getItem('auth_token');
       console.log('Making delete request to:', `${CONFIG.apiEndpoint}/users/${userId}`);
       
-      const response = await fetch(`${CONFIG.apiEndpoint}/users/${userId}`, {
+      const response = await fetch(`${config.apiEndpoint}/users/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

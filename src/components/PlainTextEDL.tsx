@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCategory } from '../contexts/CategoryContext';
 import { useIP } from '../contexts/IPContext';
-import { CONFIG } from '../config/environment';
+import { config } from '../config/environment';
 
 interface PlainTextEDLProps {
   category: string;

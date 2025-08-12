@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { CONFIG } from '../config/environment';
+import { config } from '../config/environment';
 import { 
   TrendingUp, 
   ArrowLeft,
@@ -64,6 +64,7 @@ const ReportsManagement: React.FC = () => {
       }
       
       const response = await fetch(`${CONFIG.apiEndpoint}/reports/monthly?${params}`, {
+      const response = await fetch(`${config.apiEndpoint}/reports/monthly?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -103,7 +104,7 @@ const ReportsManagement: React.FC = () => {
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/reports/monthly/send`, {
+      const response = await fetch(`${config.apiEndpoint}/reports/monthly/send`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -140,7 +141,7 @@ const ReportsManagement: React.FC = () => {
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${CONFIG.apiEndpoint}/reports/monthly/auto-generate`, {
+      const response = await fetch(`${config.apiEndpoint}/reports/monthly/auto-generate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
