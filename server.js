@@ -1066,10 +1066,14 @@ if (fs.existsSync(path.join(__dirname, 'dist'))) {
   if (fs.existsSync(indexPath)) {
     app.use(express.static(path.join(__dirname, 'dist')));
     
+    // Handle frontend routes (non-API routes)
     app.get('*', (req, res) => {
-      // Don't serve index.html for API routes
-      if (req.originalUrl.startsWith('/api')) {
-        return res.status(404).json({ 
+      // Only serve React app for non-API routes
+      if (!req.originalUrl.startsWith('/api')) {
+        res.sendFile(indexPath);
+      } else {
+        // API routes that don't exist should return 404 JSON
+        res.status(404).json({ 
           error: 'API endpoint not found',
           message: `The API endpoint ${req.originalUrl} does not exist`,
           availableEndpoints: [
@@ -1083,13 +1087,17 @@ if (fs.existsSync(path.join(__dirname, 'dist'))) {
           ]
         });
       }
-      res.sendFile(indexPath);
     });
   } else {
+    // No built files available
     app.get('*', (req, res) => {
-      // Don't serve fallback message for API routes
-      if (req.originalUrl.startsWith('/api')) {
-        return res.status(404).json({ 
+      if (!req.originalUrl.startsWith('/api')) {
+        res.json({ 
+          message: 'Server running - build the app with: npm run build',
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(404).json({ 
           error: 'API endpoint not found',
           message: `The API endpoint ${req.originalUrl} does not exist`,
           availableEndpoints: [
@@ -1103,17 +1111,18 @@ if (fs.existsSync(path.join(__dirname, 'dist'))) {
           ]
         });
       }
+    });
+  }
+} else {
+  // No dist directory
+  app.get('*', (req, res) => {
+    if (!req.originalUrl.startsWith('/api')) {
       res.json({ 
         message: 'Server running - build the app with: npm run build',
         timestamp: new Date().toISOString()
       });
-    });
-  }
-} else {
-  app.get('*', (req, res) => {
-    // Don't serve fallback message for API routes
-    if (req.originalUrl.startsWith('/api')) {
-      return res.status(404).json({ 
+    } else {
+      res.status(404).json({ 
         error: 'API endpoint not found',
         message: `The API endpoint ${req.originalUrl} does not exist`,
         availableEndpoints: [
@@ -1127,10 +1136,6 @@ if (fs.existsSync(path.join(__dirname, 'dist'))) {
         ]
       });
     }
-    res.json({ 
-      message: 'Server running - build the app with: npm run build',
-      timestamp: new Date().toISOString()
-    });
   });
 }
 
