@@ -1,24 +1,19 @@
 const isDevelopment = import.meta.env.DEV;
 const isProduction = import.meta.env.PROD;
 
-// Base URL configuration
+// Base URL configuration - use relative URLs to avoid localhost
 const getBaseUrl = () => {
-  if (isDevelopment) {
-    // Development: Vite dev server with proxy
-    return '';
-  } else {
-    // Production: Same origin as the served app
-    return window.location.origin;
-  }
+  // Always use relative URLs to work with any domain
+  return '';
 };
 
 export const config = {
   apiBaseUrl: getBaseUrl(),
   isDevelopment,
   isProduction,
-  // Ensure we use HTTP protocol for local development
-  apiUrl: isDevelopment ? 'http://localhost:5173/api' : `${getBaseUrl()}/api`,
-  apiEndpoint: isDevelopment ? 'http://localhost:5173/api' : `${getBaseUrl()}/api`,
+  // Use relative URLs for API endpoints
+  apiUrl: '/api',
+  apiEndpoint: '/api',
   isNetlify: import.meta.env.VITE_NETLIFY === 'true'
 };
 
