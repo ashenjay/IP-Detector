@@ -63,7 +63,6 @@ const ReportsManagement: React.FC = () => {
         params.append('userId', selectedUser);
       }
       
-      const response = await fetch(`${CONFIG.apiEndpoint}/reports/monthly?${params}`, {
       const response = await fetch(`${config.apiEndpoint}/reports/monthly?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
