@@ -872,17 +872,17 @@ app.post('/api/ip-entries', async (req, res) => {
     const categoryName = categoryResult.rows[0]?.label || 'Unknown Category';
     
     // Send email notification
-    try {
-      await sendRecordAddedEmail('IP Entry', {
-        ip: ip,
-        type: detectType(ip),
-        category: categoryName,
-        description: description || ''
-      }, addedBy);
-      console.log('✅ Email notification sent successfully');
-    } catch (emailError) {
-      console.error('❌ Email notification failed:', emailError);
-    }
+    // Send email notification (non-blocking)
+    sendRecordAddedEmail('IP Entry', {
+      ip: ip,
+      type: detectType(ip),
+      category: categoryName,
+      description: description || ''
+    }, addedBy).then(() => {
+      console.log('✅ Email notification sent successfully for IP:', ip);
+    }).catch(emailError => {
+      console.error('❌ Email notification failed for IP:', ip, 'Error:', emailError.message);
+    });
     
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -953,11 +953,16 @@ app.post('/api/whitelist', async (req, res) => {
     );
     
     // Send email notification
-    await sendRecordAddedEmail('Whitelist Entry', {
+    // Send email notification (non-blocking)
+    sendRecordAddedEmail('Whitelist Entry', {
       ip: ip,
       type: detectType(ip),
       description: description || ''
-    }, addedBy);
+    }, addedBy).then(() => {
+      console.log('✅ Email notification sent successfully for whitelist IP:', ip);
+    }).catch(emailError => {
+      console.error('❌ Email notification failed for whitelist IP:', ip, 'Error:', emailError.message);
+    });
     
     res.status(201).json(result.rows[0]);
   } catch (error) {
