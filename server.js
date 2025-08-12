@@ -420,6 +420,9 @@ app.use(express.json());
 // Trust proxy
 app.set('trust proxy', true);
 
+// Create API Router
+const apiRouter = express.Router();
+
 // JWT middleware
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -437,7 +440,7 @@ const authenticateToken = (req, res, next) => {
 };
 
 // Health check
-app.get('/api/health', (req, res) => {
+apiRouter.get('/health', (req, res) => {
   res.json({ 
     message: 'NDB Bank Threat Response Server',
     status: 'running',
@@ -449,12 +452,12 @@ app.get('/api/health', (req, res) => {
 });
 
 // Middleware to protect all API routes except public ones
-app.use('/api', (req, res, next) => {
+apiRouter.use((req, res, next) => {
   // Public routes that don't require authentication
   const publicRoutes = [
-    '/api/health',
-    '/api/auth/login',
-    '/api/edl/'
+    '/health',
+    '/auth/login',
+    '/edl/'
   ];
   
   // Check if the route is public
@@ -487,7 +490,7 @@ app.use('/api', (req, res, next) => {
 });
 
 // Test email endpoint
-app.post('/api/test-email', async (req, res) => {
+apiRouter.post('/test-email', async (req, res) => {
   try {
     if (!sesClient && !emailTransporter) {
       return res.status(400).json({ 
@@ -519,7 +522,7 @@ app.post('/api/test-email', async (req, res) => {
 });
 
 // PUBLIC EDL ENDPOINTS - NO AUTHENTICATION REQUIRED
-app.get('/api/edl/:category', async (req, res) => {
+apiRouter.get('/edl/:category', async (req, res) => {
   try {
     const categoryName = req.params.category;
     
@@ -550,7 +553,7 @@ app.get('/api/edl/:category', async (req, res) => {
 });
 
 // Authentication
-app.post('/api/auth/login', async (req, res) => {
+apiRouter.post('/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     
@@ -598,7 +601,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // Users endpoints
-app.get('/api/users', async (req, res) => {
+apiRouter.get('/users', async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -612,7 +615,7 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-app.post('/api/users', async (req, res) => {
+apiRouter.post('/users', async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -646,7 +649,7 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
-app.put('/api/users/:id', async (req, res) => {
+apiRouter.put('/users/:id', async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -684,7 +687,7 @@ app.put('/api/users/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/users/:id', async (req, res) => {
+apiRouter.delete('/users/:id', async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -709,7 +712,7 @@ app.delete('/api/users/:id', async (req, res) => {
   }
 });
 
-app.put('/api/users/:id/password', async (req, res) => {
+apiRouter.put('/users/:id/password', async (req, res) => {
   try {
     const { id } = req.params;
     const { newPassword } = req.body;
@@ -739,7 +742,7 @@ app.put('/api/users/:id/password', async (req, res) => {
 });
 
 // Categories endpoints
-app.get('/api/categories', async (req, res) => {
+apiRouter.get('/categories', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT c.*, 
@@ -756,7 +759,7 @@ app.get('/api/categories', async (req, res) => {
   }
 });
 
-app.post('/api/categories', async (req, res) => {
+apiRouter.post('/categories', async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -781,7 +784,7 @@ app.post('/api/categories', async (req, res) => {
 });
 
 // IP Entries endpoints
-app.get('/api/ip-entries', async (req, res) => {
+apiRouter.get('/ip-entries', async (req, res) => {
   try {
     const { category } = req.query;
     
@@ -823,7 +826,7 @@ app.get('/api/ip-entries', async (req, res) => {
   }
 });
 
-app.post('/api/ip-entries', async (req, res) => {
+apiRouter.post('/ip-entries', async (req, res) => {
   try {
     const { ip, category, description } = req.body;
     const addedBy = req.user.username;
@@ -871,7 +874,6 @@ app.post('/api/ip-entries', async (req, res) => {
     const categoryResult = await pool.query('SELECT name, label FROM categories WHERE id = $1', [categoryId]);
     const categoryName = categoryResult.rows[0]?.label || 'Unknown Category';
     
-    // Send email notification
     // Send email notification (non-blocking)
     sendRecordAddedEmail('IP Entry', {
       ip: ip,
@@ -891,7 +893,7 @@ app.post('/api/ip-entries', async (req, res) => {
   }
 });
 
-app.delete('/api/ip-entries/:id', async (req, res) => {
+apiRouter.delete('/ip-entries/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -904,7 +906,7 @@ app.delete('/api/ip-entries/:id', async (req, res) => {
 });
 
 // Whitelist endpoints
-app.get('/api/whitelist', async (req, res) => {
+apiRouter.get('/whitelist', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM whitelist ORDER BY date_added DESC');
     
@@ -924,7 +926,7 @@ app.get('/api/whitelist', async (req, res) => {
   }
 });
 
-app.post('/api/whitelist', async (req, res) => {
+apiRouter.post('/whitelist', async (req, res) => {
   try {
     const { ip, description } = req.body;
     const addedBy = req.user.username;
@@ -952,7 +954,6 @@ app.post('/api/whitelist', async (req, res) => {
       [ip, detectType(ip), description || '', addedBy]
     );
     
-    // Send email notification
     // Send email notification (non-blocking)
     sendRecordAddedEmail('Whitelist Entry', {
       ip: ip,
@@ -971,7 +972,7 @@ app.post('/api/whitelist', async (req, res) => {
   }
 });
 
-app.delete('/api/whitelist/:id', async (req, res) => {
+apiRouter.delete('/whitelist/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -984,7 +985,7 @@ app.delete('/api/whitelist/:id', async (req, res) => {
 });
 
 // Monthly Reports endpoints
-app.get('/api/reports/monthly', async (req, res) => {
+apiRouter.get('/reports/monthly', async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -1003,7 +1004,7 @@ app.get('/api/reports/monthly', async (req, res) => {
   }
 });
 
-app.post('/api/reports/monthly/send', async (req, res) => {
+apiRouter.post('/reports/monthly/send', async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -1034,7 +1035,7 @@ app.post('/api/reports/monthly/send', async (req, res) => {
 });
 
 // Auto-generate monthly reports (can be called via cron job)
-app.post('/api/reports/monthly/auto-generate', async (req, res) => {
+apiRouter.post('/reports/monthly/auto-generate', async (req, res) => {
   try {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Access denied' });
@@ -1064,6 +1065,9 @@ app.post('/api/reports/monthly/auto-generate', async (req, res) => {
   }
 });
 
+// Mount API router
+app.use('/api', apiRouter);
+
 // Serve static files
 if (fs.existsSync(path.join(__dirname, 'dist'))) {
   app.use(express.static(path.join(__dirname, 'dist')));
@@ -1071,25 +1075,6 @@ if (fs.existsSync(path.join(__dirname, 'dist'))) {
 
 // Handle frontend routes - serve index.html for non-API routes
 app.get('*', (req, res) => {
-  // Handle API routes that don't exist
-  if (req.originalUrl.startsWith('/api/')) {
-    return res.status(404).json({ 
-      error: 'API endpoint not found',
-      message: `The API endpoint ${req.originalUrl} does not exist`,
-      availableEndpoints: [
-        'GET /api/health',
-        'POST /api/auth/login',
-        'GET /api/edl/{category}',
-        'GET /api/users (authenticated)',
-        'GET /api/categories (authenticated)',
-        'GET /api/ip-entries (authenticated)',
-        'GET /api/whitelist (authenticated)',
-        'GET /api/reports/monthly (authenticated)',
-        'POST /api/reports/monthly/send (authenticated)',
-        'POST /api/reports/monthly/auto-generate (authenticated)'
-      ]
-    });
-  }
   
   // Serve React app for frontend routes
   const indexPath = path.join(__dirname, 'dist', 'index.html');
